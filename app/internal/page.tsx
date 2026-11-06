@@ -103,29 +103,33 @@ export default function InternalDashboardPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
-      {/* Corporate Header - Syspex */}
+      {/* Corporate Header - Syspex Indonesia */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
-          {/* Logo & Identitas Syspex */}
+          {/* Logo Vektor & Identitas Perusahaan */}
           <div className="flex items-start sm:items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-7 h-7 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="18" rx="2"/>
-                <path d="M7 8h10"/>
-                <path d="M7 12h10"/>
-                <path d="M7 16h10"/>
-                <path d="M12 3v18"/>
+            <div className="h-14 px-4 rounded-2xl bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 border border-blue-600/30 text-white flex items-center justify-center gap-2 flex-shrink-0 shadow-md">
+              <svg className="w-7 h-7 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18" />
+                <path d="M3 15h18" />
+                <path d="M9 3v18" />
+                <path d="M15 3v18" />
               </svg>
+              <div className="flex flex-col text-left">
+                <span className="text-base font-black tracking-tight leading-none text-white">SYSPEX</span>
+                <span className="text-[9px] font-bold text-blue-200 tracking-widest uppercase">Indonesia</span>
+              </div>
             </div>
 
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-widest text-slate-900">
-                  Syspex
+                <span className="text-xs font-black uppercase tracking-widest text-slate-800">
+                  PT Syspex Kemasindo
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold">
-                  Syspex Indonesia &bull; Internal Hub
+                <span className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-[10px] font-bold">
+                  Packaging &amp; Racking Division
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">
                   SMK3 / ISO 45001 Compliance
