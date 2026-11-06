@@ -219,7 +219,7 @@ export default function SafetyTalkPage() {
                 💬 Pertanyaan Refleksi Tim (Uji Pemahaman):
               </span>
               <p className="text-xs font-semibold text-emerald-950 leading-relaxed italic">
-                "{selectedTopic.discussionQuestion}"
+                &ldquo;{selectedTopic.discussionQuestion}&rdquo;
               </p>
             </div>
 
