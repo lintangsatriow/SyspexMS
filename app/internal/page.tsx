@@ -1,446 +1,384 @@
-'use client';
+"use client"
 
-import { useEffect, useState } from 'react';
-import { supabase } from '../../supabase';
+import { useState } from 'react'
+import Link from 'next/link'
 
-interface Incident {
-  id: string;
-  category: string;
-  incident_date: string;
-  location: string;
-  description: string;
-  status: string;
-  created_at: string;
+interface HazardActionItem {
+  id: string
+  location: string
+  category: string
+  action: string
+  pic: string
+  deadline: string
+  status: 'New' | 'On Progress' | 'Closed'
+  riskLevel: 'Low' | 'Medium' | 'High'
 }
 
-interface PTW {
-  id: string;
-  permit_type: string;
-  applicant_name: string;
-  location: string;
-  start_time: string;
-  end_time: string;
-  status: string;
-  created_at: string;
+interface MonthlyData {
+  month: string
+  headcount: number
+  manDays: string
+  manHours: string
 }
 
 export default function InternalDashboardPage() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [ptwList, setPtwList] = useState<PTW[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterCategory, setFilterCategory] = useState('ALL');
+  const [activeTab, setActiveTab] = useState<'overview' | 'capa' | 'manhours' | 'embed'>('overview')
+  const [statusFilter, setStatusFilter] = useState<string>('All')
 
-  const fetchData = async () => {
-    setLoading(true);
+  // Data diambil dari Spreadsheet HSE Performance Dashboard
+  const kpiData = {
+    safeManHours: '177,530',
+    totalManDays: '32,661',
+    zeroLtiDays: '365 Hari',
+    activeHazards: 3,
+    capaClosureRate: '40.0%',
+    weeklySafetyTalk: '100%'
+  }
 
-    // Tarik data laporan insiden
-    const { data: incidentData } = await supabase
-      .from('incident_reports')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (incidentData) setIncidents(incidentData);
-
-    // Tarik data permit to work
-    const { data: ptwData } = await supabase
-      .from('ptw_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (ptwData) setPtwList(ptwData);
-
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const updateIncidentStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('incident_reports')
-      .update({ status: newStatus })
-      .eq('id', id);
-
-    if (!error) {
-      setIncidents((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, status: newStatus } : item
-        )
-      );
-    } else {
-      alert('Gagal mengubah status insiden: ' + error.message);
+  const actionItems: HazardActionItem[] = [
+    {
+      id: 'HZ-003',
+      location: 'Workshop C',
+      category: 'Machinery',
+      action: 'Kencangkan baut cover mesin gerinda & pasang lock washer',
+      pic: 'John D.',
+      deadline: '10 Nov 2026',
+      status: 'New',
+      riskLevel: 'High'
+    },
+    {
+      id: 'HZ-004',
+      location: 'Loading Dock',
+      category: 'Housekeeping',
+      action: 'Bersihkan ceceran oli & sediakan spill kit tambahan',
+      pic: 'Agus S.',
+      deadline: '08 Nov 2026',
+      status: 'On Progress',
+      riskLevel: 'Medium'
+    },
+    {
+      id: 'HZ-005',
+      location: 'Office Lt 2',
+      category: 'Ergonomics',
+      action: 'Pasang cable ducting pelindung instalasi lantai',
+      pic: 'Sarah M.',
+      deadline: '09 Nov 2026',
+      status: 'New',
+      riskLevel: 'Low'
+    },
+    {
+      id: 'HZ-001',
+      location: 'Warehouse A',
+      category: 'Housekeeping',
+      action: 'Rapikan palet keluar dari koridor darurat ke rak simpan',
+      pic: 'John D.',
+      deadline: '05 Okt 2026',
+      status: 'Closed',
+      riskLevel: 'Medium'
+    },
+    {
+      id: 'HZ-002',
+      location: 'Warehouse B',
+      category: 'PPE',
+      action: 'Teguran tertulis & briefing disiplin mandatory helm',
+      pic: 'Sarah M.',
+      deadline: '12 Okt 2026',
+      status: 'Closed',
+      riskLevel: 'High'
     }
-  };
+  ]
 
-  const updatePtwStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('ptw_requests')
-      .update({ status: newStatus })
-      .eq('id', id);
+  const monthlyHours: MonthlyData[] = [
+    { month: 'Oktober 2026', headcount: 123, manDays: '3,701', manHours: '22,215.15' },
+    { month: 'September 2026', headcount: 117, manDays: '3,411', manHours: '21,036.89' },
+    { month: 'Agustus 2026', headcount: 113, manDays: '3,462', manHours: '18,125.41' },
+    { month: 'Juli 2026', headcount: 111, manDays: '3,374', manHours: '20,976.98' },
+    { month: 'Juni 2026', headcount: 107, manDays: '3,224', manHours: '16,812.79' },
+    { month: 'Mei 2026', headcount: 108, manDays: '3,311', manHours: '15,726.17' }
+  ]
 
-    if (!error) {
-      setPtwList((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, status: newStatus } : item
-        )
-      );
-    } else {
-      alert('Gagal mengubah status PTW: ' + error.message);
-    }
-  };
-
-  const exportToCSV = () => {
-    if (incidents.length === 0) return alert('Belum ada data untuk diunduh.');
-
-    const headers = [
-      'ID',
-      'Kategori',
-      'Tanggal & Waktu',
-      'Lokasi',
-      'Deskripsi',
-      'Status',
-    ];
-    const rows = incidents.map((item) => [
-      `"${item.id}"`,
-      `"${item.category}"`,
-      `"${new Date(item.incident_date).toLocaleString('id-ID')}"`,
-      `"${item.location.replace(/"/g, '""')}"`,
-      `"${item.description.replace(/"/g, '""')}"`,
-      `"${item.status || 'Open'}"`,
-    ]);
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute(
-      'download',
-      `Rekap_Insiden_Internal_${new Date().toISOString().slice(0, 10)}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const filteredIncidents =
-    filterCategory === 'ALL'
-      ? incidents
-      : incidents.filter((i) => i.category === filterCategory);
+  const filteredItems = statusFilter === 'All' 
+    ? actionItems 
+    : actionItems.filter(item => item.status === statusFilter)
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Header Dashboard Internal */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/60">
+    <div className="space-y-8 animate-in fade-in duration-300 pb-16">
+      
+      {/* Top Header & Internal Badge */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200/80 pb-5">
         <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-2">
-            🔒 Workspace Internal Pribadi
+          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-800 text-[10px] font-bold uppercase tracking-wider mb-2">
+            🔒 Private Workspace &bull; Internal HSE Hub
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Executive Operations Dashboard
+          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">
+            HSE Performance Command Center
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Pusat pemantauan insiden tapak kerja, otorisasi izin PTW berisiko
-            tinggi, dan kontrol operasional.
+          <p className="text-xs sm:text-sm text-zinc-500 mt-1">
+            Monitoring metrik K3 real-time, man-hours statistik, dan status mitigasi CAPA operasional lapangan.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={exportToCSV}
-            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold py-2.5 px-4 rounded-xl border border-slate-200 shadow-sm transition active:scale-95"
+
+        <div className="flex items-center gap-2">
+          <a
+            href="https://docs.google.com/spreadsheets/d/1DwxuMly4ADF4wEA8Hr8v0V_GoF3cfQeSg93gC3pVHxs/edit?gid=83670053#gid=83670053"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-xs"
           >
-            <span>📥</span> Unduh CSV
-          </button>
-          <button
-            onClick={fetchData}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-sm shadow-emerald-600/20 transition active:scale-95"
+            <span>📊</span>
+            <span>Buka Google Sheet</span>
+          </a>
+          <Link
+            href="/"
+            className="px-3.5 py-2 rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-xs font-semibold transition"
           >
-            <span>🔄</span> Sinkronisasi Data
-          </button>
+            Ke Beranda
+          </Link>
         </div>
       </div>
 
-      {/* Kartu Metrik Utama */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Total Temuan
+      {/* 4 Kartu KPI Utama */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI 1 */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+            Safe Man-Hours
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-900">
+              {kpiData.safeManHours}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 text-sm">
-              📁
-            </div>
+            <span className="text-xs font-semibold text-emerald-600">Jam</span>
           </div>
-          <p className="text-3xl font-black text-slate-900 mt-3">
-            {incidents.length}
-          </p>
-          <p className="text-xs text-slate-400 mt-1">
-            Akumulasi insiden & nearmiss
-          </p>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Temuan Open
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 text-sm">
-              ⚠️
-            </div>
-          </div>
-          <p className="text-3xl font-black text-amber-600 mt-3">
-            {incidents.filter((i) => (i.status || 'Open') === 'Open').length}
-          </p>
-          <p className="text-xs text-amber-600/80 mt-1 font-medium">
-            Perlu tindakan korektif
-          </p>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              PTW Pending
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 text-sm">
-              ⏳
-            </div>
-          </div>
-          <p className="text-3xl font-black text-rose-600 mt-3">
-            {
-              ptwList.filter(
-                (p) => (p.status || 'Pending Review') === 'Pending Review'
-              ).length
-            }
-          </p>
-          <p className="text-xs text-rose-600/80 mt-1 font-medium">
-            Menunggu persetujuan
-          </p>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              PTW Berjalan
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 text-sm">
-              🛡️
-            </div>
-          </div>
-          <p className="text-3xl font-black text-blue-600 mt-3">
-            {ptwList.filter((p) => p.status === 'Approved').length}
-          </p>
-          <p className="text-xs text-blue-600/80 mt-1 font-medium">
-            Pekerjaan berisiko aktif
-          </p>
-        </div>
-      </div>
-
-      {/* Bagian 1: Kontrol Permit to Work (PTW) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-slate-50 to-white">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <span>⚡</span> Kontrol Izin Kerja (Permit to Work)
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Otorisasi langsung izin kerja panas, ketinggian, dan ruang
-              terbatas.
-            </p>
-          </div>
-          <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
-            {ptwList.length} Izin Terdaftar
+          <span className="text-[11px] text-zinc-500 mt-1 block">
+            Total Man-Days: <strong>{kpiData.totalManDays}</strong>
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50/70 text-slate-500 font-semibold border-b border-slate-100 uppercase tracking-wider text-[11px]">
-                <th className="p-4">Jenis Izin</th>
-                <th className="p-4">Pemohon</th>
-                <th className="p-4">Lokasi Lapangan</th>
-                <th className="p-4">Jadwal Jam Kerja</th>
-                <th className="p-4">Status & Otorisasi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
-                    Memuat data izin kerja...
-                  </td>
-                </tr>
-              ) : ptwList.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
-                    Belum ada pengajuan izin kerja.
-                  </td>
-                </tr>
-              ) : (
-                ptwList.slice(0, 5).map((ptw) => (
-                  <tr key={ptw.id} className="hover:bg-slate-50/70 transition">
-                    <td className="p-4 font-semibold text-slate-900">
-                      {ptw.permit_type}
-                    </td>
-                    <td className="p-4 text-slate-600">{ptw.applicant_name}</td>
-                    <td className="p-4 text-slate-600">{ptw.location}</td>
-                    <td className="p-4 text-slate-500">
-                      {new Date(ptw.start_time).toLocaleDateString('id-ID', {
-                        month: 'short',
-                        day: 'numeric',
-                      })}{' '}
-                      •{' '}
-                      {new Date(ptw.start_time).toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}{' '}
-                      -{' '}
-                      {new Date(ptw.end_time).toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="p-4">
-                      <select
-                        value={ptw.status || 'Pending Review'}
-                        onChange={(e) =>
-                          updatePtwStatus(ptw.id, e.target.value)
-                        }
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg border outline-none cursor-pointer shadow-sm transition ${
-                          ptw.status === 'Approved'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                            : ptw.status === 'Closed'
-                            ? 'bg-slate-100 text-slate-600 border-slate-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                        }`}
-                      >
-                        <option value="Pending Review">
-                          🟡 Pending Review
-                        </option>
-                        <option value="Approved">
-                          🔵 Approved (Diizinkan)
-                        </option>
-                        <option value="Closed">⚪ Closed (Selesai)</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Bagian 2: Log Pelaporan Insiden & Bahaya */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-50 to-white">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">
-              Daftar Insiden & Temuan Lapangan
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Pemantauan kasus bahaya dan status penyelesaian perbaikan.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 font-medium">
-              Filter Kategori:
+        {/* KPI 2 */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+            Zero LTI Milestone
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-600">
+              {kpiData.zeroLtiDays}
             </span>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="text-xs font-medium border border-slate-200 rounded-xl px-3 py-1.5 bg-white shadow-sm outline-none cursor-pointer text-slate-700 hover:border-slate-300"
-            >
-              <option value="ALL">Semua Kategori</option>
-              <option value="Unsafe Condition">Unsafe Condition</option>
-              <option value="Unsafe Action">Unsafe Action</option>
-              <option value="Nearmiss">Nearmiss</option>
-              <option value="First Aid">First Aid</option>
-              <option value="LTI">LTI</option>
-            </select>
           </div>
+          <span className="text-[11px] text-emerald-700 font-medium mt-1 block">
+            ✓ Nihil Kecelakaan Berat
+          </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50/70 text-slate-500 font-semibold border-b border-slate-100 uppercase tracking-wider text-[11px]">
-                <th className="p-4">Kategori Bahaya</th>
-                <th className="p-4">Waktu Lapor</th>
-                <th className="p-4">Lokasi Kejadian</th>
-                <th className="p-4">Detail Kronologi</th>
-                <th className="p-4">Status Temuan</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
-                    Memuat data temuan...
-                  </td>
-                </tr>
-              ) : filteredIncidents.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
-                    Tidak ada laporan pada kategori yang dipilih.
-                  </td>
-                </tr>
-              ) : (
-                filteredIncidents.map((incident) => (
-                  <tr
-                    key={incident.id}
-                    className="hover:bg-slate-50/70 transition"
-                  >
-                    <td className="p-4">
-                      <span className="inline-block px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-700 border border-slate-200/80">
-                        {incident.category}
-                      </span>
-                    </td>
-                    <td className="p-4 text-slate-500">
-                      {new Date(incident.incident_date).toLocaleString(
-                        'id-ID',
-                        { dateStyle: 'medium', timeStyle: 'short' }
-                      )}
-                    </td>
-                    <td className="p-4 font-semibold text-slate-800">
-                      {incident.location}
-                    </td>
-                    <td
-                      className="p-4 text-slate-600 max-w-sm truncate"
-                      title={incident.description}
-                    >
-                      {incident.description}
-                    </td>
-                    <td className="p-4">
-                      <select
-                        value={incident.status || 'Open'}
-                        onChange={(e) =>
-                          updateIncidentStatus(incident.id, e.target.value)
-                        }
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg border outline-none cursor-pointer shadow-sm transition ${
-                          incident.status === 'Closed'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : incident.status === 'Investigation'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
-                      >
-                        <option value="Open">🟡 Open (Aktif)</option>
-                        <option value="Investigation">🔵 Investigasi</option>
-                        <option value="Closed">🟢 Closed (Selesai)</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* KPI 3 */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+            Active Hazards
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-black font-mono text-amber-500">
+              {kpiData.activeHazards}
+            </span>
+            <span className="text-xs font-semibold text-zinc-500">Temuan</span>
+          </div>
+          <span className="text-[11px] text-amber-800 font-medium mt-1 block">
+            2 New &bull; 1 On Progress
+          </span>
+        </div>
+
+        {/* KPI 4 */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+            CAPA Closure Rate
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-900">
+              {kpiData.capaClosureRate}
+            </span>
+          </div>
+          <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden mt-2">
+            <div className="bg-amber-500 h-full rounded-full" style={{ width: '40%' }} />
+          </div>
         </div>
       </div>
+
+      {/* Navigasi Tab Modul */}
+      <div className="flex items-center gap-2 border-b border-zinc-200">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`pb-3 text-xs font-bold transition border-b-2 px-1 ${
+            activeTab === 'overview'
+              ? 'border-zinc-900 text-zinc-900'
+              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+          }`}
+        >
+          Action Items &bull; Active CAPA
+        </button>
+        <button
+          onClick={() => setActiveTab('manhours')}
+          className={`pb-3 text-xs font-bold transition border-b-2 px-1 ${
+            activeTab === 'manhours'
+              ? 'border-zinc-900 text-zinc-900'
+              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+          }`}
+        >
+          Monthly Man-Hours Trend
+        </button>
+        <button
+          onClick={() => setActiveTab('embed')}
+          className={`pb-3 text-xs font-bold transition border-b-2 px-1 ${
+            activeTab === 'embed'
+              ? 'border-zinc-900 text-zinc-900'
+              : 'border-transparent text-zinc-400 hover:text-zinc-600'
+          }`}
+        >
+          Live Google Sheet Viewer
+        </button>
+      </div>
+
+      {/* Tab Content 1: Action Items / Active Hazards */}
+      {activeTab === 'overview' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-xs text-zinc-500">
+              Menampilkan daftar temuan bahaya aktif dan tindakan perbaikan (CAPA) yang membutuhkan tindak lanjut pengawas:
+            </div>
+            
+            {/* Filter Status */}
+            <div className="flex items-center gap-1.5 self-start sm:self-auto">
+              {['All', 'New', 'On Progress', 'Closed'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition ${
+                    statusFilter === status
+                      ? 'bg-zinc-900 text-white'
+                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-zinc-50 border-b border-zinc-200/80 text-zinc-500 font-bold uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Hazard ID</th>
+                    <th className="py-3 px-4">Lokasi &amp; Kategori</th>
+                    <th className="py-3 px-4">Tindakan Perbaikan (CAPA)</th>
+                    <th className="py-3 px-4">PIC</th>
+                    <th className="py-3 px-4">Target Selesai</th>
+                    <th className="py-3 px-4 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 text-zinc-700">
+                  {filteredItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-zinc-50/70 transition">
+                      <td className="py-3.5 px-4 font-mono font-bold text-zinc-900 whitespace-nowrap">
+                        {item.id}
+                        <span className={`block text-[9px] font-bold uppercase px-1.5 py-0.5 rounded w-max mt-0.5 ${
+                          item.riskLevel === 'High' ? 'bg-rose-100 text-rose-800' :
+                          item.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-800' :
+                          'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          Risk: {item.riskLevel}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <strong className="text-zinc-900 block">{item.location}</strong>
+                        <span className="text-[11px] text-zinc-400">{item.category}</span>
+                      </td>
+                      <td className="py-3.5 px-4 max-w-xs sm:max-w-md">
+                        <p className="leading-relaxed line-clamp-2">{item.action}</p>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-zinc-900 whitespace-nowrap">
+                        {item.pic}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-zinc-500 whitespace-nowrap">
+                        {item.deadline}
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          item.status === 'Closed' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                          item.status === 'On Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                          'bg-rose-100 text-rose-800 border border-rose-200'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content 2: Monthly Man-Hours */}
+      {activeTab === 'manhours' && (
+        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
+          <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-800">
+              Riwayat Akumulasi Jam Kerja Karyawan (Man-Hours 2026)
+            </span>
+            <span className="text-[11px] text-zinc-400">Total 10 Bulan Tercatat</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th className="py-3 px-4">Bulan</th>
+                  <th className="py-3 px-4">Headcount (Pekerja)</th>
+                  <th className="py-3 px-4">Total Man-Days</th>
+                  <th className="py-3 px-4 text-right">Total Man-Hours</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 text-zinc-700">
+                {monthlyHours.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-zinc-50/70 transition">
+                    <td className="py-3 px-4 font-bold text-zinc-900">{row.month}</td>
+                    <td className="py-3 px-4 font-mono">{row.headcount} Orang</td>
+                    <td className="py-3 px-4 font-mono">{row.manDays}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700">{row.manHours} Jam</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content 3: Embed Google Sheet Langsung */}
+      {activeTab === 'embed' && (
+        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden p-4 space-y-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-zinc-500">Pratinjau Lembar Kerja Google Sheets Terintegrasi:</span>
+            <a 
+              href="https://docs.google.com/spreadsheets/d/1DwxuMly4ADF4wEA8Hr8v0V_GoF3cfQeSg93gC3pVHxs/edit?gid=83670053#gid=83670053"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-600 font-semibold hover:underline"
+            >
+              Buka di Tab Baru &rarr;
+            </a>
+          </div>
+          <div className="w-full h-[600px] border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
+            <iframe
+              src="https://docs.google.com/spreadsheets/d/1DwxuMly4ADF4wEA8Hr8v0V_GoF3cfQeSg93gC3pVHxs/preview"
+              width="100%"
+              height="100%"
+              className="border-0"
+              title="Google Sheet HSE Dashboard"
+            />
+          </div>
+        </div>
+      )}
+
     </div>
-  );
+  )
 }
