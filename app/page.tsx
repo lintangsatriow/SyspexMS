@@ -2,132 +2,146 @@ import Link from 'next/link'
 
 export default function HomePage() {
   return (
-    <div className="space-y-10 animate-in fade-in duration-300 pb-16 max-w-6xl mx-auto px-4 pt-6">
-      {/* Top Navbar */}
-      <nav className="flex items-center justify-between border-b border-zinc-200/80 pb-4">
-        <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
-            HSE
-          </span>
-          <span className="font-extrabold text-zinc-900 tracking-tight text-lg">
-            AllAbout<span className="text-emerald-600">HSE</span>
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-semibold text-zinc-600">
-          <Link href="/safety-talk" className="hover:text-zinc-900 transition">
-            Safety Talk
-          </Link>
-          <Link href="/lifting-plan" className="hover:text-zinc-900 transition">
-            Lifting Plan
-          </Link>
-          <Link href="/racking-swl" className="hover:text-zinc-900 transition text-amber-600 font-bold">
-            Racking SWL
-          </Link>
-          <Link 
-            href="/internal" 
-            className="px-3 py-1.5 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 transition shadow-sm text-xs"
-          >
-            🔒 Internal Hub
-          </Link>
-        </div>
-      </nav>
-
+    <div className="space-y-12 animate-in fade-in duration-300 pb-16 pt-4">
+      
       {/* Hero Header */}
-      <div className="text-center max-w-2xl mx-auto space-y-3 pt-4">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
+      <div className="text-center max-w-3xl mx-auto space-y-4 pt-8">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
           Portal Alat Bantu Praktisi K3 Indonesia
         </span>
-        <h1 className="text-3xl sm:text-5xl font-black text-zinc-900 tracking-tight">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight">
           AllAbout<span className="text-emerald-600">HSE</span> Toolkit
         </h1>
-        <p className="text-xs sm:text-sm text-zinc-500 leading-relaxed">
-          Kumpulan kalkulator standar, materi briefing harian, referensi engineering racking, dan dokumen K3 siap pakai untuk HSE Officer, Rigger, dan Tim Fabrikasi.
+        <p className="text-sm sm:text-base text-slate-500 leading-relaxed max-w-2xl mx-auto">
+          Kumpulan kalkulator standar, materi briefing harian, referensi engineering fabrikasi, dan dokumen K3 siap pakai untuk HSE Officer, Rigger, dan Tim Teknis Syspex.
         </p>
       </div>
 
-      {/* Grid Menu Modul (4 Kartu Lengkap) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 pt-2">
+      {/* Grid Menu Modul (6 Kartu Lengkap & Simetris) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
         
-        {/* Modul 1: SWL Racking Gudang (Baru) */}
+        {/* Modul 1: SWL Racking */}
         <Link 
           href="/racking-swl"
-          className="group block p-5 rounded-2xl bg-white border border-zinc-200/80 hover:border-amber-500 hover:shadow-md transition duration-200 flex flex-col justify-between"
+          className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-amber-500 hover:shadow-md transition duration-200 flex flex-col justify-between h-full"
         >
           <div>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-lg mb-3">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-4">
               📦
             </div>
-            <h3 className="text-base font-bold text-zinc-900 group-hover:text-amber-600 transition">
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition">
               Kalkulator SWL Racking
             </h3>
-            <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
               Hitung beban balok beam, bay upright load, lendutan L/200, dan cetak pelat kapasitas resmi customer.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 mt-4">
-            Buka Kalkulator Racking &rarr;
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 mt-5">
+            Buka Kalkulator &rarr;
           </span>
         </Link>
 
         {/* Modul 2: Lifting Plan */}
         <Link 
           href="/lifting-plan"
-          className="group block p-5 rounded-2xl bg-white border border-zinc-200/80 hover:border-amber-500 hover:shadow-md transition duration-200 flex flex-col justify-between"
+          className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-amber-500 hover:shadow-md transition duration-200 flex flex-col justify-between h-full"
         >
           <div>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-lg mb-3">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-4">
               🏗️
             </div>
-            <h3 className="text-base font-bold text-zinc-900 group-hover:text-amber-600 transition">
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition">
               Lifting Plan &amp; CoG
             </h3>
-            <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
               Distribusi beban 2 titik angkat, tegangan sling aktual, dan verifikasi batas aman kapasitas crane.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 mt-4">
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 mt-5">
             Buka Kalkulator CoG &rarr;
           </span>
         </Link>
 
-        {/* Modul 3: Safety Talk */}
+        {/* Modul 3: Desain Scaffolding (Baru) */}
         <Link 
-          href="/safety-talk"
-          className="group block p-5 rounded-2xl bg-white border border-zinc-200/80 hover:border-emerald-500 hover:shadow-md transition duration-200 flex flex-col justify-between"
+          href="/scaffolding"
+          className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-blue-500 hover:shadow-md transition duration-200 flex flex-col justify-between h-full"
         >
           <div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg mb-3">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-4">
+              🪜
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition">
+              Desain Scaffolding (BoQ)
+            </h3>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              Kalkulasi otomatis material perancah (pipa, klem, papan) dan verifikasi standar batas bentang EN-12811.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 mt-5">
+            Buka Kalkulator &rarr;
+          </span>
+        </Link>
+
+        {/* Modul 4: Safety Talk */}
+        <Link 
+          href="/safety-talk"
+          className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-emerald-500 hover:shadow-md transition duration-200 flex flex-col justify-between h-full"
+        >
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mb-4">
               📢
             </div>
-            <h3 className="text-base font-bold text-zinc-900 group-hover:text-emerald-600 transition">
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition">
               Daily Safety Talk
             </h3>
-            <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
               Koleksi bahan briefing keselamatan kerja 5 menit dan pencatatan absensi briefing lapangan digital.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 mt-4">
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 mt-5">
             Buka Modul TBM &rarr;
           </span>
         </Link>
 
-        {/* Modul 4: Statistik K3 */}
+        {/* Modul 5: Induksi Tamu */}
         <Link 
-          href="/calculator"
-          className="group block p-5 rounded-2xl bg-white border border-zinc-200/80 hover:border-emerald-500 hover:shadow-md transition duration-200 flex flex-col justify-between"
+          href="/induction"
+          className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-800 hover:shadow-md transition duration-200 flex flex-col justify-between h-full"
         >
           <div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg mb-3">
-              🧮
+            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-2xl mb-4">
+              🪪
             </div>
-            <h3 className="text-base font-bold text-zinc-900 group-hover:text-emerald-600 transition">
-              Statistik K3
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-slate-800 transition">
+              Safety Induction
             </h3>
-            <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
-              Kalkulator Man-Hours, LTIFR, TRIR, dan Severity Rate sesuai standar Kemenaker &amp; OSHA.
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              Registrasi pengenalan bahaya kerja lokasi, pemahaman APD, dan penerbitan visitor pass tamu/vendor.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 mt-4">
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 mt-5">
+            Buka Registrasi &rarr;
+          </span>
+        </Link>
+
+        {/* Modul 6: Statistik K3 */}
+        <Link 
+          href="/calculator"
+          className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-emerald-500 hover:shadow-md transition duration-200 flex flex-col justify-between h-full"
+        >
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mb-4">
+              🧮
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition">
+              Statistik K3
+            </h3>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              Kalkulator metrik insiden (Man-Hours, LTIFR, TRIR, Severity Rate) sesuai standar Kemenaker &amp; OSHA.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 mt-5">
             Buka Kalkulator &rarr;
           </span>
         </Link>
