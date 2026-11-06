@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 export default function LiftingPlanPage() {
-  // Pilihan Jenis Pesawat Angkat dan Angkut (PAA)
   const [equipmentType, setEquipmentType] = useState<'Crane' | 'Forklift'>('Forklift')
 
   // ==========================================
@@ -30,18 +29,34 @@ export default function LiftingPlanPage() {
   const craneUtilization = (totalGrossLoad / (craneCapacity || 1)) * 100
 
   // ==========================================
-  // STATE & LOGIC: FORKLIFT (LOAD CENTER DERATING)
+  // STATE & LOGIC: FORKLIFT (CoG & EXTENSIONS)
   // ==========================================
-  const [flLoadWeight, setFlLoadWeight] = useState<number>(2.5) // Ton (Berat beban)
-  const [flRatedCapacity, setFlRatedCapacity] = useState<number>(3.0) // Ton (Kapasitas Forklift di Nameplate)
-  const [flRatedLoadCenter, setFlRatedLoadCenter] = useState<number>(500) // mm (Standar Load Center Forklift)
-  const [flActualLoadCenter, setFlActualLoadCenter] = useState<number>(600) // mm (Jarak titik berat aktual)
+  const [flLoadWeight, setFlLoadWeight] = useState<number>(1.5) // Ton (Berat beban bersih)
+  const [flRatedCapacity, setFlRatedCapacity] = useState<number>(3.0) // Ton (Kapasitas Nameplate)
+  const [flRatedLoadCenter, setFlRatedLoadCenter] = useState<number>(500) // mm
+  
+  // Perhitungan CoG berbasis panjang beban
+  const [flLoadLength, setFlLoadLength] = useState<number>(2400) // mm (Panjang material racking)
+  
+  // Extension Settings
+  const [useExtension, setUseExtension] = useState<boolean>(true)
+  const [extensionWeight, setExtensionWeight] = useState<number>(150) // kg (Berat sepasang sepatu)
 
-  // Rumus Praktis Derating Forklift K3: Jika aktual load center melebihi standar pabrik, kapasitas aman menurun.
+  // Asumsi beban merata: CoG Aktual berada di tengah-tengah dimensi panjang beban (Length / 2)
+  const flActualLoadCenter = flLoadLength / 2 
   const isLoadCenterExtended = flActualLoadCenter > flRatedLoadCenter
-  const effectiveSafeCapacity = isLoadCenterExtended 
-    ? flRatedCapacity * (flRatedLoadCenter / flActualLoadCenter)
-    : flRatedCapacity
+
+  // Tahap 1: Derating karena pergeseran CoG (Momen Puntir)
+  let deratedCapacity = flRatedCapacity
+  if (isLoadCenterExtended) {
+    deratedCapacity = flRatedCapacity * (flRatedLoadCenter / flActualLoadCenter)
+  }
+
+  // Tahap 2: Pengurangan kapasitas akibat berat mati sepatu (Extension Weight)
+  const extensionWeightTon = extensionWeight / 1000
+  const effectiveSafeCapacity = useExtension 
+    ? deratedCapacity - extensionWeightTon
+    : deratedCapacity
 
   const flUtilization = (flLoadWeight / (effectiveSafeCapacity || 1)) * 100
   const isFlSafe = flUtilization <= 100
@@ -63,7 +78,7 @@ export default function LiftingPlanPage() {
           Perencanaan Pengangkatan Kritis (Lifting Plan)
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
-          Kalkulator K3 untuk memverifikasi batas aman pengangkatan material fabrikasi. Pilih alat angkat (Forklift atau Crane) untuk melihat parameter yang relevan.
+          Kalkulator K3 untuk memverifikasi batas aman pengangkatan material. Dilengkapi fitur otomatisasi pergeseran titik berat (CoG) akibat penggunaan sepatu garpu (*Fork Extension*).
         </p>
       </div>
 
@@ -78,7 +93,7 @@ export default function LiftingPlanPage() {
           }`}
         >
           <span>🚛</span>
-          <span>Forklift (Load Center)</span>
+          <span>Forklift (CoG &amp; Extension)</span>
         </button>
         <button
           onClick={() => setEquipmentType('Crane')}
@@ -89,7 +104,7 @@ export default function LiftingPlanPage() {
           }`}
         >
           <span>🏗️</span>
-          <span>Crane (Sling &amp; CoG)</span>
+          <span>Crane (Sling Load)</span>
         </button>
       </div>
 
@@ -99,26 +114,26 @@ export default function LiftingPlanPage() {
         <div className="lg:col-span-5 space-y-5">
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2 flex justify-between items-center">
-              <span>{equipmentType === 'Forklift' ? 'Parameter Beban Forklift' : 'Parameter Beban Crane'}</span>
+              <span>{equipmentType === 'Forklift' ? 'Parameter Operasional Forklift' : 'Parameter Beban Crane'}</span>
             </h2>
 
             {/* INPUT FORKLIFT */}
             {equipmentType === 'Forklift' && (
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Berat Beban Aktual (Ton)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={flLoadWeight}
-                    onChange={(e) => setFlLoadWeight(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 transition"
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Berat total bundel racking atau material yang diangkat.</span>
-                </div>
-
+                
+                {/* Info Beban & Kapasitas Dasar */}
                 <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Berat Beban (Ton)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={flLoadWeight}
+                      onChange={(e) => setFlLoadWeight(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 transition"
+                    />
+                  </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">Kapasitas Forklift (Ton)</label>
                     <input
@@ -130,35 +145,61 @@ export default function LiftingPlanPage() {
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 transition"
                     />
                   </div>
+                </div>
+
+                {/* Pergeseran Load Center (CoG) */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Kalkulasi Load Center (CoG)</span>
+                  
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Standar Load Center (mm)</label>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Panjang Material / Beban (mm)</label>
                     <input
                       type="number"
                       step="100"
                       min="500"
-                      value={flRatedLoadCenter}
-                      onChange={(e) => setFlRatedLoadCenter(parseFloat(e.target.value) || 500)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 transition"
+                      value={flLoadLength}
+                      onChange={(e) => setFlLoadLength(parseFloat(e.target.value) || 500)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 transition"
                     />
+                    <div className="mt-1.5 flex justify-between items-center text-[10px]">
+                      <span className="text-slate-500">Standar LC Pabrik: <strong className="font-mono text-slate-700">{flRatedLoadCenter} mm</strong></span>
+                      <span className="text-amber-700 font-bold">CoG Aktual: <strong className="font-mono">{flActualLoadCenter.toFixed(0)} mm</strong> (L/2)</span>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Jarak Titik Berat Beban Aktual (mm)</label>
-                  <input
-                    type="number"
-                    step="50"
-                    min="100"
-                    value={flActualLoadCenter}
-                    onChange={(e) => setFlActualLoadCenter(parseFloat(e.target.value) || 500)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 transition"
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Diukur dari pangkal garpu (backrest) ke titik tengah dimensi beban terpanjang.</span>
+                {/* Toggle Fork Extension */}
+                <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200/60 space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={useExtension}
+                      onChange={(e) => setUseExtension(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 bg-white border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
+                    />
+                    <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">Gunakan Sepatu (Fork Extension)</span>
+                  </label>
+
+                  {useExtension && (
+                    <div className="pl-6 animate-in slide-in-from-top-2 duration-200">
+                      <label className="block text-[11px] font-semibold text-amber-800 mb-1">Berat Fisik Sepatu Fork (kg/pasang)</label>
+                      <input
+                        type="number"
+                        step="10"
+                        min="0"
+                        value={extensionWeight}
+                        onChange={(e) => setExtensionWeight(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 bg-white border border-amber-200/80 rounded-xl text-xs font-mono font-bold text-amber-950 focus:outline-none focus:border-amber-500 transition"
+                      />
+                      <span className="text-[10px] text-amber-700/80 mt-1 block">Berat ini akan mengurangi kapasitas angkat bersih (Net Capacity).</span>
+                    </div>
+                  )}
                 </div>
+
               </div>
             )}
 
-            {/* INPUT CRANE */}
+            {/* INPUT CRANE (Tetap Sama) */}
             {equipmentType === 'Crane' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -253,26 +294,38 @@ export default function LiftingPlanPage() {
             {/* OUTPUT FORKLIFT */}
             {equipmentType === 'Forklift' && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Kapasitas Aman (Derated)</span>
-                    <div className="text-2xl font-black font-mono text-slate-900">{effectiveSafeCapacity.toFixed(2)} <span className="text-xs">Ton</span></div>
-                    {isLoadCenterExtended && (
-                      <span className="text-[10px] font-bold text-amber-600 block mt-1">
-                        ⚠️ Derated by {((1 - (flRatedLoadCenter/flActualLoadCenter)) * 100).toFixed(1)}% (Load Center Jauh)
-                      </span>
-                    )}
+                
+                {/* Kalkulasi Degradasi Kapasitas */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-xs font-bold text-slate-800">Kapasitas Aktual (Effective Safe Capacity)</span>
+                    <span className="text-2xl font-black font-mono text-slate-900">{effectiveSafeCapacity.toFixed(2)} <span className="text-xs">Ton</span></span>
                   </div>
-
-                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Berat Beban Total</span>
-                    <div className="text-2xl font-black font-mono text-slate-900">{flLoadWeight.toFixed(2)} <span className="text-xs">Ton</span></div>
+                  
+                  <div className="text-[10px] text-slate-500 space-y-1.5 pt-1">
+                    <div className="flex justify-between">
+                      <span>Kapasitas Normal (Nameplate):</span>
+                      <strong className="font-mono">{flRatedCapacity.toFixed(2)} Ton</strong>
+                    </div>
+                    {isLoadCenterExtended && (
+                      <div className="flex justify-between text-amber-700">
+                        <span>Derating karena CoG mundur ke {flActualLoadCenter.toFixed(0)}mm:</span>
+                        <strong className="font-mono">-{ (flRatedCapacity - deratedCapacity).toFixed(2) } Ton</strong>
+                      </div>
+                    )}
+                    {useExtension && (
+                      <div className="flex justify-between text-amber-700">
+                        <span>Pengurangan berat fisik sepatu garpu:</span>
+                        <strong className="font-mono">-{ extensionWeightTon.toFixed(2) } Ton</strong>
+                      </div>
+                    )}
                   </div>
                 </div>
 
+                {/* Utilisasi */}
                 <div className="p-4 rounded-xl border border-slate-200 space-y-2">
                   <div className="flex justify-between items-baseline">
-                    <span className="text-xs font-bold text-slate-700">Utilisasi Kapasitas Forklift:</span>
+                    <span className="text-xs font-bold text-slate-700">Utilisasi Beban vs Kapasitas Aktual:</span>
                     <span className={`text-xl font-black font-mono ${flUtilization > 100 ? 'text-red-600' : 'text-slate-900'}`}>
                       {flUtilization.toFixed(1)}%
                     </span>
@@ -284,13 +337,13 @@ export default function LiftingPlanPage() {
                     />
                   </div>
                   <p className="text-[11px] text-slate-500 leading-relaxed pt-2">
-                    Mengangkat profil racking yang panjang akan memindahkan titik beban (*load center*) ke depan. Pastikan garpu masuk sepenuhnya, dan pertahankan posisi tiang (*mast*) miring ke belakang (*tilt back*) saat memindahkan material.
+                    Menggunakan Fork Extension <strong>mengurangi kapasitas angkat secara dramatis</strong> karena berat beban dipindahkan semakin jauh dari sumbu roda depan. Pastikan garpu masuk 100% dan lakukan pergerakan dengan tiang miring ke belakang (Tilt Back).
                   </p>
                 </div>
               </div>
             )}
 
-            {/* OUTPUT CRANE */}
+            {/* OUTPUT CRANE (Tetap Sama) */}
             {equipmentType === 'Crane' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
