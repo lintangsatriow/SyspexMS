@@ -110,14 +110,13 @@ export default function InternalDashboardPage() {
           {/* Logo & Identitas Pabrik Racking */}
           <div className="flex items-start sm:items-center gap-4">
             {/* Slot Logo Perusahaan (Bisa diganti <img> jika sudah upload logo.png ke public) */}
-            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-7 h-7 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="18" rx="2"/>
-                <path d="M7 8h10"/>
-                <path d="M7 12h10"/>
-                <path d="M7 16h10"/>
-                <path d="M12 3v18"/>
-              </svg>
+            <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 p-2 flex items-center justify-center flex-shrink-0 shadow-xs">
+              <img 
+                src="/logo.png" 
+                alt="Logo Perusahaan" 
+                className="w-full h-full object-contain" 
+              />
+            </div>
             </div>
 
             <div className="space-y-1">
