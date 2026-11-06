@@ -103,39 +103,39 @@ export default function InternalDashboardPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
-      {/* Corporate Header & Company Profile Banner */}
+      {/* Corporate Header - Syspex */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
-          {/* Logo & Identitas Pabrik Racking */}
+          {/* Logo & Identitas Syspex */}
           <div className="flex items-start sm:items-center gap-4">
-            {/* Slot Logo Perusahaan (Bisa diganti <img> jika sudah upload logo.png ke public) */}
-            <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 p-2 flex items-center justify-center flex-shrink-0 shadow-xs">
-              <img 
-                src="/logo.png" 
-                alt="Logo Perusahaan" 
-                className="w-full h-full object-contain" 
-              />
-            </div>
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg className="w-7 h-7 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="18" rx="2"/>
+                <path d="M7 8h10"/>
+                <path d="M7 12h10"/>
+                <path d="M7 16h10"/>
+                <path d="M12 3v18"/>
+              </svg>
             </div>
 
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-widest text-slate-400">
-                  PT Racking Manufacturing Indonesia
+                <span className="text-xs font-black uppercase tracking-widest text-slate-900">
+                  Syspex
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold">
-                  Plant 1 &bull; Workshop Fabrikasi
+                  Syspex Indonesia &bull; Internal Hub
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">
-                  ISO 45001 / SMK3 Certified
+                  SMK3 / ISO 45001 Compliance
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Portal Pengendalian K3 &amp; Keselamatan Kerja
+                HSE Performance &amp; Operations Command Center
               </h1>
               <p className="text-xs text-slate-500">
-                Pusat data operasional HSE, pelacakan CAPA hazard nearmiss, dan jam kerja aman terpadu.
+                Pusat kendali metrik K3, audit kepatuhan lapangan, dan mitigasi temuan bahaya (CAPA).
               </p>
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function InternalDashboardPage() {
         </div>
       </div>
 
-      {/* Navigasi Tab Grafis Monokrom */}
+      {/* Navigasi Tab Minimalis Monokrom */}
       <div className="bg-white p-1.5 rounded-xl border border-slate-200/80 shadow-xs flex flex-wrap gap-1.5 w-fit">
         <button
           onClick={() => setActiveTab('overview')}
@@ -233,7 +233,7 @@ export default function InternalDashboardPage() {
       {activeTab === 'overview' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <span className="text-xs font-semibold text-slate-600">Daftar temuan bahaya aktif workshop dan status mitigasi (CAPA):</span>
+            <span className="text-xs font-semibold text-slate-600">Daftar temuan bahaya aktif operasional dan status mitigasi (CAPA):</span>
             
             <div className="flex items-center gap-1.5 flex-wrap">
               {['All', 'New', 'On Progress', 'Closed'].map((status) => (
