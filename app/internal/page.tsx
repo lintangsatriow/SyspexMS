@@ -103,40 +103,67 @@ export default function InternalDashboardPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
-      {/* Header Utama Workspace */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider mb-2">
-            Internal HSE Hub &bull; Performance Desk
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            HSE Performance Command Center
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Monitoring metrik keselamatan kerja, akumulasi man-hours, dan audit status tindakan perbaikan temuan bahaya (CAPA).
-          </p>
-        </div>
+      {/* Corporate Header & Company Profile Banner */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          
+          {/* Logo & Identitas Pabrik Racking */}
+          <div className="flex items-start sm:items-center gap-4">
+            {/* Slot Logo Perusahaan (Bisa diganti <img> jika sudah upload logo.png ke public) */}
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg className="w-7 h-7 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="18" rx="2"/>
+                <path d="M7 8h10"/>
+                <path d="M7 12h10"/>
+                <path d="M7 16h10"/>
+                <path d="M12 3v18"/>
+              </svg>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <a
-            href="https://docs.google.com/spreadsheets/d/1DwxuMly4ADF4wEA8Hr8v0V_GoF3cfQeSg93gC3pVHxs/edit?gid=83670053#gid=83670053"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-2 shadow-xs"
-          >
-            <span>Buka Google Sheet</span>
-            <span>&rarr;</span>
-          </a>
-          <Link
-            href="/"
-            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold transition"
-          >
-            Portal Publik
-          </Link>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                  PT Racking Manufacturing Indonesia
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold">
+                  Plant 1 &bull; Workshop Fabrikasi
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">
+                  ISO 45001 / SMK3 Certified
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Portal Pengendalian K3 &amp; Keselamatan Kerja
+              </h1>
+              <p className="text-xs text-slate-500">
+                Pusat data operasional HSE, pelacakan CAPA hazard nearmiss, dan jam kerja aman terpadu.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <a
+              href="https://docs.google.com/spreadsheets/d/1DwxuMly4ADF4wEA8Hr8v0V_GoF3cfQeSg93gC3pVHxs/edit?gid=83670053#gid=83670053"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-2 shadow-xs"
+            >
+              <span>Buka Google Sheet</span>
+              <span>&rarr;</span>
+            </a>
+            <Link
+              href="/"
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold transition"
+            >
+              Halaman Publik
+            </Link>
+          </div>
+
         </div>
       </div>
 
-      {/* 4 Kartu Metrik KPI Utama */}
+      {/* 4 Kartu Metrik KPI Korporat */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Safe Man-Hours</span>
@@ -175,7 +202,7 @@ export default function InternalDashboardPage() {
         </div>
       </div>
 
-      {/* Navigasi Tab Bersih & Grafis Minimalis (Tanpa Emoji) */}
+      {/* Navigasi Tab Grafis Monokrom */}
       <div className="bg-white p-1.5 rounded-xl border border-slate-200/80 shadow-xs flex flex-wrap gap-1.5 w-fit">
         <button
           onClick={() => setActiveTab('overview')}
@@ -207,7 +234,7 @@ export default function InternalDashboardPage() {
       {activeTab === 'overview' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <span className="text-xs font-semibold text-slate-600">Daftar temuan bahaya aktif dan status mitigasi (CAPA):</span>
+            <span className="text-xs font-semibold text-slate-600">Daftar temuan bahaya aktif workshop dan status mitigasi (CAPA):</span>
             
             <div className="flex items-center gap-1.5 flex-wrap">
               {['All', 'New', 'On Progress', 'Closed'].map((status) => (
