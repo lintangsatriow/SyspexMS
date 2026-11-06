@@ -40,34 +40,23 @@ export default function RootLayout({
 
             {/* Menu Navigasi Atas Lengkap */}
             <nav className="flex items-center gap-1 sm:gap-2">
-              <Link 
-                href="/internal" 
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition"
-              >
+              <Link href="/internal" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
                 Dashboard K3
               </Link>
-              <Link 
-                href="/racking-swl" 
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition"
-              >
+              <Link href="/racking-swl" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
                 SWL Racking
               </Link>
-              <Link 
-                href="/lifting-plan" 
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition"
-              >
+              {/* Ini Menu Baru Scaffolding */}
+              <Link href="/scaffolding" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition text-blue-700 font-bold">
+                Desain Scaffolding
+              </Link>
+              <Link href="/lifting-plan" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
                 Lifting Plan
               </Link>
-              <Link 
-                href="/safety-talk" 
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition"
-              >
+              <Link href="/safety-talk" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
                 Safety Talk
               </Link>
-              <Link 
-                href="/induction" 
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition"
-              >
+              <Link href="/induction" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
                 Induksi Tamu
               </Link>
             </nav>
