@@ -26,14 +26,14 @@ export default function InternalDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<string>('All')
 
   // Data diambil dari Spreadsheet HSE Performance Dashboard
-  const kpiData = {
-    safeManHours: '177,530',
-    totalManDays: '32,661',
-    zeroLtiDays: '365 Hari',
-    activeHazards: 3,
-    capaClosureRate: '40.0%',
-    weeklySafetyTalk: '100%'
-  }
+const kpiData = {
+  safeManHours: '177,530',
+  totalManDays: '32,661',
+  zeroLtiDays: '365 Hari',
+  activeHazards: 3,
+  capaClosureRate: '40.0%',
+  weeklySafetyTalk: '100%'
+}
 
   const actionItems: HazardActionItem[] = [
     {
