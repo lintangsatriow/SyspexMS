@@ -33,12 +33,11 @@ export default function ScaffoldingPage() {
   const actualHeight = totalLifts * frameHeight
   const actualLength = totalBays * bayLength
 
-  // Kapasitas Beban Platform (Medium Duty: 225 kg/m²)
-  // Area 1 Bay = 1.83m x 1.219m = 2.23 m² -> Kapasitas per Bay ~ 500 kg
+  // Kapasitas Beban Platform (Medium Duty: 225 kg/m2)
   const bayPlatformCapacity = 500
-  const estimatedLoadPerWorker = 100 // 80 kg berat badan + 20 kg perkakas
+  const estimatedLoadPerWorker = 100
   const totalLiveLoadKg = workersOnDeck * estimatedLoadPerWorker
-  const maxSafeWorkers = totalBays * 2 // Rekomendasi aman maks 2 pekerja per bay kerja
+  const maxSafeWorkers = totalBays * 2
   const isPlatformOverload = workersOnDeck > maxSafeWorkers
 
   // Rasio Stabilitas & Kebutuhan Pipa Support
@@ -53,7 +52,6 @@ export default function ScaffoldingPage() {
   const qtyCatwalks = totalBays * 2 * deckLevels
   const qtyLadders = ladderPosition !== 'none' ? totalLifts : 0
   
-  // Estimasi Pipa Support Galvanis 6m & Swivel Clamp
   const qtySupportPipes = (needsWallTie || hasOutriggerPipes) ? Math.ceil((totalBays + 1) * 2) : 0
   const qtySwivelClamps = qtySupportPipes * 2
 
@@ -62,7 +60,7 @@ export default function ScaffoldingPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
       
-      {/* Header Halaman (Sembunyi saat cetak) */}
+      {/* Header Halaman */}
       <div className="border-b border-slate-300 pb-5 print:hidden">
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
           <Link href="/" className="hover:text-slate-900 transition">Hub Modul Utama</Link>
@@ -73,7 +71,7 @@ export default function ScaffoldingPage() {
           Perancangan Scaffolding Frame (BoQ, Tangga &amp; Pipa Support)
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
-          Kalkulator Bill of Quantities (BoQ) material Main Frame T-170, validasi batas beban pekerja, verifikasi pipa support pengaku (outrigger/wall-tie), dan penerbitan Scafftag.
+          Kalkulator Bill of Quantities (BoQ) material Main Frame T-170, validasi beban pekerja, verifikasi pipa support pengaku (outrigger/wall-tie), dan penerbitan Scafftag.
         </p>
       </div>
 
@@ -198,7 +196,7 @@ export default function ScaffoldingPage() {
                   <div>
                     <span className="block text-xs font-bold text-slate-800">Pasang Pipa Support / Outrigger</span>
                     <span className="block text-[10px] text-slate-500 mt-0.5">
-                      Pipa galvanis 1.5" miring 45°–60° di kedua sisi bawah untuk memperlebar tapak stabilitas.
+                      Pipa galvanis 1.5 inch miring 45 sampai 60 derajat di kedua sisi bawah untuk memperlebar tapak stabilitas.
                     </span>
                   </div>
                 </label>
@@ -221,26 +219,24 @@ export default function ScaffoldingPage() {
         {/* Kolom Kanan: Skematik 2D & Rekap BoQ */}
         <div className="lg:col-span-8 space-y-6 print:col-span-12">
           
-          {/* Banner Peringatan Overload Pekerja */}
           {isPlatformOverload && (
             <div className="bg-red-50 border border-red-300 rounded-xl p-4 print:border-slate-900 print:bg-white">
               <h3 className="text-xs font-black text-red-700 uppercase flex items-center gap-2 mb-1 print:text-slate-900">
-                <span>⛔</span> <span>PERINGATAN: JUMLAH PEKERJA MELEBIHI REKOMENDASI AMAN</span>
+                <span>[!]</span> <span>PERINGATAN: JUMLAH PEKERJA MELEBIHI REKOMENDASI AMAN</span>
               </h3>
               <p className="text-xs text-red-600 print:text-slate-700">
-                Rencana {workersOnDeck} pekerja di atas platform melampaui batas aman ({maxSafeWorkers} orang untuk bentang {totalBays} bay). Risiko lendutan catwalk atau kegagalan struktur perancah. Kurangi personel aktif.
+                Rencana {workersOnDeck} pekerja di atas platform melampaui batas aman ({maxSafeWorkers} orang untuk bentang {totalBays} bay). Kurangi personel aktif.
               </p>
             </div>
           )}
 
-          {/* Banner Peringatan Wall-Tie / Pipa Support */}
           {needsWallTie && (
             <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 print:border-slate-900 print:bg-white">
               <h3 className="text-xs font-black text-amber-900 uppercase flex items-center gap-2 mb-1 print:text-slate-900">
-                <span>⚠️</span> <span>WAJIB PIPA SUPPORT / WALL-TIE (RASIO {heightRatio.toFixed(1)}:1)</span>
+                <span>[!]</span> <span>WAJIB PIPA SUPPORT / WALL-TIE (RASIO {heightRatio.toFixed(1)}:1)</span>
               </h3>
               <p className="text-xs text-amber-800 print:text-slate-700">
-                Rasio tinggi terhadap lebar dasar melebihi batas bebas 3:1. Wajib dipasang pipa pengikat (*wall-tie*) ke struktur permanen setiap jarak vertikal 4 meter atau gunakan outrigger pipa galvanis.
+                Rasio tinggi terhadap lebar dasar melebihi batas bebas 3:1. Wajib dipasang pipa pengikat (wall-tie) ke struktur permanen setiap jarak vertikal 4 meter atau gunakan outrigger pipa galvanis.
               </p>
             </div>
           )}
@@ -257,7 +253,7 @@ export default function ScaffoldingPage() {
                   ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30 print:bg-emerald-50 print:text-emerald-700 print:border-emerald-300' 
                   : 'bg-red-900/30 text-red-400 border-red-500/30 print:bg-red-50 print:text-red-700 print:border-red-300'
               }`}>
-                {!isPlatformOverload ? '✓ SISTEM TERVERIFIKASI' : '⚠️ OVERLOAD'}
+                {!isPlatformOverload ? 'STATUS: AMAN' : 'STATUS: OVERLOAD'}
               </span>
             </div>
 
@@ -275,12 +271,10 @@ export default function ScaffoldingPage() {
 
                   const ladderBayIndex = ladderPosition === 'left' ? 0 : (ladderPosition === 'right' ? visualBays - 1 : -1)
 
-                  // Pipa Support / Outrigger di sisi kiri dan kanan (jika aktif atau dibutuhkan)
                   if (hasOutriggerPipes || needsWallTie) {
                     const outriggerSpan = 45
                     const outriggerTopLiftY = 276 - (Math.min(2, visualLifts) * liftHeightSVG)
                     
-                    // Outrigger Kiri
                     elements.push(
                       <g key="outrigger-left">
                         <line x1={startX - outriggerSpan} y1="276" x2={startX} y2={outriggerTopLiftY} stroke="#eab308" strokeWidth="2.5" />
@@ -290,7 +284,6 @@ export default function ScaffoldingPage() {
                       </g>
                     )
                     
-                    // Outrigger Kanan
                     const rightEnd = startX + visualBays * bayWidth
                     elements.push(
                       <g key="outrigger-right">
@@ -302,23 +295,19 @@ export default function ScaffoldingPage() {
                     )
                   }
 
-                  // Baseplate bawah
                   for (let i = 0; i <= visualBays; i++) {
                     const x = startX + i * bayWidth
                     elements.push(<rect key={`bp-${i}`} x={x - 6} y="276" width="12" height="4" fill="#94a3b8" rx="1" />)
                   }
 
-                  // Struktur per tingkat
                   for (let y = 0; y < visualLifts; y++) {
                     const yBottom = 276 - (y * liftHeightSVG)
                     const yTop = 276 - ((y + 1) * liftHeightSVG)
 
-                    // Bracing / Tangga per Bay
                     for (let x = 0; x < visualBays; x++) {
                       const xLeft = startX + x * bayWidth
                       const xRight = startX + (x + 1) * bayWidth
 
-                      // BAY TANGGA
                       if (x === ladderBayIndex) {
                         const isEvenLift = y % 2 === 0
                         const ladderStartX = isEvenLift ? xLeft + 8 : xRight - 8
@@ -338,7 +327,6 @@ export default function ScaffoldingPage() {
                           </g>
                         )
                       } else {
-                        // CROSS BRACE
                         elements.push(
                           <g key={`cb-${y}-${x}`}>
                             <line x1={xLeft} y1={yBottom - 6} x2={xRight} y2={yTop + 6} stroke="#94a3b8" strokeWidth="1.5" />
@@ -348,22 +336,18 @@ export default function ScaffoldingPage() {
                         )
                       }
 
-                      // Catwalk (Lantai Kerja)
                       if (y < deckLevels || x === ladderBayIndex) {
                         elements.push(
                           <rect key={`cw-${y}-${x}`} x={xLeft} y={yTop} width={bayWidth} height="5" fill="#475569" rx="1" />
                         )
                       }
 
-                      // Tampilkan Pekerja di Level Tertinggi Lantai Kerja (Hanya di level teratas catwalk)
                       if (y === Math.min(deckLevels - 1, visualLifts - 1) && x < workersOnDeck) {
                         const workerX = xLeft + (bayWidth / 2)
                         const workerY = yTop - 14
                         elements.push(
                           <g key={`worker-${x}`}>
-                            {/* Helm Kuning */}
                             <circle cx={workerX} cy={workerY} r="4" fill="#eab308" />
-                            {/* Badan Rompi Reflektif */}
                             <rect x={workerX - 4} y={workerY + 4} width="8" height="10" fill="#22c55e" rx="1" />
                             <line x1={workerX - 2} y1={workerY + 6} x2={workerX + 2} y2={workerY + 6} stroke="#ffffff" strokeWidth="1" />
                           </g>
@@ -371,7 +355,6 @@ export default function ScaffoldingPage() {
                       }
                     }
 
-                    // Main Frame Oranye
                     for (let x = 0; x <= visualBays; x++) {
                       const posX = startX + x * bayWidth
                       elements.push(
@@ -388,16 +371,13 @@ export default function ScaffoldingPage() {
                   return elements
                 })()}
 
-                {/* Scafftag Hijau */}
                 <rect x="120" y="225" width="10" height="16" fill="#10b981" rx="1" />
                 <text x="125" y="236" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">OK</text>
 
-                {/* Keterangan Atas */}
                 <text x="320" y="25" fill="currentColor" opacity="0.8" fontSize="10" fontWeight="bold" textAnchor="middle" className="font-mono">
                   Tinggi: {actualHeight.toFixed(1)}m | Beban Pekerja: {workersOnDeck} Org (~{totalLiveLoadKg} kg) | Support: {(hasOutriggerPipes || needsWallTie) ? 'PIPA AKTIF' : 'STANDAR'}
                 </text>
                 
-                {/* Dimensi Bentang */}
                 <line x1="130" y1="300" x2="510" y2="300" stroke="currentColor" opacity="0.4" strokeWidth="1" />
                 <polygon points="130,300 135,297 135,303" fill="currentColor" opacity="0.4" />
                 <polygon points="510,300 505,297 505,303" fill="currentColor" opacity="0.4" />
@@ -420,11 +400,11 @@ export default function ScaffoldingPage() {
                 <span className="text-sm font-black text-white font-mono print:text-slate-900">{totalLiveLoadKg} <span className="text-[10px]">kg</span></span>
               </div>
               <div className="p-2.5 bg-slate-950 rounded border border-slate-800 print:bg-white print:border-slate-300">
-                <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Pipa Support (Galvanis 1.5")</span>
+                <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Pipa Support (Galvanis 1.5 in)</span>
                 <span className="text-sm font-black text-amber-400 font-mono print:text-slate-900">{qtySupportPipes} <span className="text-[10px]">Btg</span></span>
               </div>
               <div className="p-2.5 bg-slate-950 rounded border border-slate-800 print:bg-white print:border-slate-300">
-                <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Swivel Clamp 1.5"</span>
+                <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Swivel Clamp 1.5 in</span>
                 <span className="text-sm font-black text-amber-400 font-mono print:text-slate-900">{qtySwivelClamps} <span className="text-[10px]">Pcs</span></span>
               </div>
             </div>
@@ -454,7 +434,7 @@ export default function ScaffoldingPage() {
             </div>
           </div>
 
-          {/* Form Scafftag Lapangan (Khusus Hasil Cetak) */}
+          {/* Form Scafftag Lapangan */}
           <div className="hidden print:block border-2 border-slate-900 p-5 mt-6 rounded">
             <div className="flex justify-between items-center border-b-2 border-slate-900 pb-3 mb-4">
               <div>
@@ -468,9 +448,9 @@ export default function ScaffoldingPage() {
             </div>
 
             <div className="text-xs space-y-1 mb-6 text-slate-700">
-              <p>• <strong>Kondisi Pipa Support / Wall-Tie:</strong> {(hasOutriggerPipes || needsWallTie) ? 'Terpasang & Terkunci Swivel Clamp' : 'Tidak Dipersyaratkan'}</p>
-              <p>• <strong>Akses Vertikal:</strong> {ladderPosition === 'none' ? 'Tangga Eksternal' : `Tangga Internal (Bay ${ladderPosition.toUpperCase()})`}</p>
-              <p>• <strong>Kewajiban APD:</strong> Full Body Harness 100% Tie-Off di atas 1.8m, Helm K3 dengan chinstrap kencang.</p>
+              <p>- <strong>Kondisi Pipa Support / Wall-Tie:</strong> {(hasOutriggerPipes || needsWallTie) ? 'Terpasang dan Terkunci Swivel Clamp' : 'Tidak Dipersyaratkan'}</p>
+              <p>- <strong>Akses Vertikal:</strong> {ladderPosition === 'none' ? 'Tangga Eksternal' : `Tangga Internal (Bay ${ladderPosition.toUpperCase()})`}</p>
+              <p>- <strong>Kewajiban APD:</strong> Full Body Harness 100 persen Tie-Off di atas 1.8m, Helm K3 dengan chinstrap kencang.</p>
             </div>
             
             <div className="grid grid-cols-2 gap-8 pt-2">
@@ -502,7 +482,7 @@ export default function ScaffoldingPage() {
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
             >
-              {(isInputValid && !isPlatformOverload) ? '🖨️ Cetak BoQ &amp; Scafftag' : '⛔ Selesaikan Batas Beban'}
+              {(isInputValid && !isPlatformOverload) ? 'Cetak BoQ &amp; Scafftag' : 'Selesaikan Batas Beban'}
             </button>
           </div>
 
