@@ -31,6 +31,20 @@ export default function SyspexHubPage() {
       desc: 'Pantauan jam kerja aman (Safe Man-Hours), status temuan bahaya (CAPA), dan log izin kerja harian.'
     },
     {
+      href: '/ai-assistant',
+      code: 'AI',
+      category: 'Artificial Intelligence',
+      title: 'HSE Copilot Assistant',
+      desc: 'Asisten AI cerdas untuk konsultasi regulasi K3, penyusunan draf JSA, dan analisis data operasional secara instan.'
+    },
+    {
+      href: '/document-control',
+      code: 'DC',
+      category: 'ISO Compliance',
+      title: 'Master Document Control',
+      desc: 'Pusat pengendalian informasi terdokumentasi (SOP, Kebijakan, Formulir) terpusat sesuai Klausul 7.5.'
+    },
+    {
       href: '/jsa',
       code: 'J',
       category: 'Safety Management',
