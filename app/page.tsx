@@ -7,7 +7,7 @@ export default function SyspexHubPage() {
       code: 'R',
       category: 'Engineering Tool',
       title: 'Kalkulator SWL Racking',
-      desc: 'Validasi kapasitas aman balok (beam), tiang upright, lendutan defleksi L/200, dan cetak Safety Load Notice Plate.',
+      desc: 'Validasi kapasitas balok (beam), tiang upright, lendutan L/200, dan cetak Load Notice Plate resmi.',
       tag: 'Kalkulator Aktif'
     },
     {
@@ -15,7 +15,7 @@ export default function SyspexHubPage() {
       code: 'L',
       category: 'Rigging & Equipment',
       title: 'Lifting Plan & CoG',
-      desc: 'Perhitungan tegangan sling crane, center of gravity (CoG), ekstensi garpu forklift, dan izin kerja berisiko tinggi (PTW).',
+      desc: 'Tegangan sling crane, center of gravity (CoG), ekstensi garpu forklift, dan izin pengangkatan (PTW).',
       tag: 'Izin Kerja Aktif'
     },
     {
@@ -23,7 +23,7 @@ export default function SyspexHubPage() {
       code: 'S',
       category: 'Structure & Access',
       title: 'Desain Scaffolding (BoQ)',
-      desc: 'Estimasi material Main Frame T-170, validasi tangga akses vertikal, pipa pengaku outrigger, dan penerbitan Scafftag.',
+      desc: 'Estimasi material Main Frame T-170, tangga akses vertikal, pipa support pengaku, dan penerbitan Scafftag.',
       tag: 'BoQ & Tag Aktif'
     },
     {
@@ -31,24 +31,64 @@ export default function SyspexHubPage() {
       code: 'D',
       category: 'Executive Overview',
       title: 'Dashboard KPI & CAPA',
-      desc: 'Pantauan jam kerja aman (Safe Man-Hours), status penutupan temuan bahaya (CAPA), dan log izin kerja shift aktif.',
+      desc: 'Pantauan jam kerja aman (Safe Man-Hours), status temuan bahaya (CAPA), dan log izin kerja harian.',
       tag: 'Monitoring Live'
+    },
+    {
+      href: '/jsa',
+      code: 'J',
+      category: 'Safety Management',
+      title: 'Job Safety Analysis (JSA)',
+      desc: 'Matriks mitigasi tahapan kerja teknis, analisis risiko 5x5, dan lembar persetujuan izin kerja berisiko.',
+      tag: 'Matriks Aktif'
     },
     {
       href: '/safety-talk',
       code: 'T',
       category: 'Daily HSE Operations',
       title: 'Daily Safety Talk (TBM)',
-      desc: 'Pustaka materi briefing 5 menit (mesin strapping/wrapping, blindspot forklift, racking) dan absensi pekerja.',
-      tag: 'Siap Digunakan'
+      desc: 'Pustaka materi briefing 5 menit (mesin wrapping/strapping, forklift, racking) dan absensi pekerja.',
+      tag: 'Pustaka Siap'
     },
     {
       href: '/induction',
       code: 'I',
       category: 'Security & Visitor',
       title: 'Safety Induction Tamu',
-      desc: 'Registrasi orientasi K3 untuk tamu/kontraktor, persetujuan tata tertib pabrik, dan penerbitan Visitor Pass digital.',
-      tag: 'Siap Digunakan'
+      desc: 'Registrasi orientasi K3 untuk tamu/vendor, persetujuan tata tertib pabrik, dan penerbitan Visitor Pass.',
+      tag: 'Registrasi Aktif'
+    },
+    {
+      href: '/forklift-inspection',
+      code: 'F',
+      category: 'Heavy Equipment',
+      title: 'Inspeksi Harian Forklift',
+      desc: 'Pemeriksaan pra-operasi rem, kemudi, hidrolik, dan rantai garpu dengan sistem penandaan otomatis Tag-Out.',
+      tag: 'Pre-Use Check'
+    },
+    {
+      href: '/loto',
+      code: 'O',
+      category: 'Machinery Maintenance',
+      title: 'LOTO Permit & Danger Tag',
+      desc: 'Penerbitan kartu isolasi energi berbahaya (listrik, pneumatik) untuk servis mesin packaging/strapping.',
+      tag: 'Danger Tag Aktif'
+    },
+    {
+      href: '/hazard-report',
+      code: 'H',
+      category: 'Employee Participation',
+      title: 'Hazard Hunting / Near Miss',
+      desc: 'Pelaporan cepat kondisi tidak aman atau insiden nyaris celaka dari HP untuk ditindaklanjuti tim HSE.',
+      tag: 'Laporan Cepat'
+    },
+    {
+      href: '/sio-silo',
+      code: 'C',
+      category: 'Compliance & Audit',
+      title: 'Tracker SIO & SILO',
+      desc: 'Basis data pemantauan masa berlaku lisensi operator dan sertifikat kelaikan mesin/alat berat.',
+      tag: 'Audit Ready'
     }
   ]
 
@@ -71,12 +111,12 @@ export default function SyspexHubPage() {
         <div className="flex items-center gap-2 shrink-0">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Semua Modul Siap Digunakan
+            11 Modul Siap Digunakan
           </span>
         </div>
       </div>
 
-      {/* Grid 6 Modul Seragam & Rapi */}
+      {/* Grid 11 Modul Seragam & Rapi */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {modules.map((m) => (
           <Link
