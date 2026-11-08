@@ -6,20 +6,16 @@ import Link from 'next/link'
 export default function RackingSwlPage() {
   const formId = useId()
 
-  // 1. Spesifikasi Pallet & Beban Produk
   const [palletWeight, setPalletWeight] = useState<number>(1000)
   const [palletsPerLevel, setPalletsPerLevel] = useState<number>(2)
   const [numberOfLevels, setNumberOfLevels] = useState<number>(4)
 
-  // 2. Geometri Beam & Upright
   const [beamLength, setBeamLength] = useState<number>(2700)
   const [beamRatedSwl, setBeamRatedSwl] = useState<number>(2500)
   const [uprightFrameCapacity, setUprightFrameCapacity] = useState<number>(12000)
 
-  // 3. Faktor Keamanan & Material
   const [safetyFactor, setSafetyFactor] = useState<number>(1.5)
 
-  // Perhitungan
   const totalLoadPerLevel = palletWeight * palletsPerLevel
   const totalBayLoad = totalLoadPerLevel * numberOfLevels
   const validBeamRated = beamRatedSwl > 0 ? beamRatedSwl : 1
@@ -33,7 +29,6 @@ export default function RackingSwlPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
       
-      {/* Breadcrumb & Header */}
       <div className="border-b border-slate-200 pb-5">
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
           <Link href="/" className="hover:text-slate-900 transition">Beranda</Link>
@@ -47,16 +42,13 @@ export default function RackingSwlPage() {
           Kalkulator SWL Racking Gudang &amp; Pallet Rack
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
-          Alat hitung cepat Safe Working Load (SWL) balok (*beam*), beban bay kolom (*upright*), batas lendutan (*deflection* $L/200$), serta generator blueprint identifikasi beban resmi (*Load Notice Plate*).
+          Alat hitung cepat Safe Working Load (SWL) balok (beam), beban bay kolom (upright), batas lendutan (L/200), serta generator blueprint identifikasi beban resmi.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Kolom Kiri: Input Parameter Teknis */}
         <div className="lg:col-span-4 space-y-5">
-          
-          {/* Card 1: Muatan Pallet */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2 flex justify-between items-center">
               <span>1. Muatan Barang (Pallet Load)</span>
@@ -96,7 +88,6 @@ export default function RackingSwlPage() {
                     <option value={4}>4 Pallet</option>
                   </select>
                 </div>
-
                 <div>
                   <label htmlFor={`${formId}-levels`} className="block text-[11px] font-semibold text-slate-600 mb-1">
                     Jumlah Beam Level
@@ -113,7 +104,6 @@ export default function RackingSwlPage() {
                 </div>
               </div>
 
-              {/* Total UDL per Tingkat */}
               <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900 block">Beban per Tingkat (UDL)</span>
@@ -127,7 +117,6 @@ export default function RackingSwlPage() {
             </div>
           </div>
 
-          {/* Card 2: Profil & Kapasitas Manufaktur Racking */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2 flex justify-between items-center">
               <span>2. Spesifikasi Profil Racking</span>
@@ -137,7 +126,7 @@ export default function RackingSwlPage() {
             <div className="space-y-3">
               <div>
                 <label htmlFor={`${formId}-beamLength`} className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  Panjang Balok Bersih / Clear Span (mm)
+                  Panjang Balok Bersih (mm)
                 </label>
                 <input
                   id={`${formId}-beamLength`}
@@ -165,10 +154,9 @@ export default function RackingSwlPage() {
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition"
                   />
                 </div>
-
                 <div>
                   <label htmlFor={`${formId}-uprightCap`} className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Kapasitas Upright Frame (kg)
+                    Kapasitas Upright (kg)
                   </label>
                   <input
                     id={`${formId}-uprightCap`}
@@ -183,13 +171,9 @@ export default function RackingSwlPage() {
               </div>
             </div>
           </div>
-
         </div>
 
-        {/* Kolom Kanan: Visualisasi interaktif & Blueprint */}
         <div className="lg:col-span-8 space-y-6">
-          
-          {/* Card Visualisator Blueprint Interaktif */}
           <div className="bg-slate-950 rounded-2xl border border-slate-800 p-5 shadow-xl text-white space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5">
@@ -203,10 +187,14 @@ export default function RackingSwlPage() {
               </span>
             </div>
 
-            {/* Sketsa Render Canvas 2D Live */}
             <div className="relative aspect-video w-full bg-slate-900/40 rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden py-4">
-              <svg viewBox="0 0 600 320" className="w-full h-full text-slate-300 font-sans select-none">
-                {/* Garis Grid Grid-Line Latar Belakang */}
+              {/* Di sini perbaikan untuk Screen Reader / Aksesibilitas SVG */}
+              <svg 
+                viewBox="0 0 600 320" 
+                className="w-full h-full text-slate-300 font-sans select-none"
+                role="img"
+                aria-label="Visualisasi 2D Blueprint Desain Racking Gudang Syspex"
+              >
                 <defs>
                   <pattern id="grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
                     <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#ffffff03" strokeWidth="1" />
@@ -214,44 +202,31 @@ export default function RackingSwlPage() {
                 </defs>
                 <rect width="100%" height="100%" fill="url(#grid-pattern)" />
 
-                {/* Ground Line */}
                 <line x1="50" y1="280" x2="550" y2="280" stroke="#334155" strokeWidth="3" />
 
-                {/* Tiang Tegak / Upright Frames (Biru Syspex) */}
-                {/* 1. Kiri */}
                 <rect x="100" y="50" width="16" height="230" fill="#2563eb" rx="2" />
                 <rect x="99" y="48" width="18" height="5" fill="#1d4ed8" />
-                {/* 2. Tengah */}
                 <rect x="280" y="50" width="16" height="230" fill="#2563eb" rx="2" />
                 <rect x="279" y="48" width="18" height="5" fill="#1d4ed8" />
-                {/* 3. Kanan */}
                 <rect x="460" y="50" width="16" height="230" fill="#2563eb" rx="2" />
                 <rect x="459" y="48" width="18" height="5" fill="#1d4ed8" />
 
-                {/* Bracing Diagonal Tiap Upright Frame */}
                 {[0, 1, 2, 3].map((idx) => {
                   const y = 280 - (idx * 55);
                   return (
                     <g key={idx}>
-                      {/* Tiang Kiri - Tengah */}
                       <line x1="116" y1={y} x2="280" y2={y - 45} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="3,3" />
-                      {/* Tiang Tengah - Kanan */}
                       <line x1="296" y1={y} x2="460" y2={y - 45} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="3,3" />
                     </g>
                   );
                 })}
 
-                {/* Balok / Beams (Oren Sesuai input level) */}
                 {Array.from({ length: Math.min(numberOfLevels, 4) }).map((_, idx) => {
-                  const yPos = 270 - (idx * 50); // Jarak per tingkat
+                  const yPos = 270 - (idx * 50);
                   return (
                     <g key={idx}>
-                      {/* Beam Bay 1 (Kiri) */}
                       <rect x="116" y={yPos} width="164" height="8" fill="#f97316" rx="1" />
-                      {/* Beam Bay 2 (Kanan) */}
                       <rect x="296" y={yPos} width="164" height="8" fill="#f97316" rx="1" />
-
-                      {/* Muatan Pallet Di Atas Beam */}
                       {palletsPerLevel >= 1 && <rect x="126" y={yPos - 25} width="60" height="25" fill="#78350f" rx="2" opacity="0.85" />}
                       {palletsPerLevel >= 2 && <rect x="206" y={yPos - 25} width="60" height="25" fill="#78350f" rx="2" opacity="0.85" />}
                       {palletsPerLevel >= 1 && <rect x="306" y={yPos - 25} width="60" height="25" fill="#78350f" rx="2" opacity="0.85" />}
@@ -260,10 +235,8 @@ export default function RackingSwlPage() {
                   );
                 })}
 
-                {/* Anotasi Dimensi */}
                 <text x="280" y="30" fill="#94a3b8" fontSize="10" fontWeight="bold" textAnchor="middle" className="uppercase font-mono">Upright Height: {numberOfLevels * 1.5}m</text>
                 
-                {/* Panjang span */}
                 <line x1="116" y1="295" x2="280" y2="295" stroke="#475569" strokeWidth="1" />
                 <polygon points="116,295 121,292 121,298" fill="#475569" />
                 <polygon points="280,295 275,292 275,298" fill="#475569" />
@@ -276,7 +249,6 @@ export default function RackingSwlPage() {
               </svg>
             </div>
 
-            {/* Rekap Verifikasi Beban & Statis */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                 <span className="text-[10px] text-slate-500 uppercase block font-semibold mb-0.5">Lendutan Maksimum EN</span>
@@ -295,11 +267,10 @@ export default function RackingSwlPage() {
             </div>
           </div>
 
-          {/* Sektor Load Notice & JSA Attachment */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex justify-between items-center gap-4">
             <div>
               <h3 className="text-sm font-extrabold text-slate-900">Safety Load Notice Plate</h3>
-              <p className="text-xs text-slate-500 mt-1">Gunakan hasil kalkulasi ini untuk melengkapi form verifikasi izin K3, cetak pelat beban untuk dipasang di lorong racking.</p>
+              <p className="text-xs text-slate-500 mt-1">Gunakan hasil kalkulasi ini untuk melengkapi form verifikasi izin K3, cetak pelat beban.</p>
             </div>
             <button
               onClick={() => window.print()}
