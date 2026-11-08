@@ -1,304 +1,204 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useId, useEffect } from 'react'
+import Link from 'next/link'
 
-interface SafetyTopic {
+interface Attendee {
   id: string
-  title: string
-  category: 'Ketinggian' | 'Alat Berat' | 'Kesehatan Kerja' | 'Kelistrikan' | 'Ergonomi'
-  readTime: string
-  coreHazard: string
-  talkingPoints: string[]
-  discussionQuestion: string
+  name: string
+  department: string
 }
 
-const SAFETY_TOPICS: SafetyTopic[] = [
-  {
-    id: 'tbm-01',
-    title: 'Bekerja Aman di Ketinggian & Inspeksi Full Body Harness',
-    category: 'Ketinggian',
-    readTime: '4 Menit',
-    coreHazard: 'Jatuh dari ketinggian lebih dari 1.8 meter akibat kegagalan titik angkur atau harness tidak terikat benar.',
-    talkingPoints: [
-      'Lakukan inspeksi 100% pre-use harness: pastikan webbing tidak terkoyak, jahitan tidak putus, dan D-Ring tidak retak atau bengkok.',
-      'Terapkan prinsip 100% tie-off dengan double lanyard. Satu hook harus selalu terpasang saat berpindah posisi.',
-      'Pastikan titik angkur mampu menahan beban minimal 22 kN (5.000 lbs) dan berada di atas posisi kepala (overhead tie-off) untuk meminimalkan jarak jatuh bebas (free fall distance).',
-      'Periksa tanggal kadaluarsa dan tag inspeksi berkala pada harness sebelum naik ke area kerja.'
-    ],
-    discussionQuestion: 'Apakah ada titik angkur di area kerja shift ini yang meragukan atau belum diinspeksi tim scaffolding?'
-  },
-  {
-    id: 'tbm-02',
-    title: 'Mitigasi Titik Buta (Blind Spot) Operasi Alat Berat & Truk',
-    category: 'Alat Berat',
-    readTime: '5 Menit',
-    coreHazard: 'Tertabrak atau terlindas alat berat akibat pejalan kaki berada di luar sudut pandang operator.',
-    talkingPoints: [
-      'Jangan pernah berada di area radius swing alat berat atau di jalur lintasan manuver tanpa izin operator.',
-      'Terapkan kontak visual (eye contact) langsung dengan operator sebelum mendekati unit, tunggu hingga unit berhenti penuh dan attachment diturunkan ke tanah.',
-      'Wajib mengenakan rompi reflektif berspesifikasi tinggi (Hi-Vis class 2/3) yang bersih agar terlihat jelas di area berdebu maupun minim cahaya.',
-      'Gunakan bantuan spotter / rigger resmi bersertifikat saat manuver mundur atau masuk ke gang sempit.'
-    ],
-    discussionQuestion: 'Di titik mana saja jalur pejalan kaki dan lintasan dump truck saling berpotongan di area kerja Anda hari ini?'
-  },
-  {
-    id: 'tbm-03',
-    title: 'Pencegahan Dehidrasi & Heat Stress di Cuaca Ekstrem',
-    category: 'Kesehatan Kerja',
-    readTime: '3 Menit',
-    coreHazard: 'Heat exhaustion hingga heat stroke yang menyebabkan pingsan mendadak saat beroperasi.',
-    talkingPoints: [
-      'Minum air minimal 1 gelas (250 ml) setiap 20–30 menit, jangan menunggu sampai merasa haus.',
-      'Kenali gejala awal heat exhaustion: pusing, keringat berlebih, kram otot, mual, dan detak jantung meningkat.',
-      'Gunakan area istirahat berteduh (shelter) saat break terjadwal dan manfaatkan asupan elektrolit jika pekerjaan berintensitas tinggi.',
-      'Terapkan buddy system: segera laporkan ke pengawas jika rekan kerja terlihat bingung, lemas, atau bicaranya mulai melantur.'
-    ],
-    discussionQuestion: 'Kapan terakhir kali Anda atau rekan kerja mengalami kram panas, dan apakah persediaan air minum di pos kerja Anda mencukupi?'
-  },
-  {
-    id: 'tbm-04',
-    title: 'Disiplin Isolasi Energi Bahaya (Lockout / Tagout - LOTO)',
-    category: 'Kelistrikan',
-    readTime: '4 Menit',
-    coreHazard: 'Pelepasan energi listrik atau mekanikal tak terduga saat pekerjaan perbaikan/maintenance berlangsung.',
-    talkingPoints: [
-      'Satu pekerja, satu gembok, satu kunci (One person, one lock, one key). Dilarang menitipkan kunci LOTO kepada siapa pun.',
-      'Lakukan tahapan baku LOTO: Identifikasi sumber energi → Beritahu pihak terdampak → Matikan unit → Isolasi sumber → Pasang Padlock & Tag Out → Rilis energi sisa.',
-      'Wajib lakukan verifikasi energi nol (Zero Energy State Verification) dengan menekan tombol start lokal atau uji tegangan sebelum menyentuh komponen.',
-      'Tag LOTO harus diisi lengkap: nama pelaksana, departemen, tanggal pemasangan, dan nomor izin kerja (PTW) terkait.'
-    ],
-    discussionQuestion: 'Sudahkah semua orang yang terlibat dalam pekerjaan overhaul memegang kunci gembok LOTO pribadinya masing-masing?'
-  }
-]
-
 export default function SafetyTalkPage() {
-  const [selectedTopic, setSelectedTopic] = useState<SafetyTopic>(SAFETY_TOPICS[0])
-  const [selectedCategory, setSelectedCategory] = useState<string>('Semua')
-  const [attendeeCount, setAttendeeCount] = useState<number>(15)
-  const [conductorName, setConductorName] = useState<string>('')
-  const [locationName, setLocationName] = useState<string>('')
-  const [isLogged, setIsLogged] = useState<boolean>(false)
+  const formId = useId()
+  const [todayDate, setTodayDate] = useState<string>('')
 
-  const categories = ['Semua', 'Ketinggian', 'Alat Berat', 'Kesehatan Kerja', 'Kelistrikan']
+  useEffect(() => {
+    setTodayDate(new Date().toISOString().split('T')[0])
+  }, [])
 
-  const filteredTopics = selectedCategory === 'Semua' 
-    ? SAFETY_TOPICS 
-    : SAFETY_TOPICS.filter(t => t.category === selectedCategory)
+  // State Formulir Briefing
+  const [topic, setTopic] = useState<string>('')
+  const [supervisor, setSupervisor] = useState<string>('')
+  const [shift, setShift] = useState<string>('Shift 1 (Pagi)')
+  const [location, setLocation] = useState<string>('')
 
-  const handleLogMeeting = (e: React.FormEvent) => {
+  // State Absensi Pekerja
+  const [attendees, setAttendees] = useState<Attendee[]>([])
+  const [newName, setNewName] = useState<string>('')
+  const [newDept, setNewDept] = useState<string>('Engineering')
+
+  const handleAddAttendee = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!conductorName || !locationName) return
-    setIsLogged(true)
-    setTimeout(() => setIsLogged(false), 4000)
+    if (!newName.trim()) return
+    const newAttendee: Attendee = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newName,
+      department: newDept
+    }
+    setAttendees([...attendees, newAttendee])
+    setNewName('')
   }
+
+  const handleRemoveAttendee = (id: string) => {
+    setAttendees(attendees.filter(a => a.id !== id))
+  }
+
+  // Validasi tombol simpan/cetak
+  const isFormValid = topic.trim() !== '' && supervisor.trim() !== '' && location.trim() !== '' && attendees.length > 0;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-8 animate-in fade-in duration-300 pb-16">
       
-      {/* Header */}
-      <div>
-        <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-900 text-[10px] font-semibold uppercase tracking-wider mb-2">
-          Briefing Operasional Harian
+      {/* Header Fungsional (Sembunyikan saat dicetak) */}
+      <div className="border-b border-slate-300 pb-5 print:hidden">
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <Link href="/" className="hover:text-slate-900 transition">Hub Modul Utama</Link>
+          <span>/</span>
+          <span className="text-slate-800 font-bold">Safety Talk</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 tracking-tight">
-          Toolbox Meeting (TBM) Desk
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          Daily Safety Talk &amp; Absensi
         </h1>
-        <p className="text-xs sm:text-sm text-zinc-500 mt-1">
-          Kumpulan panduan safety briefing 5 menit berbasis bahaya kritis, siap dibaca langsung dari smartphone di lapangan.
+        <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
+          Catatan pelaksanaan Toolbox Meeting (TBM) harian. Isi materi briefing dan daftar hadir pekerja sebelum memulai shift kerja.
         </p>
       </div>
 
-      {/* Category Pills Filter */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
-              selectedCategory === cat
-                ? 'bg-zinc-900 text-zinc-100 shadow-sm'
-                : 'bg-white border border-zinc-200/80 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+      {/* Header Cetak (Formulir Resmi) */}
+      <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Daily Safety Talk Record</h1>
+            <p className="text-xs text-slate-600 font-bold mt-1">FORMULIR TOOLBOX MEETING K3</p>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] font-mono text-slate-500 block">Diterbitkan oleh:</span>
+            <span className="text-sm font-black text-slate-900">SYSPEX MANAGEMENT SYSTEM</span>
+          </div>
+        </div>
       </div>
 
-      {/* Main Grid: Topic Catalog & Focused Reader */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left Side: Topic List */}
-        <div className="lg:col-span-5 space-y-3">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-1">
-            Pilih Modul Pembahasan ({filteredTopics.length})
-          </div>
-
-          <div className="space-y-2.5">
-            {filteredTopics.map((topic) => {
-              const isSelected = selectedTopic.id === topic.id
-              return (
-                <div
-                  key={topic.id}
-                  onClick={() => setSelectedTopic(topic)}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
-                    isSelected
-                      ? 'bg-zinc-900 border-zinc-800 text-white shadow-md'
-                      : 'bg-white border-zinc-200/80 hover:border-zinc-300 text-zinc-900 shadow-sm'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                      isSelected 
-                        ? 'bg-zinc-800 text-amber-400 border border-zinc-700/60' 
-                        : 'bg-zinc-100 text-zinc-600'
-                    }`}>
-                      {topic.category}
-                    </span>
-                    <span className={`text-[11px] font-mono ${isSelected ? 'text-zinc-400' : 'text-zinc-400'}`}>
-                      ⏱️ {topic.readTime}
-                    </span>
-                  </div>
-
-                  <h3 className={`text-xs font-bold leading-snug line-clamp-2 ${isSelected ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                    {topic.title}
-                  </h3>
-
-                  <p className={`text-[11px] mt-2 line-clamp-2 ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                    {topic.coreHazard}
-                  </p>
+        {/* Kolom Kiri: Detail Pelaksanaan */}
+        <div className="lg:col-span-5 space-y-5">
+          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2 mb-4 print:border-slate-400">1. Detail Pelaksanaan</h2>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Tanggal</label>
+                  <input type="date" value={todayDate} onChange={(e) => setTodayDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500 print:bg-transparent print:border-none print:px-0 print:text-sm" />
                 </div>
-              )
-            })}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Shift Kerja</label>
+                  <select value={shift} onChange={(e) => setShift(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500 print:hidden">
+                    <option>Shift 1 (Pagi)</option>
+                    <option>Shift 2 (Sore)</option>
+                    <option>Shift 3 (Malam)</option>
+                  </select>
+                  <div className="hidden print:block text-sm font-bold">{shift}</div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Lokasi Area Kerja</label>
+                <input type="text" placeholder="Misal: Gudang Blok A / Area Fabrikasi" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500 print:hidden" />
+                <div className="hidden print:block text-sm font-bold border-b border-slate-300 pb-1 min-h-[24px]">{location}</div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Topik Bahasan Utama</label>
+                <textarea rows={3} placeholder="Misal: Prosedur pengangkatan aman, penggunaan APD wajib, titik kumpul evakuasi..." value={topic} onChange={(e) => setTopic(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500 resize-none print:hidden" />
+                <div className="hidden print:block text-sm font-bold whitespace-pre-wrap border-b border-slate-300 pb-1 min-h-[48px]">{topic}</div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Nama Supervisor / Pembawa Materi</label>
+                <input type="text" placeholder="Nama lengkap..." value={supervisor} onChange={(e) => setSupervisor(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500 print:hidden" />
+                <div className="hidden print:block text-sm font-bold border-b border-slate-300 pb-1 min-h-[24px]">{supervisor}</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Right Side: Active Topic Reader & Execution Log */}
+        {/* Kolom Kanan: Absensi Pekerja */}
         <div className="lg:col-span-7 space-y-5">
-          
-          {/* Active Briefing Sheet */}
-          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-6">
-            
-            <div className="border-b border-zinc-100 pb-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-800 text-[10px] font-bold uppercase tracking-wider">
-                  {selectedTopic.category}
-                </span>
-                <span className="text-[11px] text-zinc-400 font-medium">Estimasi Paparan: {selectedTopic.readTime}</span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-black text-zinc-900 tracking-tight leading-snug">
-                {selectedTopic.title}
-              </h2>
+          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-4 print:border-slate-400">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">2. Daftar Hadir Pekerja</h2>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded print:hidden">Total: {attendees.length} Orang</span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/60 text-rose-950 text-xs space-y-1">
-              <span className="font-bold text-[11px] uppercase tracking-wide text-rose-700 flex items-center gap-1.5">
-                ⚠️ Potensi Bahaya Utama (Critical Hazard):
-              </span>
-              <p className="leading-relaxed text-rose-900/90">{selectedTopic.coreHazard}</p>
-            </div>
-
-            <div className="space-y-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 block">
-                Poin Pengarahan Mandor / Supervisor:
-              </span>
-              <ol className="space-y-3">
-                {selectedTopic.talkingPoints.map((point, idx) => (
-                  <li key={idx} className="flex gap-3 text-xs text-zinc-700 leading-relaxed items-start">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-md bg-zinc-100 border border-zinc-200 text-zinc-800 font-bold text-[10px] flex items-center justify-center mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-500/20 space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-800 flex items-center gap-1">
-                💬 Pertanyaan Refleksi Tim (Uji Pemahaman):
-              </span>
-              <p className="text-xs font-semibold text-emerald-950 leading-relaxed italic">
-                &ldquo;{selectedTopic.discussionQuestion}&rdquo;
-              </p>
-            </div>
-
-          </div>
-
-          {/* Quick Record Verification Form */}
-          <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 text-zinc-100 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                Log Pelaksanaan Briefing Lapangan
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                TBM Form
-              </span>
-            </div>
-
-            <form onSubmit={handleLogMeeting} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                  Nama Pemateri
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Budi H."
-                  value={conductorName}
-                  onChange={(e) => setConductorName(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500 transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                  Lokasi / Pos
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Area B"
-                  value={locationName}
-                  onChange={(e) => setLocationName(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500 transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
-                  Peserta
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={attendeeCount}
-                  onChange={(e) => setAttendeeCount(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500 transition tabular-nums"
-                />
-              </div>
-
-              <div className="sm:col-span-3 pt-2">
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition active:scale-[0.99] flex items-center justify-center gap-2"
-                >
-                  <span>✓</span>
-                  <span>Catat Pelaksanaan TBM Pagi Ini</span>
-                </button>
-              </div>
+            {/* Form Tambah Pekerja (Sembunyikan saat dicetak) */}
+            <form onSubmit={handleAddAttendee} className="flex gap-2 mb-4 print:hidden">
+              <input type="text" placeholder="Nama Pekerja" value={newName} onChange={(e) => setNewName(e.target.value)} className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500" />
+              <select value={newDept} onChange={(e) => setNewDept(e.target.value)} className="w-1/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500">
+                <option>Engineering</option>
+                <option>Warehouse</option>
+                <option>Contractor</option>
+                <option>Operator</option>
+              </select>
+              <button type="submit" disabled={!newName.trim()} className="px-4 py-2 bg-slate-900 text-white rounded-md text-xs font-bold hover:bg-slate-800 disabled:opacity-50 transition">
+                + Tambah
+              </button>
             </form>
 
-            {isLogged && (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs text-center animate-in fade-in">
-                ✓ Catatan TBM berhasil direkam untuk topik: <strong>{selectedTopic.title}</strong>
-              </div>
-            )}
+            {/* Tabel Absensi */}
+            <div className="overflow-x-auto border border-slate-200 rounded-md print:border-slate-400">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100 border-b border-slate-200 text-slate-600 print:bg-slate-200 print:border-slate-400">
+                  <tr>
+                    <th className="py-2 px-3 w-10 text-center font-bold">No</th>
+                    <th className="py-2 px-3 font-bold">Nama Lengkap</th>
+                    <th className="py-2 px-3 font-bold">Departemen</th>
+                    <th className="py-2 px-3 text-center font-bold print:hidden">Aksi</th>
+                    <th className="hidden print:table-cell py-2 px-3 text-center font-bold w-32">Tanda Tangan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700 print:divide-slate-300">
+                  {attendees.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-slate-400 font-medium">Belum ada pekerja yang ditambahkan.</td>
+                    </tr>
+                  ) : (
+                    attendees.map((att, idx) => (
+                      <tr key={att.id} className="hover:bg-slate-50 print:hover:bg-white">
+                        <td className="py-2 px-3 text-center font-mono text-slate-500">{idx + 1}</td>
+                        <td className="py-2 px-3 font-bold text-slate-900">{att.name}</td>
+                        <td className="py-2 px-3 text-slate-600">{att.department}</td>
+                        <td className="py-2 px-3 text-center print:hidden">
+                          <button onClick={() => handleRemoveAttendee(att.id)} className="text-red-500 hover:text-red-700 font-bold px-2 py-1 bg-red-50 rounded text-[10px]">Hapus</button>
+                        </td>
+                        <td className="hidden print:table-cell py-2 px-3"></td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
           </div>
-
         </div>
       </div>
+
+      {/* Action Footer (Sembunyikan saat dicetak) */}
+      <div className="bg-slate-100 rounded-xl p-4 border border-slate-200 flex justify-between items-center gap-4 print:hidden">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">Validasi Dokumen</h3>
+          <p className="text-xs text-slate-600 mt-0.5">Pastikan topik, lokasi, supervisor, dan minimal 1 pekerja telah diisi sebelum dicetak.</p>
+        </div>
+        <button
+          onClick={() => window.print()}
+          disabled={!isFormValid}
+          className={`px-5 py-2.5 rounded-md text-xs font-bold transition whitespace-nowrap shadow-sm ${isFormValid ? 'bg-slate-900 hover:bg-slate-800 text-white cursor-pointer' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
+        >
+          {isFormValid ? '🖨️ Cetak Form Tanda Tangan' : '⛔ Lengkapi Data'}
+        </button>
+      </div>
+
     </div>
   )
 }
