@@ -2,7 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '../../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// KONEKSI LANGSUNG: Mencegah error "Module not found"
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default function HazardReportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -22,7 +27,7 @@ export default function HazardReportPage() {
     setSuccessMsg('')
 
     try {
-      // 🚀 Mengirim data langsung ke tabel Supabase yang sudah Anda buat
+      // Mengirim data langsung ke tabel Supabase
       const { error } = await supabase
         .from('hazard_reports')
         .insert([
