@@ -86,9 +86,6 @@ export default function SyspexHubPage() {
       
       {/* Header Elegan & Minimalis */}
       <div className="border-b border-slate-200 pb-6">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">
-          Syspex Internal Portal
-        </span>
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
           Engineering &amp; HSE Operations Hub
         </h1>
@@ -97,7 +94,7 @@ export default function SyspexHubPage() {
         </p>
       </div>
 
-      {/* Grid Kartu Tanpa Footer / Tombol Teks */}
+      {/* Grid Kartu Tanpa Footer */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {modules.map((m) => (
           <Link
