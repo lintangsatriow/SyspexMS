@@ -1,86 +1,104 @@
 import Link from 'next/link'
 
-export default function HomePage() {
+export default function SyspexHubPage() {
   return (
-    <div className="space-y-12 animate-in fade-in duration-300 pb-16 pt-4">
+    <div className="space-y-8 animate-in fade-in duration-300 pb-16">
       
-      {/* Hero Header */}
-      <div className="text-center max-w-3xl mx-auto space-y-4 pt-8">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
-          Portal Alat Bantu Praktisi K3 Indonesia
-        </span>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight">
-          AllAbout<span className="text-emerald-600">HSE</span> Toolkit
+      {/* Header Fungsional (R-05) */}
+      <div className="border-b border-slate-300 pb-5">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          Engineering &amp; HSE Operations Hub
         </h1>
-        <p className="text-sm sm:text-base text-slate-500 leading-relaxed max-w-2xl mx-auto">
-          Kumpulan kalkulator standar, materi briefing harian, referensi engineering fabrikasi, dan dokumen K3 siap pakai untuk HSE Officer, Rigger, dan Tim Teknis Syspex.
+        <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
+          Pusat akses modul kalkulasi beban teknis, desain struktur fabrikasi sementara, dan pemantauan keselamatan kerja khusus tim internal Syspex.
         </p>
       </div>
 
-      {/* Grid Menu Modul */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+      {/* Grid Menu Modul (Seragam, Fungsional, Tanpa Elemen Dekoratif) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         
         {/* Modul 1: SWL Racking */}
-        <Link href="/racking-swl" className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-amber-500 hover:shadow-md transition duration-200 flex flex-col justify-between h-full">
+        <Link href="/racking-swl" className="block p-5 rounded-xl bg-white border border-slate-200 hover:border-slate-400 hover:shadow-sm transition flex flex-col justify-between h-full">
           <div>
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-4">📦</div>
-            <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition">Kalkulator SWL Racking</h3>
-            <p className="text-xs text-slate-500 mt-2 leading-relaxed">Hitung beban balok beam, bay upright load, lendutan L/200, dan cetak pelat kapasitas resmi customer.</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-bold">R</div>
+              <h2 className="text-sm font-bold text-slate-900">Kalkulator SWL Racking</h2>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Validasi batas aman beban balok (beam), upright frame, dan batas lendutan (deflection) L/200.
+            </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 mt-5">Buka Kalkulator &rarr;</span>
         </Link>
 
         {/* Modul 2: Lifting Plan */}
-        <Link href="/lifting-plan" className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-amber-500 hover:shadow-md transition duration-200 flex flex-col justify-between h-full">
+        <Link href="/lifting-plan" className="block p-5 rounded-xl bg-white border border-slate-200 hover:border-slate-400 hover:shadow-sm transition flex flex-col justify-between h-full">
           <div>
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-4">🏗️</div>
-            <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition">Lifting Plan &amp; CoG</h3>
-            <p className="text-xs text-slate-500 mt-2 leading-relaxed">Distribusi beban 2 titik angkat, tegangan sling aktual, dan verifikasi batas aman kapasitas crane.</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-bold">L</div>
+              <h2 className="text-sm font-bold text-slate-900">Lifting Plan &amp; CoG</h2>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Perhitungan Center of Gravity (CoG) Forklift dan tegangan sling Crane untuk pengangkatan kritis material.
+            </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 mt-5">Buka Kalkulator CoG &rarr;</span>
         </Link>
 
         {/* Modul 3: Desain Scaffolding */}
-        <Link href="/scaffolding" className="group block p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-blue-500 hover:shadow-md transition duration-200 flex flex-col justify-between h-full">
+        <Link href="/scaffolding" className="block p-5 rounded-xl bg-white border border-slate-200 hover:border-slate-400 hover:shadow-sm transition flex flex-col justify-between h-full">
           <div>
-            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-4">🪜</div>
-            <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition">Desain Scaffolding (BoQ)</h3>
-            <p className="text-xs text-slate-500 mt-2 leading-relaxed">Kalkulasi otomatis material perancah (pipa, klem, papan) dan verifikasi standar batas bentang EN-12811.</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-bold">S</div>
+              <h2 className="text-sm font-bold text-slate-900">Desain Scaffolding (BoQ)</h2>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Estimasi material Main Frame dan verifikasi standar batas bentang perancah kerja fabrikasi.
+            </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 mt-5">Buka Kalkulator &rarr;</span>
         </Link>
 
-        {/* // TODO: Bangun modul Safety Talk */}
-        {/* Modul 4: Safety Talk (DISABLED) */}
-        <div className="block p-6 rounded-2xl bg-slate-50 border border-slate-200/50 flex flex-col justify-between h-full opacity-70 cursor-not-allowed">
+        {/* Modul 4: Dashboard KPI (Highlighted) */}
+        <Link href="/internal" className="block p-5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 transition flex flex-col justify-between h-full shadow-sm">
           <div>
-            <div className="w-12 h-12 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center text-2xl mb-4 grayscale">📢</div>
-            <h3 className="text-lg font-bold text-slate-700">Daily Safety Talk</h3>
-            <p className="text-xs text-slate-500 mt-2 leading-relaxed">Koleksi bahan briefing keselamatan kerja 5 menit dan pencatatan absensi briefing lapangan digital.</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded bg-slate-800 text-white flex items-center justify-center font-bold">D</div>
+              <h2 className="text-sm font-bold text-white">Dashboard KPI &amp; CAPA</h2>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Pusat pantauan metrik jam kerja aman (Man-Hours) dan pelacakan status mitigasi temuan bahaya lapangan.
+            </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 mt-5 uppercase tracking-wider bg-slate-200 w-fit px-2 py-1 rounded">Coming Soon</span>
+        </Link>
+
+        {/* ========================================= */}
+        {/* FITUR DALAM PENGEMBANGAN (R-26 Compliance) */}
+        {/* ========================================= */}
+
+        {/* Modul 5 (TODO): Daily Safety Talk */}
+        <div className="block p-5 rounded-xl bg-slate-50 border border-slate-200 border-dashed flex flex-col justify-between h-full opacity-60">
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded bg-slate-200 text-slate-500 flex items-center justify-center font-bold">T</div>
+              <h2 className="text-sm font-bold text-slate-700">Daily Safety Talk</h2>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Pencatatan absensi briefing harian dan repositori materi Toolbox Meeting.
+            </p>
+          </div>
+          <span className="text-[10px] font-bold text-slate-500 mt-4 uppercase tracking-wider bg-slate-200 w-fit px-2 py-0.5 rounded">Dalam Pengembangan</span>
         </div>
 
-        {/* // TODO: Bangun modul Induksi Tamu */}
-        {/* Modul 5: Induksi Tamu (DISABLED) */}
-        <div className="block p-6 rounded-2xl bg-slate-50 border border-slate-200/50 flex flex-col justify-between h-full opacity-70 cursor-not-allowed">
+        {/* Modul 6 (TODO): Safety Induction */}
+        <div className="block p-5 rounded-xl bg-slate-50 border border-slate-200 border-dashed flex flex-col justify-between h-full opacity-60">
           <div>
-            <div className="w-12 h-12 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center text-2xl mb-4 grayscale">🪪</div>
-            <h3 className="text-lg font-bold text-slate-700">Safety Induction</h3>
-            <p className="text-xs text-slate-500 mt-2 leading-relaxed">Registrasi pengenalan bahaya kerja lokasi, pemahaman APD, dan penerbitan visitor pass tamu/vendor.</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded bg-slate-200 text-slate-500 flex items-center justify-center font-bold">I</div>
+              <h2 className="text-sm font-bold text-slate-700">Safety Induction</h2>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Registrasi orientasi K3 untuk tamu, kontraktor, dan karyawan baru.
+            </p>
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 mt-5 uppercase tracking-wider bg-slate-200 w-fit px-2 py-1 rounded">Coming Soon</span>
-        </div>
-
-        {/* // TODO: Bangun modul Statistik K3 */}
-        {/* Modul 6: Statistik K3 (DISABLED) */}
-        <div className="block p-6 rounded-2xl bg-slate-50 border border-slate-200/50 flex flex-col justify-between h-full opacity-70 cursor-not-allowed">
-          <div>
-            <div className="w-12 h-12 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center text-2xl mb-4 grayscale">🧮</div>
-            <h3 className="text-lg font-bold text-slate-700">Statistik K3</h3>
-            <p className="text-xs text-slate-500 mt-2 leading-relaxed">Kalkulator metrik insiden (Man-Hours, LTIFR, TRIR, Severity Rate) sesuai standar Kemenaker &amp; OSHA.</p>
-          </div>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 mt-5 uppercase tracking-wider bg-slate-200 w-fit px-2 py-1 rounded">Coming Soon</span>
+          <span className="text-[10px] font-bold text-slate-500 mt-4 uppercase tracking-wider bg-slate-200 w-fit px-2 py-0.5 rounded">Dalam Pengembangan</span>
         </div>
 
       </div>
