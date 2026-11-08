@@ -5,7 +5,8 @@ export default function SyspexHubPage() {
     { href: '/racking-swl', code: 'R', category: 'Engineering Tool', title: 'Kalkulator SWL Racking', desc: 'Validasi kapasitas balok (beam), tiang upright, lendutan L/200, dan cetak Load Notice Plate resmi.' },
     { href: '/lifting-plan', code: 'L', category: 'Rigging & Equipment', title: 'Lifting Plan & CoG', desc: 'Tegangan sling crane, center of gravity (CoG), ekstensi garpu forklift, dan izin pengangkatan (PTW).' },
     { href: '/scaffolding', code: 'S', category: 'Structure & Access', title: 'Desain Scaffolding (BoQ)', desc: 'Estimasi material Main Frame T-170, tangga akses vertikal, pipa support pengaku, dan penerbitan Scafftag.' },
-    { href: '/internal', code: 'D', category: 'Executive Overview', title: 'Dashboard KPI & CAPA', desc: 'Pantauan jam kerja aman (Safe Man-Hours), status temuan bahaya (CAPA), dan log izin kerja harian.' },
+    { href: '/internal', code: 'D', category: 'Operational Dashboard', title: 'Dashboard KPI & CAPA', desc: 'Pantauan jam kerja aman (Safe Man-Hours), status temuan bahaya (CAPA), dan log izin kerja harian.' },
+    { href: '/executive-report', code: 'ER', category: 'Management Review', title: 'Executive Report (Dir)', desc: 'Laporan ringkasan tingkat tinggi dua bahasa (EN/ID) untuk Direktur terkait risiko K3 dan kepatuhan ISO.' },
     { href: '/ai-assistant', code: 'AI', category: 'Artificial Intelligence', title: 'HSE Copilot Assistant', desc: 'Asisten AI cerdas untuk konsultasi regulasi K3, penyusunan draf JSA, dan analisis data operasional secara instan.' },
     { href: '/document-control', code: 'DC', category: 'ISO Compliance', title: 'Master Document Control', desc: 'Pusat pengendalian informasi terdokumentasi (SOP, Kebijakan, Formulir) terpusat sesuai Klausul 7.5.' },
     { href: '/env-log', code: 'EV', category: 'ISO 14001', title: 'B3 Waste & Env Log', desc: 'Pelacakan neraca limbah B3 (Hazardous Waste), manifest transporter, dan aspek lingkungan sesuai standar ISO 14001.' },
@@ -29,7 +30,9 @@ export default function SyspexHubPage() {
         {modules.map((m) => (
           <Link key={m.href} href={m.href} className="group p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-slate-400 hover:shadow-md transition-all duration-200 flex flex-col justify-start">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-mono font-bold text-sm group-hover:bg-slate-900 group-hover:text-white transition-colors duration-200">{m.code}</div>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-mono font-bold text-sm transition-colors duration-200 ${m.code === 'ER' ? 'bg-slate-900 text-white group-hover:bg-slate-800' : 'bg-slate-100 text-slate-800 group-hover:bg-slate-900 group-hover:text-white'}`}>
+                {m.code}
+              </div>
               <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">{m.category}</span>
             </div>
             <h2 className="text-sm font-bold text-slate-900 group-hover:text-slate-800 transition">{m.title}</h2>
