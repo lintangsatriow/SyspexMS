@@ -4,11 +4,7 @@ import './globals.css'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true)
   const [username, setUsername] = useState('')
@@ -18,8 +14,7 @@ export default function RootLayout({
   const [openAccordion, setOpenAccordion] = useState<'calc' | 'hse' | null>(null)
 
   useEffect(() => {
-    const session = localStorage.getItem('syspex_session')
-    if (session === 'active') setIsAuthenticated(true)
+    if (localStorage.getItem('syspex_session') === 'active') setIsAuthenticated(true)
     setIsCheckingAuth(false)
   }, [])
 
@@ -105,14 +100,17 @@ export default function RootLayout({
                   <svg className="w-3.5 h-3.5 text-slate-400 group-hover:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 <div className="absolute right-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200/90 py-1.5 opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all z-50">
-                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">HSE &amp; Compliance</div>
-                  <Link href="/ai-assistant" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition bg-emerald-50/50"><span className="w-6 h-6 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center font-mono text-[11px]">AI</span><span>HSE Copilot (AI)</span></Link>
-                  <Link href="/document-control" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">DC</span><span>Master Document Control</span></Link>
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Executive &amp; Compliance</div>
+                  <Link href="/executive-report" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition bg-slate-900/5"><span className="w-6 h-6 rounded bg-slate-900 text-white flex items-center justify-center font-mono text-[11px]">ER</span><span>Executive Report (Dir)</span></Link>
+                  <Link href="/document-control" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition border-t border-slate-100 mt-1 pt-2"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">DC</span><span>Master Document Control</span></Link>
                   <Link href="/env-log" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">EV</span><span>B3 Waste &amp; Env Log</span></Link>
-                  <Link href="/jsa" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition border-t border-slate-100 mt-1 pt-2"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">J</span><span>Job Safety Analysis (JSA)</span></Link>
+                  <Link href="/ai-assistant" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition border-t border-slate-100 mt-1 pt-2"><span className="w-6 h-6 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center font-mono text-[11px]">AI</span><span>HSE Copilot (AI)</span></Link>
+                  
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-t border-slate-100 mt-2 pt-2">Field Operations</div>
+                  <Link href="/jsa" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">J</span><span>Job Safety Analysis (JSA)</span></Link>
                   <Link href="/safety-talk" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">T</span><span>Daily Safety Talk (TBM)</span></Link>
                   <Link href="/induction" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">I</span><span>Safety Induction Tamu</span></Link>
-                  <Link href="/hazard-report" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition border-t border-slate-100 mt-1 pt-2"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">H</span><span>Hazard Hunting / Near Miss</span></Link>
+                  <Link href="/hazard-report" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">H</span><span>Hazard Hunting</span></Link>
                   <Link href="/sio-silo" className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"><span className="w-6 h-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-mono text-[11px]">C</span><span>Tracker SIO &amp; SILO</span></Link>
                 </div>
               </div>
@@ -128,7 +126,6 @@ export default function RootLayout({
             </div>
           </div>
 
-          {/* Drawer HP */}
           {mobileMenuOpen && (
             <div className="md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-2 animate-in slide-in-from-top-2 shadow-xl max-h-[80vh] overflow-y-auto">
               <Link href="/" onClick={closeMenu} className="block px-3 py-2.5 rounded-lg text-xs font-bold text-slate-800 hover:bg-slate-50">Hub Utama</Link>
@@ -157,9 +154,10 @@ export default function RootLayout({
                 </button>
                 {openAccordion === 'hse' && (
                   <div className="pl-3 pr-1 py-1 space-y-1">
-                    <Link href="/ai-assistant" onClick={closeMenu} className="block px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded">HSE Copilot (AI)</Link>
+                    <Link href="/executive-report" onClick={closeMenu} className="block px-3 py-2 text-xs font-semibold text-slate-900 bg-slate-100 rounded">Executive Report (Dir)</Link>
                     <Link href="/document-control" onClick={closeMenu} className="block px-3 py-2 text-xs font-semibold text-slate-700">Document Control</Link>
                     <Link href="/env-log" onClick={closeMenu} className="block px-3 py-2 text-xs font-semibold text-slate-700">B3 Waste &amp; Env Log</Link>
+                    <Link href="/ai-assistant" onClick={closeMenu} className="block px-3 py-2 text-xs font-semibold text-emerald-700">HSE Copilot (AI)</Link>
                     <Link href="/jsa" onClick={closeMenu} className="block px-3 py-2 text-xs font-semibold text-slate-700">JSA Generator</Link>
                     <Link href="/safety-talk" onClick={closeMenu} className="block px-3 py-2 text-xs font-semibold text-slate-700">Daily Safety Talk</Link>
                     <Link href="/induction" onClick={closeMenu} className="block px-3 py-2 text-xs font-semibold text-slate-700">Safety Induction</Link>
