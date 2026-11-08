@@ -1,13 +1,9 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link'
 
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'AllAboutHSE Portal & Engineering Toolkit',
-  description: 'Sistem Terpadu Manajemen K3, Racking SWL, dan Perencanaan Operasional.',
+export const metadata = {
+  title: 'Syspex Management System | HSE & Engineering',
+  description: 'Internal Operations Hub for Syspex Engineering and HSE Teams.',
 }
 
 export default function RootLayout({
@@ -17,55 +13,45 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body className={`${inter.className} bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col`}>
+      <body className="bg-slate-50 min-h-screen text-slate-900 font-sans antialiased">
         
-        {/* Top Navbar Modern & Luas (Tanpa Sidebar Sempit) */}
-        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        {/* Topbar Internal Enterprise */}
+        <header className="bg-white border-b border-slate-300 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
-            {/* Logo Brand Minimalis */}
-            <Link href="/" className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-lg bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center tracking-wider">
-                HSE
-              </span>
+            {/* Logo & Identitas Sistem */}
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition group">
+              <img 
+                src="/Syspex%20Logo%20(Trademark)%20black.png" 
+                alt="Syspex" 
+                className="h-7 w-auto object-contain" 
+              />
+              <div className="h-6 w-px bg-slate-300 group-hover:bg-slate-400 transition"></div>
               <div className="flex flex-col">
-                <span className="font-extrabold text-slate-900 tracking-tight text-sm leading-none">
-                  AllAbout<span className="text-emerald-600">HSE</span>
+                <span className="text-[13px] font-black tracking-tight text-slate-900 leading-none">
+                  MANAGEMENT SYSTEM
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-0.5">
-                  Workspace
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                  Internal Hub
                 </span>
               </div>
             </Link>
 
-            {/* Menu Navigasi Atas Lengkap */}
-            <nav className="flex items-center gap-1 sm:gap-2">
-              <Link href="/internal" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
-                Dashboard K3
+            {/* Navigasi Utama (Fokus pada Modul Aktual) */}
+            <nav className="hidden md:flex items-center gap-2">
+              <Link href="/" className="px-3 py-1.5 rounded-md text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+                Module Hub
               </Link>
-              <Link href="/racking-swl" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
-                SWL Racking
-              </Link>
-              {/* Ini Menu Baru Scaffolding */}
-              <Link href="/scaffolding" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition text-blue-700 font-bold">
-                Desain Scaffolding
-              </Link>
-              <Link href="/lifting-plan" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
-                Lifting Plan
-              </Link>
-              <Link href="/safety-talk" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
-                Safety Talk
-              </Link>
-              <Link href="/induction" className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition">
-                Induksi Tamu
+              <Link href="/internal" className="px-3 py-1.5 rounded-md text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+                Dashboard KPI
               </Link>
             </nav>
 
           </div>
         </header>
 
-        {/* Konten Halaman Full-Width */}
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Area Konten Utama */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
 
