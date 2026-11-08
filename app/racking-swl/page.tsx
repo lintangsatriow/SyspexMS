@@ -32,33 +32,6 @@ export default function RackingSwlPage() {
   const isDeflectionFail = estimatedDeflectionMm > maxDeflectionMm
   const overallSafe = !isBeamOverload && !isUprightOverload && !isDeflectionFail && !isInputInvalid
 
-  // ==========================================
-  // 3D ISOMETRIC / OBLIQUE RENDER ENGINE (SVG)
-  // ==========================================
-  const renderDepthX = 25; 
-  const renderDepthY = -25; 
-  const visualLevels = Math.min(numberOfLevels, 8); 
-  const bayWidth = 220;
-  const colX = [80, 80 + bayWidth, 80 + bayWidth * 2]; 
-  const groundY = 320;
-  const topY = 60;
-  const liftHeight = (groundY - topY) / (visualLevels + 1);
-
-  const Box3D = ({ x, y, w, h, depth, frontColor, topColor, sideColor }: any) => {
-    const dx = depth;
-    const dy = -depth;
-    return (
-      <g>
-        {/* Wajah Atas */}
-        <polygon points={`${x},${y} ${x + w},${y} ${x + w + dx},${y + dy} ${x + dx},${y + dy}`} fill={topColor} />
-        {/* Wajah Samping (Kanan) */}
-        <polygon points={`${x + w},${y} ${x + w + dx},${y + dy} ${x + w + dx},${y + h + dy} ${x + w},${y + h}`} fill={sideColor} />
-        {/* Wajah Depan */}
-        <rect x={x} y={y} width={w} height={h} fill={frontColor} />
-      </g>
-    )
-  }
-
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
       
@@ -72,7 +45,7 @@ export default function RackingSwlPage() {
           Kalkulator SWL Racking Gudang
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
-          Validasi batas aman beban dengan *blueprint* rendering 2.5D Isometric. Batas input sistem mengacu pada standar fisik industri (Max 8 tingkat).
+          Validasi batas aman beban dengan *blueprint* skematik 2D. Batas input sistem mengacu pada standar fisik industri (Max 8 tingkat).
         </p>
       </div>
 
@@ -99,13 +72,11 @@ export default function RackingSwlPage() {
             </h2>
             <div className="space-y-3">
               <div>
-                <label htmlFor={`${formId}-palletWt`} className="block text-[11px] font-bold text-slate-600 mb-1">Berat 1 Pallet (kg)</label>
-                <input id={`${formId}-palletWt`} type="number" step="50" min="0" value={palletWeight} onChange={(e) => setPalletWeight(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-slate-500 transition" />
+                <label htmlFor={`${formId}-palletWt`} className="block text-[11px] font-bold text-slate-600 mb-1">Berat 1 Pallet (kg)</label> <input id={`${formId}-palletWt`} type="number" step="50" min="0" value={palletWeight} onChange={(e) => setPalletWeight(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500 transition" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor={`${formId}-palletsPerLvl`} className="block text-[11px] font-bold text-slate-600 mb-1">Pallet / Tingkat</label>
-                  <select id={`${formId}-palletsPerLvl`} value={palletsPerLevel} onChange={(e) => setPalletsPerLevel(parseInt(e.target.value))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-500 transition">
+                  <label htmlFor={`${formId}-palletsPerLvl`} className="block text-[11px] font-bold text-slate-600 mb-1">Pallet / Tingkat</label> <select id={`${formId}-palletsPerLvl`} value={palletsPerLevel} onChange={(e) => setPalletsPerLevel(parseInt(e.target.value))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500 transition">
                     <option value={1}>1 Pallet</option>
                     <option value={2}>2 Pallet</option>
                     <option value={3}>3 Pallet</option>
@@ -113,8 +84,7 @@ export default function RackingSwlPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor={`${formId}-levels`} className="block text-[11px] font-bold text-slate-600 mb-1">Jumlah Level</label>
-                  <input id={`${formId}-levels`} type="number" min="1" max="8" value={numberOfLevels} onChange={(e) => setNumberOfLevels(parseInt(e.target.value) || 1)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-slate-500 transition" />
+                  <label htmlFor={`${formId}-levels`} className="block text-[11px] font-bold text-slate-600 mb-1">Jumlah Level</label> <input id={`${formId}-levels`} type="number" min="1" max="8" value={numberOfLevels} onChange={(e) => setNumberOfLevels(parseInt(e.target.value) || 1)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500 transition" />
                 </div>
               </div>
               <div className="p-3 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-between mt-2">
@@ -135,17 +105,14 @@ export default function RackingSwlPage() {
             </h2>
             <div className="space-y-3">
               <div>
-                <label htmlFor={`${formId}-beamLength`} className="block text-[11px] font-bold text-slate-600 mb-1">Panjang Balok (Span - mm)</label>
-                <input id={`${formId}-beamLength`} type="number" step="50" min="1000" max="4000" value={beamLength} onChange={(e) => setBeamLength(parseFloat(e.target.value) || 1000)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-slate-500 transition" />
+                <label htmlFor={`${formId}-beamLength`} className="block text-[11px] font-bold text-slate-600 mb-1">Panjang Balok (Span - mm)</label> <input id={`${formId}-beamLength`} type="number" step="50" min="1000" max="4000" value={beamLength} onChange={(e) => setBeamLength(parseFloat(e.target.value) || 1000)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500 transition" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor={`${formId}-beamSwl`} className="block text-[11px] font-bold text-slate-600 mb-1">Rated SWL Beam (kg)</label>
-                  <input id={`${formId}-beamSwl`} type="number" step="100" min="1" value={beamRatedSwl} onChange={(e) => setBeamRatedSwl(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-slate-500 transition" />
+                  <label htmlFor={`${formId}-beamSwl`} className="block text-[11px] font-bold text-slate-600 mb-1">Rated SWL Beam (kg)</label> <input id={`${formId}-beamSwl`} type="number" step="100" min="1" value={beamRatedSwl} onChange={(e) => setBeamRatedSwl(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500 transition" />
                 </div>
                 <div>
-                  <label htmlFor={`${formId}-uprightCap`} className="block text-[11px] font-bold text-slate-600 mb-1">Kapasitas Upright (kg)</label>
-                  <input id={`${formId}-uprightCap`} type="number" step="500" min="1" value={uprightFrameCapacity} onChange={(e) => setUprightFrameCapacity(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-slate-500 transition" />
+                  <label htmlFor={`${formId}-uprightCap`} className="block text-[11px] font-bold text-slate-600 mb-1">Kapasitas Upright (kg)</label> <input id={`${formId}-uprightCap`} type="number" step="500" min="1" value={uprightFrameCapacity} onChange={(e) => setUprightFrameCapacity(parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500 transition" />
                 </div>
               </div>
             </div>
@@ -171,102 +138,94 @@ export default function RackingSwlPage() {
           <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 text-white space-y-4 print:bg-white print:border-slate-300 print:text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3 print:border-slate-300">
               <div className="flex items-center gap-2.5">
-                <span className="text-xs font-black bg-blue-600 text-white px-2 py-0.5 rounded tracking-wide font-mono print:bg-slate-100 print:text-slate-800 print:border print:border-slate-400">ISOMETRIC CAD</span>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider print:text-slate-600">SYSPEX RACKING 3D</span>
+                <span className="text-xs font-black bg-blue-600 text-white px-2 py-0.5 rounded tracking-wide font-mono print:bg-slate-100 print:text-slate-800 print:border print:border-slate-400">BLUEPRINT 2D</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider print:text-slate-600">SYSPEX RACKING</span>
               </div>
               <span className={`px-3 py-0.5 rounded text-[10px] font-black uppercase border ${overallSafe ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30 print:bg-emerald-50 print:text-emerald-700 print:border-emerald-300' : 'bg-red-900/30 text-red-400 border-red-500/30 print:bg-red-50 print:text-red-700 print:border-red-300'}`}>
                 {overallSafe ? '✓ STATUS: AMAN' : '⚠️ STATUS: OVERLOAD'}
               </span>
             </div>
 
-            <div className="relative aspect-video w-full bg-[#0b1121] rounded-lg border border-slate-800 flex items-center justify-center overflow-hidden py-4 print:bg-white print:border-slate-300" style={{ backgroundImage: 'radial-gradient(circle at center, #1e293b 0%, #0b1121 100%)' }}>
-              <svg viewBox="0 0 700 400" className="w-full h-full text-slate-300 font-sans select-none print:text-slate-600" role="img" aria-label="Visualisasi 3D Isometric Racking Gudang Syspex">
+            <div className="relative aspect-video w-full bg-[#0f172a] rounded-lg border border-slate-800 flex items-center justify-center overflow-hidden py-4 print:bg-white print:border-slate-300">
+              <svg viewBox="0 0 600 320" className="w-full h-full text-slate-300 font-sans select-none print:text-slate-600" role="img" aria-label="Visualisasi 2D Racking Gudang Syspex">
                 
-                <g stroke="#ffffff" strokeOpacity="0.05" strokeWidth="1">
-                  {[0, 1, 2, 3, 4, 5, 6].map(i => (
-                    <line key={`hx-${i}`} x1="0" y1={groundY + (i * renderDepthY/2)} x2="700" y2={groundY + (i * renderDepthY/2)} />
-                  ))}
-                </g>
+                <defs>
+                  <pattern id="grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeOpacity="0.05" strokeWidth="1" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid-pattern)" />
 
-                {/* LAYER 1: Tiang Belakang, Bracing, Baseplate, & Sisi Kanan Tiang */}
-                {colX.map((x, i) => (
-                  <g key={`upright-back-${i}`}>
-                    <rect x={x + renderDepthX} y={topY + renderDepthY} width="14" height={groundY - topY} fill="#1e3a8a" />
-                    
-                    <line x1={x + 14} y1={groundY} x2={x + renderDepthX} y2={groundY - 50 + renderDepthY} stroke="#1d4ed8" strokeWidth="3" />
-                    <line x1={x + renderDepthX} y1={groundY - 50 + renderDepthY} x2={x + 14} y2={groundY - 100} stroke="#1d4ed8" strokeWidth="3" />
-                    <line x1={x + 14} y1={groundY - 100} x2={x + renderDepthX} y2={groundY - 150 + renderDepthY} stroke="#1d4ed8" strokeWidth="3" />
-                    <line x1={x + renderDepthX} y1={groundY - 150 + renderDepthY} x2={x + 14} y2={groundY - 200} stroke="#1d4ed8" strokeWidth="3" />
-                    
-                    <polygon points={`${x-4},${groundY} ${x+18},${groundY} ${x+18+renderDepthX},${groundY+renderDepthY} ${x-4+renderDepthX},${groundY+renderDepthY}`} fill="#64748b" />
-                    
-                    {/* Sisi kedalaman tiang digambar duluan agar balok bisa duduk di depannya */}
-                    <polygon points={`${x+14},${topY} ${x+14+renderDepthX},${topY+renderDepthY} ${x+14+renderDepthX},${groundY+renderDepthY} ${x+14},${groundY}`} fill="#2563eb" />
-                  </g>
-                ))}
+                {/* Ground */}
+                <line x1="50" y1="280" x2="550" y2="280" stroke="currentColor" strokeOpacity="0.5" strokeWidth="3" />
 
-                {/* LAYER 2: Balok dan Palet (Dari Lantai Bawah ke Atas) */}
-                {Array.from({ length: visualLevels }).map((_, idx) => {
-                  const levelNum = visualLevels - idx;
-                  const y = groundY - (levelNum * liftHeight);
-                  const isError = isBeamOverload;
-                  
-                  const pFront = "#8b5cf6";
-                  const pTop = "#a78bfa";
-                  const pSide = "#7c3aed";
-                  
-                  const bFront = isError ? "#ef4444" : "#f97316";
-                  const bTop = isError ? "#f87171" : "#fdba74";
-                  
-                  const drawLevel = (startX: number) => {
-                    const palletW = (bayWidth - 20) / Math.max(palletsPerLevel, 1) - 10;
-                    const pHeight = 35;
-                    
-                    return (
-                      <g key={`bay-${startX}-${levelNum}`}>
-                        {/* 1. Balok (Atas dan Depan) */}
-                        <polygon points={`${startX+14},${y} ${startX+bayWidth},${y} ${startX+bayWidth+renderDepthX},${y+renderDepthY} ${startX+14+renderDepthX},${y+renderDepthY}`} fill={bTop} />
-                        <rect x={startX+14} y={y} width={bayWidth-14} height="12" fill={bFront} rx="1" />
-                        
-                        {/* 2. Palet (Digambar SETELAH balok agar posisinya di atas, tidak tertimpa) */}
-                        {palletsPerLevel > 0 && Array.from({ length: palletsPerLevel }).map((_, pIdx) => {
-                          const px = startX + 14 + 10 + (pIdx * (palletW + 10));
-                          const py = y - pHeight;
-                          return (
-                            <Box3D key={pIdx} x={px} y={py} w={palletW} h={pHeight} depth={15} frontColor={pFront} topColor={pTop} sideColor={pSide} />
-                          )
-                        })}
-                      </g>
-                    )
-                  }
+                {/* Uprights (Tiang 2D) */}
+                <rect x="100" y="50" width="16" height="230" fill="#2563eb" rx="1" />
+                <rect x="280" y="50" width="16" height="230" fill="#2563eb" rx="1" />
+                <rect x="460" y="50" width="16" height="230" fill="#2563eb" rx="1" />
 
+                {/* Bracing Belakang 2D */}
+                {[0, 1, 2, 3].map((idx) => {
+                  const y = 280 - (idx * 55);
                   return (
-                    <g key={`level-${levelNum}`}>
-                      {drawLevel(colX[0])}
-                      {drawLevel(colX[1])}
+                    <g key={idx}>
+                      <line x1="116" y1={y} x2="280" y2={y - 45} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="3,3" />
+                      <line x1="296" y1={y} x2="460" y2={y - 45} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="3,3" />
                     </g>
                   );
                 })}
 
-                {/* LAYER 3: Sisi Depan Tiang (Digambar paling akhir agar menutupi ujung balok yang tersambung) */}
-                {colX.map((x, i) => (
-                  <rect key={`upright-front-${i}`} x={x} y={topY} width="14" height={groundY - topY} fill="#3b82f6" rx="1" />
-                ))}
+                {/* Beams & Pallets (2D Datar) */}
+                {(() => {
+                  const visualLevels = Math.min(numberOfLevels, 8);
+                  const liftHeight = 220 / (visualLevels + 1);
+                  
+                  return Array.from({ length: visualLevels }).map((_, idx) => {
+                    const yPos = 280 - ((idx + 1) * liftHeight);
+                    const beamColor = isBeamOverload ? "#ef4444" : "#f97316"; 
+                    
+                    return (
+                      <g key={idx}>
+                        {/* Pallet 2D (Digambar sebelum balok agar duduk di atas/belakangnya jika tumpang tindih) */}
+                        {palletsPerLevel >= 1 && <rect x="126" y={yPos - 30} width={164/palletsPerLevel - 10} height="30" fill="#8b5cf6" rx="2" />}
+                        {palletsPerLevel >= 2 && <rect x="126 + (164/palletsPerLevel)" y={yPos - 30} width={164/palletsPerLevel - 10} height="30" fill="#8b5cf6" rx="2" />}
+                        {palletsPerLevel >= 3 && <rect x="126 + 2*(164/palletsPerLevel)" y={yPos - 30} width={164/palletsPerLevel - 10} height="30" fill="#8b5cf6" rx="2" />}
+                        {palletsPerLevel >= 4 && <rect x="126 + 3*(164/palletsPerLevel)" y={yPos - 30} width={164/palletsPerLevel - 10} height="30" fill="#8b5cf6" rx="2" />}
+
+                        {/* Pallet Bay Kanan */}
+                        {palletsPerLevel >= 1 && <rect x="306" y={yPos - 30} width={164/palletsPerLevel - 10} height="30" fill="#8b5cf6" rx="2" />}
+                        {palletsPerLevel >= 2 && <rect x="306 + (164/palletsPerLevel)" y={yPos - 30} width={164/palletsPerLevel - 10} height="30" fill="#8b5cf6" rx="2" />}
+                        {palletsPerLevel >= 3 && <rect x="306 + 2*(164/palletsPerLevel)" y={yPos - 30} width={164/palletsPerLevel - 10} height="30" fill="#8b5cf6" rx="2" />}
+                        {palletsPerLevel >= 4 && <rect x="306 + 3*(164/palletsPerLevel)" y={yPos - 30} width={164/palletsPerLevel - 10} height="30" fill="#8b5cf6" rx="2" />}
+
+                        {/* Balok 2D */}
+                        <rect x="116" y={yPos} width="164" height="10" fill={beamColor} rx="1" />
+                        <rect x="296" y={yPos} width="164" height="10" fill={beamColor} rx="1" />
+                      </g>
+                    );
+                  });
+                })()}
 
                 {numberOfLevels > 8 && (
-                  <text x="350" y="40" fill="#f97316" fontSize="12" fontWeight="bold" textAnchor="middle" className="font-mono bg-slate-900">
-                    + {numberOfLevels - 8} Levels tidak divisualisasikan (Max Display 8)
+                  <text x="300" y="30" fill="#f97316" fontSize="12" fontWeight="bold" textAnchor="middle" className="font-mono">
+                    + {numberOfLevels - 8} Levels tidak ditampilkan (Max 8)
                   </text>
                 )}
 
-                <line x1={colX[0]+7} y1={groundY+15} x2={colX[1]+7} y2={groundY+15} stroke="currentColor" opacity="0.4" />
-                <text x={(colX[0]+colX[1])/2} y={groundY+28} fill="currentColor" opacity="0.7" fontSize="10" fontWeight="bold" textAnchor="middle" className="font-mono">SPAN: {beamLength} mm</text>
-                <line x1={colX[1]+7} y1={groundY+15} x2={colX[2]+7} y2={groundY+15} stroke="currentColor" opacity="0.4" />
-                <text x={(colX[1]+colX[2])/2} y={groundY+28} fill="currentColor" opacity="0.7" fontSize="10" fontWeight="bold" textAnchor="middle" className="font-mono">SPAN: {beamLength} mm</text>
+                {/* Anotasi Dimensi */}
+                <line x1="116" y1="295" x2="280" y2="295" stroke="currentColor" opacity="0.5" strokeWidth="1" />
+                <polygon points="116,295 121,292 121,298" fill="currentColor" opacity="0.5" />
+                <polygon points="280,295 275,292 275,298" fill="currentColor" opacity="0.5" />
+                <text x="198" y="308" fill="currentColor" opacity="0.7" fontSize="9" fontWeight="bold" textAnchor="middle" className="font-mono">Span: {beamLength} mm</text>
+
+                <line x1="296" y1="295" x2="460" y2="295" stroke="currentColor" opacity="0.5" strokeWidth="1" />
+                <polygon points="296,295 301,292 301,298" fill="currentColor" opacity="0.5" />
+                <polygon points="460,295 455,292 455,298" fill="currentColor" opacity="0.5" />
+                <text x="378" y="308" fill="currentColor" opacity="0.7" fontSize="9" fontWeight="bold" textAnchor="middle" className="font-mono">Span: {beamLength} mm</text>
               </svg>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4 mt-4">
               <div className="p-3 bg-slate-950 rounded border border-slate-800 print:bg-white print:border-slate-300">
                 <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Max Beban/Level</span>
                 <span className="text-sm font-black text-white font-mono print:text-slate-900">{beamRatedSwl.toLocaleString()} <span className="text-[10px]">kg</span></span>
@@ -289,7 +248,7 @@ export default function RackingSwlPage() {
           <div className="bg-slate-100 rounded-xl p-4 border border-slate-200 flex justify-between items-center gap-4 print:hidden">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Validasi Selesai</h3>
-              <p className="text-xs text-slate-600 mt-0.5">Tekan tombol cetak untuk mencetak Blueprint Isometric.</p>
+              <p className="text-xs text-slate-600 mt-0.5">Tekan tombol cetak untuk mencetak Blueprint 2D Skematik.</p>
             </div>
             <button
               onClick={() => window.print()}
