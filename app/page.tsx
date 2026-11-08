@@ -97,37 +97,28 @@ export default function SyspexHubPage() {
         </p>
       </div>
 
-      {/* Grid Kartu Bersih */}
+      {/* Grid Kartu Tanpa Footer / Tombol Teks */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {modules.map((m) => (
           <Link
             key={m.href}
             href={m.href}
-            className="group p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-slate-400 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+            className="group p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-slate-400 hover:shadow-md transition-all duration-200 flex flex-col justify-start"
           >
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-mono font-bold text-sm group-hover:bg-slate-900 group-hover:text-white transition-colors duration-200">
-                  {m.code}
-                </div>
-                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                  {m.category}
-                </span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-mono font-bold text-sm group-hover:bg-slate-900 group-hover:text-white transition-colors duration-200">
+                {m.code}
               </div>
-              <h2 className="text-sm font-bold text-slate-900 group-hover:text-slate-800 transition">
-                {m.title}
-              </h2>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                {m.desc}
-              </p>
-            </div>
-
-            <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-end">
-              <span className="text-xs font-bold text-slate-600 group-hover:text-slate-900 flex items-center gap-1 transition">
-                <span>Buka</span>
-                <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                {m.category}
               </span>
             </div>
+            <h2 className="text-sm font-bold text-slate-900 group-hover:text-slate-800 transition">
+              {m.title}
+            </h2>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              {m.desc}
+            </p>
           </Link>
         ))}
       </div>
