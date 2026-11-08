@@ -6,18 +6,14 @@ import Link from 'next/link'
 export default function RackingSwlPage() {
   const formId = useId()
 
-  // 1. Spesifikasi Pallet & Beban Produk
   const [palletWeight, setPalletWeight] = useState<number>(1000)
   const [palletsPerLevel, setPalletsPerLevel] = useState<number>(2)
-  // Pembatasan realistis standar operasional: Max 8 Level
   const [numberOfLevels, setNumberOfLevels] = useState<number>(4)
 
-  // 2. Geometri Beam & Upright
   const [beamLength, setBeamLength] = useState<number>(2700)
   const [beamRatedSwl, setBeamRatedSwl] = useState<number>(2500)
   const [uprightFrameCapacity, setUprightFrameCapacity] = useState<number>(12000)
 
-  // 3. Kalkulasi & Proteksi
   const safeBeamRated = beamRatedSwl > 0 ? beamRatedSwl : 1
   const safeUprightCap = uprightFrameCapacity > 0 ? uprightFrameCapacity : 1
   const isInputInvalid = beamRatedSwl <= 0 || uprightFrameCapacity <= 0 || palletWeight < 0
@@ -31,7 +27,6 @@ export default function RackingSwlPage() {
   const maxDeflectionMm = beamLength / 200
   const estimatedDeflectionMm = (totalLoadPerLevel / safeBeamRated) * maxDeflectionMm
 
-  // Diagnostik Keamanan
   const isBeamOverload = beamUtilization > 100
   const isUprightOverload = uprightUtilization > 100
   const isDeflectionFail = estimatedDeflectionMm > maxDeflectionMm
@@ -40,16 +35,15 @@ export default function RackingSwlPage() {
   // ==========================================
   // 3D ISOMETRIC / OBLIQUE RENDER ENGINE (SVG)
   // ==========================================
-  const renderDepthX = 25; // Pergeseran sumbu Z ke X
-  const renderDepthY = -25; // Pergeseran sumbu Z ke Y
-  const visualLevels = Math.min(numberOfLevels, 8); // Maksimal visualisasi 8 susun agar proporsional
+  const renderDepthX = 25; 
+  const renderDepthY = -25; 
+  const visualLevels = Math.min(numberOfLevels, 8); 
   const bayWidth = 220;
-  const colX = [80, 80 + bayWidth, 80 + bayWidth * 2]; // X tiang: Kiri, Tengah, Kanan
+  const colX = [80, 80 + bayWidth, 80 + bayWidth * 2]; 
   const groundY = 320;
   const topY = 60;
   const liftHeight = (groundY - topY) / (visualLevels + 1);
 
-  // Komponen Helper Bangun Ruang 3D (Kotak Isometric)
   const Box3D = ({ x, y, w, h, depth, frontColor, topColor, sideColor }: any) => {
     const dx = depth;
     const dy = -depth;
@@ -68,7 +62,6 @@ export default function RackingSwlPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
       
-      {/* Header Fungsional */}
       <div className="border-b border-slate-300 pb-5 print:hidden">
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
           <Link href="/" className="hover:text-slate-900 transition">Hub Modul Utama</Link>
@@ -83,7 +76,6 @@ export default function RackingSwlPage() {
         </p>
       </div>
 
-      {/* Header Print Notice Plate */}
       <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
@@ -99,7 +91,6 @@ export default function RackingSwlPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Kolom Kiri: Input */}
         <div className="lg:col-span-4 space-y-5 print:hidden">
           
           <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4">
@@ -161,7 +152,6 @@ export default function RackingSwlPage() {
           </div>
         </div>
 
-        {/* Kolom Kanan: Blueprint CAD */}
         <div className="lg:col-span-8 space-y-6 print:col-span-12">
           
           {!overallSafe && (
@@ -189,58 +179,56 @@ export default function RackingSwlPage() {
               </span>
             </div>
 
-            {/* RENDER ENGINE 2.5D ISOMETRIC */}
             <div className="relative aspect-video w-full bg-[#0b1121] rounded-lg border border-slate-800 flex items-center justify-center overflow-hidden py-4 print:bg-white print:border-slate-300" style={{ backgroundImage: 'radial-gradient(circle at center, #1e293b 0%, #0b1121 100%)' }}>
               <svg viewBox="0 0 700 400" className="w-full h-full text-slate-300 font-sans select-none print:text-slate-600" role="img" aria-label="Visualisasi 3D Isometric Racking Gudang Syspex">
                 
-                {/* Oblique Grid (Memberikan kesan 3D Lantai) */}
                 <g stroke="#ffffff" strokeOpacity="0.05" strokeWidth="1">
                   {[0, 1, 2, 3, 4, 5, 6].map(i => (
                     <line key={`hx-${i}`} x1="0" y1={groundY + (i * renderDepthY/2)} x2="700" y2={groundY + (i * renderDepthY/2)} />
                   ))}
                 </g>
 
-                {/* Render Frame Tiang (Belakang ke Depan untuk ilusi Z-Index) */}
+                {/* LAYER 1: Tiang Belakang, Bracing, Baseplate, & Sisi Kanan Tiang */}
                 {colX.map((x, i) => (
-                  <g key={`upright-${i}`}>
-                    {/* Tiang Belakang (Gelap) */}
+                  <g key={`upright-back-${i}`}>
                     <rect x={x + renderDepthX} y={topY + renderDepthY} width="14" height={groundY - topY} fill="#1e3a8a" />
-                    {/* Bracing Diagonal antara Tiang Depan dan Belakang */}
+                    
                     <line x1={x + 14} y1={groundY} x2={x + renderDepthX} y2={groundY - 50 + renderDepthY} stroke="#1d4ed8" strokeWidth="3" />
                     <line x1={x + renderDepthX} y1={groundY - 50 + renderDepthY} x2={x + 14} y2={groundY - 100} stroke="#1d4ed8" strokeWidth="3" />
                     <line x1={x + 14} y1={groundY - 100} x2={x + renderDepthX} y2={groundY - 150 + renderDepthY} stroke="#1d4ed8" strokeWidth="3" />
                     <line x1={x + renderDepthX} y1={groundY - 150 + renderDepthY} x2={x + 14} y2={groundY - 200} stroke="#1d4ed8" strokeWidth="3" />
-                    {/* Baseplate */}
+                    
                     <polygon points={`${x-4},${groundY} ${x+18},${groundY} ${x+18+renderDepthX},${groundY+renderDepthY} ${x-4+renderDepthX},${groundY+renderDepthY}`} fill="#64748b" />
-                    {/* Tiang Depan (Terang) */}
-                    <rect x={x} y={topY} width="14" height={groundY - topY} fill="#3b82f6" rx="1" />
+                    
+                    {/* Sisi kedalaman tiang digambar duluan agar balok bisa duduk di depannya */}
                     <polygon points={`${x+14},${topY} ${x+14+renderDepthX},${topY+renderDepthY} ${x+14+renderDepthX},${groundY+renderDepthY} ${x+14},${groundY}`} fill="#2563eb" />
                   </g>
                 ))}
 
-                {/* Render Balok & Pallet Per Lantai (Dari bawah ke atas untuk z-index yang benar) */}
+                {/* LAYER 2: Balok dan Palet (Dari Lantai Bawah ke Atas) */}
                 {Array.from({ length: visualLevels }).map((_, idx) => {
-                  const levelNum = visualLevels - idx; // Mulai dari lantai terbawah
+                  const levelNum = visualLevels - idx;
                   const y = groundY - (levelNum * liftHeight);
                   const isError = isBeamOverload;
                   
-                  // Palet Colors
-                  const pFront = "#8b5cf6"; // Ungu Syspex untuk produk
+                  const pFront = "#8b5cf6";
                   const pTop = "#a78bfa";
                   const pSide = "#7c3aed";
                   
-                  // Beam Colors (Ganti merah jika overload)
                   const bFront = isError ? "#ef4444" : "#f97316";
                   const bTop = isError ? "#f87171" : "#fdba74";
                   
                   const drawLevel = (startX: number) => {
-                    // Jarak pallet dinamis
                     const palletW = (bayWidth - 20) / Math.max(palletsPerLevel, 1) - 10;
                     const pHeight = 35;
                     
                     return (
                       <g key={`bay-${startX}-${levelNum}`}>
-                        {/* Pallet 3D */}
+                        {/* 1. Balok (Atas dan Depan) */}
+                        <polygon points={`${startX+14},${y} ${startX+bayWidth},${y} ${startX+bayWidth+renderDepthX},${y+renderDepthY} ${startX+14+renderDepthX},${y+renderDepthY}`} fill={bTop} />
+                        <rect x={startX+14} y={y} width={bayWidth-14} height="12" fill={bFront} rx="1" />
+                        
+                        {/* 2. Palet (Digambar SETELAH balok agar posisinya di atas, tidak tertimpa) */}
                         {palletsPerLevel > 0 && Array.from({ length: palletsPerLevel }).map((_, pIdx) => {
                           const px = startX + 14 + 10 + (pIdx * (palletW + 10));
                           const py = y - pHeight;
@@ -248,9 +236,6 @@ export default function RackingSwlPage() {
                             <Box3D key={pIdx} x={px} y={py} w={palletW} h={pHeight} depth={15} frontColor={pFront} topColor={pTop} sideColor={pSide} />
                           )
                         })}
-                        {/* Balok Depan & Atas 3D */}
-                        <polygon points={`${startX+14},${y} ${startX+bayWidth},${y} ${startX+bayWidth+renderDepthX},${y+renderDepthY} ${startX+14+renderDepthX},${y+renderDepthY}`} fill={bTop} />
-                        <rect x={startX+14} y={y} width={bayWidth-14} height="12" fill={bFront} rx="1" />
                       </g>
                     )
                   }
@@ -263,14 +248,17 @@ export default function RackingSwlPage() {
                   );
                 })}
 
-                {/* Indikator Peringatan Jika Level > 8 */}
+                {/* LAYER 3: Sisi Depan Tiang (Digambar paling akhir agar menutupi ujung balok yang tersambung) */}
+                {colX.map((x, i) => (
+                  <rect key={`upright-front-${i}`} x={x} y={topY} width="14" height={groundY - topY} fill="#3b82f6" rx="1" />
+                ))}
+
                 {numberOfLevels > 8 && (
                   <text x="350" y="40" fill="#f97316" fontSize="12" fontWeight="bold" textAnchor="middle" className="font-mono bg-slate-900">
                     + {numberOfLevels - 8} Levels tidak divisualisasikan (Max Display 8)
                   </text>
                 )}
 
-                {/* Anotasi Dimensi */}
                 <line x1={colX[0]+7} y1={groundY+15} x2={colX[1]+7} y2={groundY+15} stroke="currentColor" opacity="0.4" />
                 <text x={(colX[0]+colX[1])/2} y={groundY+28} fill="currentColor" opacity="0.7" fontSize="10" fontWeight="bold" textAnchor="middle" className="font-mono">SPAN: {beamLength} mm</text>
                 <line x1={colX[1]+7} y1={groundY+15} x2={colX[2]+7} y2={groundY+15} stroke="currentColor" opacity="0.4" />
@@ -278,7 +266,6 @@ export default function RackingSwlPage() {
               </svg>
             </div>
 
-            {/* Rekap Teknis Beban */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4">
               <div className="p-3 bg-slate-950 rounded border border-slate-800 print:bg-white print:border-slate-300">
                 <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Max Beban/Level</span>
