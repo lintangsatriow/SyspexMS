@@ -1,197 +1,487 @@
 "use client"
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-type LicenseType = 'SIO' | 'SILO' | 'KOMPETENSI'
-
-interface LicenseRecord {
+interface LicenseItem {
   id: string
-  type: LicenseType
-  holderName: string 
-  category: string 
-  licenseNo: string
+  category: 'KOMPETENSI' | 'SIO' | 'SILO'
+  holderName: string
+  spec: string
+  regNo: string // SKP, KEMENAKER, BNSP atau nomor registrasi lama
   issueDate: string
   expiryDate: string
 }
 
-export default function CompetencyTrackerPage() {
-  const [isMounted, setIsMounted] = useState(false)
+const INITIAL_DATA: LicenseItem[] = [
+  {
+    id: 'lic-1',
+    category: 'KOMPETENSI',
+    holderName: 'Budi Santoso',
+    spec: 'Ahli K3 Umum',
+    regNo: 'SKP',
+    issueDate: '2024-05-10',
+    expiryDate: '2027-05-10'
+  },
+  {
+    id: 'lic-2',
+    category: 'SIO',
+    holderName: 'Adi Dwi Sandi',
+    spec: 'Operator Forklift',
+    regNo: 'KEMENAKER',
+    issueDate: '2021-05-15',
+    expiryDate: '2026-05-15'
+  },
+  {
+    id: 'lic-3',
+    category: 'SILO',
+    holderName: 'Unit FL-01 (Toyota 3-Ton)',
+    spec: 'Riksa Uji Forklift Counterbalance',
+    regNo: 'KEMENAKER',
+    issueDate: '2025-12-01',
+    expiryDate: '2026-12-01'
+  },
+  {
+    id: 'lic-4',
+    category: 'KOMPETENSI',
+    holderName: 'Siti Rahma',
+    spec: 'Petugas P3K Kimia',
+    regNo: 'BNSP',
+    issueDate: '2024-01-12',
+    expiryDate: '2027-01-12'
+  }
+]
+
+export default function SioSiloTrackerPage() {
+  const [items, setItems] = useState<LicenseItem[]>(INITIAL_DATA)
+  const [filterCategory, setFilterCategory] = useState<string>('ALL')
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED'>('ALL')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Form State untuk Tambah Data
+  const [formCategory, setFormCategory] = useState<'KOMPETENSI' | 'SIO' | 'SILO'>('KOMPETENSI')
+  const [formHolder, setFormHolder] = useState('')
+  const [formSpec, setFormSpec] = useState('')
+  const [formRegType, setFormRegType] = useState('SKP')
+  const [formIssueDate, setFormIssueDate] = useState('')
+  const [formExpiryDate, setFormExpiryDate] = useState('')
+
+  // Muat data dari localStorage
   useEffect(() => {
-    setIsMounted(true)
+    const saved = localStorage.getItem('syspex_license_data')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setItems(parsed)
+        }
+      } catch (err) {
+        console.error('Failed to load local license data', err)
+      }
+    }
   }, [])
 
-  // State Data Lisensi
-  const [licenses, setLicenses] = useState<LicenseRecord[]>([
-    { id: '1', type: 'KOMPETENSI', holderName: 'Lintang Satrio', category: 'Ahli K3 Umum (AK3U)', licenseNo: '5/../AS.02.04/V/2024', issueDate: '2024-05-10', expiryDate: '2027-05-10' },
-    { id: '2', type: 'KOMPETENSI', holderName: 'dr. Sarah', category: 'Dokter Hiperkes', licenseNo: 'HIPERKES/099/2021', issueDate: '2021-01-10', expiryDate: '2026-11-20' }, 
-    { id: '3', type: 'SIO', holderName: 'Budi Santoso', category: 'Forklift Kelas II', licenseNo: 'KEMENAKER/SIO/001', issueDate: '2021-05-10', expiryDate: '2028-05-10' },
-    { id: '4', type: 'SIO', holderName: 'Ahmad Faisal', category: 'Forklift Kelas I', licenseNo: 'KEMENAKER/SIO/042', issueDate: '2021-12-01', expiryDate: '2026-12-15' }, 
-    { id: '5', type: 'SILO', holderName: 'FL-01 (Toyota 3.0T)', category: 'Pusat K3 MHE', licenseNo: '566/SILO-MHE/23', issueDate: '2022-01-15', expiryDate: '2026-10-01' }, 
-    { id: '6', type: 'KOMPETENSI', holderName: 'Siti Aminah', category: 'Petugas P3K', licenseNo: 'P3K/KEMENAKER/55', issueDate: '2019-10-05', expiryDate: '2026-09-05' }, 
-  ])
+  // Fungsi Simpan Data Baru
+  const handleAddItem = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formHolder || !formExpiryDate) {
+      alert('Nama pemegang izin dan Tanggal Berakhir wajib diisi.')
+      return
+    }
 
-  const [filterType, setFilterType] = useState<'ALL' | 'SIO' | 'SILO' | 'KOMPETENSI'>('ALL')
-  const [searchQuery, setSearchQuery] = useState('')
+    const newItem: LicenseItem = {
+      id: `lic-${Date.now()}`,
+      category: formCategory,
+      holderName: formHolder,
+      spec: formSpec || (formCategory === 'KOMPETENSI' ? 'Ahli K3' : formCategory === 'SIO' ? 'Operator MHE' : 'Unit Riksa Uji'),
+      regNo: formRegType,
+      issueDate: formIssueDate || new Date().toISOString().split('T')[0],
+      expiryDate: formExpiryDate
+    }
 
-  // State Modal Form (Bisa untuk Tambah Baru atau Edit)
-  const [showForm, setShowForm] = useState(false)
-  const [editId, setEditId] = useState<string | null>(null) // Melacak ID yang sedang diedit
-  const [formData, setFormData] = useState<Partial<LicenseRecord>>({
-    type: 'KOMPETENSI', holderName: '', category: '', licenseNo: '', issueDate: '', expiryDate: ''
+    const updated = [newItem, ...items]
+    setItems(updated)
+    localStorage.setItem('syspex_license_data', JSON.stringify(updated))
+
+    // Reset Form
+    setFormHolder('')
+    setFormSpec('')
+    setFormRegType('SKP')
+    setFormIssueDate('')
+    setFormExpiryDate('')
+    setIsModalOpen(false)
+  }
+
+  // Fungsi Hapus Data
+  const handleDeleteItem = (id: string) => {
+    if (confirm('Hapus sertifikasi ini dari daftar tracker?')) {
+      const updated = items.filter(it => it.id !== id)
+      setItems(updated)
+      localStorage.setItem('syspex_license_data', JSON.stringify(updated))
+    }
+  }
+
+  // Kalkulasi Status Validitas & Batas 60 Hari
+  const getStatus = (expiryDateStr: string) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const exp = new Date(expiryDateStr)
+    exp.setHours(0, 0, 0, 0)
+
+    const diffTime = exp.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays < 0) {
+      return { 
+        code: 'EXPIRED' as const, 
+        color: 'bg-rose-100 text-rose-800 border-rose-300', 
+        text: `EXPIRED (${Math.abs(diffDays)} HARI LEWAT)` 
+      }
+    } else if (diffDays <= 60) {
+      return { 
+        code: 'EXPIRING_SOON' as const, 
+        color: 'bg-amber-100 text-amber-800 border-amber-300', 
+        text: `PERLU PERPANJANGAN (${diffDays} HARI LAGI)` 
+      }
+    } else {
+      return { 
+        code: 'ACTIVE' as const, 
+        color: 'bg-emerald-100 text-emerald-800 border-emerald-300', 
+        text: 'AMAN (> 60 HARI)' 
+      }
+    }
+  }
+
+  // Summary Metrics
+  const totalCount = items.length
+  const expiredCount = items.filter(it => getStatus(it.expiryDate).code === 'EXPIRED').length
+  const expiringSoonCount = items.filter(it => getStatus(it.expiryDate).code === 'EXPIRING_SOON').length
+  const activeCount = items.filter(it => getStatus(it.expiryDate).code === 'ACTIVE').length
+
+  // Filter Data Gabungan (Kategori + Status Kartu + Search)
+  const filteredItems = items.filter(it => {
+    const itemStatus = getStatus(it.expiryDate).code
+    const matchStatus = filterStatus === 'ALL' || itemStatus === filterStatus
+    const matchCat = filterCategory === 'ALL' || it.category === filterCategory
+    const matchSearch = it.holderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        it.spec.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        it.regNo.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchStatus && matchCat && matchSearch
   })
 
-  // Kalkulasi Status
-  const processedLicenses = useMemo(() => {
-    const today = new Date()
-    return licenses.map(lic => {
-      const expDate = new Date(lic.expiryDate)
-      const diffTime = expDate.getTime() - today.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      
-      let status: 'ACTIVE' | 'WARNING' | 'EXPIRED' = 'ACTIVE'
-      if (diffDays < 0) status = 'EXPIRED'
-      else if (diffDays <= 60) status = 'WARNING'
-
-      return { ...lic, diffDays, status }
-    })
-  }, [licenses])
-
-  const filteredLicenses = useMemo(() => {
-    return processedLicenses.filter(lic => {
-      const matchType = filterType === 'ALL' || lic.type === filterType
-      const matchSearch = lic.holderName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          lic.licenseNo.toLowerCase().includes(searchQuery.toLowerCase())
-      return matchType && matchSearch
-    }).sort((a, b) => a.diffDays - b.diffDays)
-  }, [processedLicenses, filterType, searchQuery])
-
-  const metrics = {
-    total: processedLicenses.length,
-    expired: processedLicenses.filter(l => l.status === 'EXPIRED').length,
-    warning: processedLicenses.filter(l => l.status === 'WARNING').length,
-    safe: processedLicenses.filter(l => l.status === 'ACTIVE').length,
-  }
-  const needsRenewal = metrics.expired > 0 || metrics.warning > 0
-
-  // ==========================================
-  // LOGIKA OPERASIONAL (CRUD)
-  // ==========================================
-  
-  // Fungsi Buka Form Tambah
-  const handleOpenAdd = () => {
-    setEditId(null)
-    setFormData({ type: 'KOMPETENSI', holderName: '', category: '', licenseNo: '', issueDate: '', expiryDate: '' })
-    setShowForm(true)
-  }
-
-  // Fungsi Buka Form Edit
-  const handleOpenEdit = (lic: LicenseRecord) => {
-    setEditId(lic.id)
-    setFormData(lic)
-    setShowForm(true)
-  }
-
-  // Fungsi Simpan (Berlaku untuk Tambah & Perbarui)
-  const handleSubmitForm = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.holderName || !formData.licenseNo || !formData.issueDate || !formData.expiryDate) return
-
-    if (editId) {
-      // UPDATE DATA LAMA
-      setLicenses(licenses.map(lic => lic.id === editId ? { ...formData, id: editId } as LicenseRecord : lic))
-    } else {
-      // TAMBAH DATA BARU
-      const newLicense: LicenseRecord = {
-        id: Math.random().toString(36).substr(2, 9),
-        type: formData.type as LicenseType,
-        holderName: formData.holderName,
-        category: formData.category || 'Lainnya',
-        licenseNo: formData.licenseNo,
-        issueDate: formData.issueDate,
-        expiryDate: formData.expiryDate
-      }
-      setLicenses([...licenses, newLicense])
-    }
-    setShowForm(false)
-  }
-
-  // Fungsi Hapus
-  const handleDelete = (id: string) => {
-    if(window.confirm('Yakin ingin menghapus data sertifikat ini permanen?')) {
-      setLicenses(licenses.filter(lic => lic.id !== id))
-    }
-  }
-
-  if (!isMounted) return (
-    <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
-      <div className="w-8 h-8 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
-      <p className="text-slate-500 font-bold animate-pulse text-sm">Memuat Sistem Database Kompetensi...</p>
-    </div>
-  )
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto relative">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
       
-      {/* Modal Form Tambah / Edit Lisensi */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 print:hidden">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">
-                {editId ? 'Perbarui Data (Renewal)' : 'Tambah Data Lisensi'}
-              </h2>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-red-500 font-bold px-2">✕</button>
+      {/* Breadcrumb & Header */}
+      <div className="border-b border-slate-200 pb-5 print:hidden">
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Kepatuhan & Audit Legal</span>
+        </div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Competency & License Tracker</h1>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
+              Database Manajemen Lisensi Alat & Kompetensi Karyawan Syspex.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-1.5 uppercase tracking-wider"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
+              + Tambah Data
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2 uppercase tracking-wider"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              Cetak Renewal
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* KARTU KPI INTERAKTIF (BISA DI-KLIK UNTUK FILTER OTOMATIS) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
+        
+        {/* Card 1: Total */}
+        <div 
+          onClick={() => setFilterStatus('ALL')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
+            filterStatus === 'ALL' 
+              ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900 ring-offset-2' 
+              : 'bg-white border-slate-200 text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <p className={`text-[10px] font-black uppercase tracking-wider ${filterStatus === 'ALL' ? 'text-slate-300' : 'text-slate-500'}`}>
+            Total Lisensi & SKP
+          </p>
+          <p className="text-3xl font-black mt-2">{totalCount}</p>
+          <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'ALL' ? 'text-teal-400' : 'text-slate-400'}`}>
+            {filterStatus === 'ALL' ? '● Sedang Menampilkan Semua' : 'Klik untuk tampilkan semua'}
+          </span>
+        </div>
+
+        {/* Card 2: Aman (> 60 Hari) */}
+        <div 
+          onClick={() => setFilterStatus(filterStatus === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
+            filterStatus === 'ACTIVE' 
+              ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500 ring-offset-2' 
+              : 'bg-emerald-50/60 border-emerald-200 text-emerald-950 hover:bg-emerald-100/70'
+          }`}
+        >
+          <p className={`text-[10px] font-black uppercase tracking-wider ${filterStatus === 'ACTIVE' ? 'text-emerald-100' : 'text-emerald-700'}`}>
+            Aman (&gt; 60 Hari)
+          </p>
+          <p className={`text-3xl font-black mt-2 ${filterStatus === 'ACTIVE' ? 'text-white' : 'text-emerald-600'}`}>{activeCount}</p>
+          <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'ACTIVE' ? 'text-emerald-100' : 'text-emerald-600'}`}>
+            {filterStatus === 'ACTIVE' ? '● Filter Aktif (Klik untuk Reset)' : 'Klik untuk filter data ini'}
+          </span>
+        </div>
+
+        {/* Card 3: Perlu Perpanjangan (<= 60 Hari) */}
+        <div 
+          onClick={() => setFilterStatus(filterStatus === 'EXPIRING_SOON' ? 'ALL' : 'EXPIRING_SOON')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
+            filterStatus === 'EXPIRING_SOON' 
+              ? 'bg-amber-500 text-white border-amber-500 shadow-md ring-2 ring-amber-400 ring-offset-2' 
+              : 'bg-amber-50/60 border-amber-200 text-amber-950 hover:bg-amber-100/70'
+          }`}
+        >
+          <p className={`text-[10px] font-black uppercase tracking-wider ${filterStatus === 'EXPIRING_SOON' ? 'text-amber-100' : 'text-amber-700'}`}>
+            Perlu Perpanjangan (≤ 60 Hari)
+          </p>
+          <p className={`text-3xl font-black mt-2 ${filterStatus === 'EXPIRING_SOON' ? 'text-white' : 'text-amber-600'}`}>{expiringSoonCount}</p>
+          <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'EXPIRING_SOON' ? 'text-amber-100' : 'text-amber-600'}`}>
+            {filterStatus === 'EXPIRING_SOON' ? '● Filter Aktif (Klik untuk Reset)' : '👉 Klik untuk lihat data'}
+          </span>
+        </div>
+
+        {/* Card 4: Kadaluarsa (Expired) */}
+        <div 
+          onClick={() => setFilterStatus(filterStatus === 'EXPIRED' ? 'ALL' : 'EXPIRED')}
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
+            filterStatus === 'EXPIRED' 
+              ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500 ring-offset-2' 
+              : 'bg-rose-50/60 border-rose-200 text-rose-950 hover:bg-rose-100/70'
+          }`}
+        >
+          <p className={`text-[10px] font-black uppercase tracking-wider ${filterStatus === 'EXPIRED' ? 'text-rose-100' : 'text-rose-700'}`}>
+            Kadaluarsa (Expired)
+          </p>
+          <p className={`text-3xl font-black mt-2 ${filterStatus === 'EXPIRED' ? 'text-white' : 'text-rose-600'}`}>{expiredCount}</p>
+          <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'EXPIRED' ? 'text-rose-100' : 'text-rose-600'}`}>
+            {filterStatus === 'EXPIRED' ? '● Filter Aktif (Klik untuk Reset)' : '👉 Klik untuk lihat data'}
+          </span>
+        </div>
+
+      </div>
+
+      {/* Filter Kategori Tab & Search Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex bg-slate-200 p-1 rounded-xl w-full sm:w-auto">
+            {['ALL', 'KOMPETENSI', 'SIO', 'SILO'].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFilterCategory(cat)}
+                className={`flex-1 sm:flex-none px-3.5 py-1.5 text-xs font-black rounded-lg transition ${
+                  filterCategory === cat ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {cat === 'ALL' ? 'Semua Data' : cat}
+              </button>
+            ))}
+          </div>
+
+          {filterStatus !== 'ALL' && (
+            <button
+              onClick={() => setFilterStatus('ALL')}
+              className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-black rounded-xl transition flex items-center gap-1 shrink-0"
+            >
+              <span>✕</span> Reset Filter Kartu
+            </button>
+          )}
+        </div>
+
+        <div className="w-full sm:w-72">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Cari nama karyawan / alat..."
+            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold shadow-sm focus:outline-none focus:border-teal-500"
+          />
+        </div>
+      </div>
+
+      {/* Tabel Data Lisensi */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th className="py-3 px-4">Tipe Dokumen</th>
+                <th className="py-3 px-4">Nama Holder / ID Alat</th>
+                <th className="py-3 px-4">Kategori / Jenis Sertifikasi</th>
+                <th className="py-3 px-4">Masa Berlaku (Expired)</th>
+                <th className="py-3 px-4 text-center">Status Kepatuhan</th>
+                <th className="py-3 px-4 text-center print:hidden">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">
+                    Tidak ada data lisensi yang sesuai dengan filter yang dipilih.
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map(item => {
+                  const status = getStatus(item.expiryDate)
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                      <td className="py-3.5 px-4 font-black">
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-800 border border-teal-200">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-black text-slate-900 text-sm">{item.holderName}</td>
+                      <td className="py-3.5 px-4">
+                        <p className="font-bold text-slate-800">{item.spec}</p>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          {item.regNo}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <p className="font-mono font-bold text-slate-900">{item.expiryDate}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">Terbit: {item.issueDate}</p>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${status.color}`}>
+                          {status.text}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-center print:hidden">
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="text-slate-400 hover:text-rose-600 transition p-1.5 font-bold rounded-lg hover:bg-rose-50"
+                          title="Hapus lisensi ini"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* MODAL TAMBAH DATA LISENSI */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">Tambah Data Lisensi</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-black text-sm">
+                ✕
+              </button>
             </div>
-            
-            <form onSubmit={handleSubmitForm} className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-5">
+
+            <form onSubmit={handleAddItem} className="space-y-4 mt-4 text-xs font-bold">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Kategori Sertifikasi</label>
-                  <select 
-                    value={formData.type} 
-                    onChange={(e) => setFormData({...formData, type: e.target.value as LicenseType})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900"
+                  <label className="block text-[10px] uppercase text-slate-500 mb-1">Kategori Sertifikasi</label>
+                  <select
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 font-bold"
                   >
                     <option value="KOMPETENSI">KOMPETENSI (Ahli K3, P3K, Damkar)</option>
-                    <option value="SIO">SIO (Izin Operator Alat Berat)</option>
-                    <option value="SILO">SILO (Izin Kelaikan Alat / Mesin)</option>
+                    <option value="SIO">SIO (Operator Forklift / Alat Berat)</option>
+                    <option value="SILO">SILO (Riksa Uji Unit / Pesawat Angkat)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Spesifikasi / Bidang</label>
-                  <input type="text" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} placeholder={formData.type === 'KOMPETENSI' ? 'Contoh: Ahli K3 Umum' : 'Contoh: Forklift Kelas I'} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    {formData.type === 'SILO' ? 'ID & Nama Alat (Contoh: FL-01 Toyota)' : 'Nama Lengkap Karyawan / Pemegang Izin'}
-                  </label>
-                  <input type="text" required value={formData.holderName} onChange={(e) => setFormData({...formData, holderName: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nomor Registrasi (SKP / Kemenaker / Disnaker)</label>
-                  <input type="text" required value={formData.licenseNo} onChange={(e) => setFormData({...formData, licenseNo: e.target.value})} placeholder="Nomor SKP atau Lisensi..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tanggal Terbit / Pembinaan</label>
-                  <input type="date" required value={formData.issueDate} onChange={(e) => setFormData({...formData, issueDate: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tanggal Berakhir (Expired)</label>
-                  <input type="date" required value={formData.expiryDate} onChange={(e) => setFormData({...formData, expiryDate: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
+                  <label className="block text-[10px] uppercase text-slate-500 mb-1">Spesifikasi / Bidang</label>
+                  <input
+                    type="text"
+                    value={formSpec}
+                    onChange={(e) => setFormSpec(e.target.value)}
+                    placeholder="Contoh: Operator Forklift / Ahli K3"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
+                  />
                 </div>
               </div>
-              
-              {editId && (
-                <div className="bg-amber-50 p-3 border border-amber-200 rounded-lg">
-                  <p className="text-[10px] font-bold text-amber-700 uppercase">Perhatian: Memperbarui tanggal Expired akan langsung mereset status peringatan di sistem.</p>
-                </div>
-              )}
 
-              <div className="flex gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-wider rounded-lg hover:bg-slate-200 transition">Batal</button>
-                <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white text-xs font-black uppercase tracking-wider rounded-lg hover:bg-emerald-700 transition shadow-sm">
-                  {editId ? 'Simpan Pembaruan' : 'Simpan Data'}
+              <div>
+                <label className="block text-[10px] uppercase text-slate-500 mb-1">Nama Lengkap Karyawan / Pemegang Izin</label>
+                <input
+                  type="text"
+                  required
+                  value={formHolder}
+                  onChange={(e) => setFormHolder(e.target.value)}
+                  placeholder="Nama karyawan atau ID unit alat"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
+                />
+              </div>
+
+              {/* DROPDOWN PILIHAN JENIS (SKP, KEMENAKER, BNSP) */}
+              <div>
+                <label className="block text-[10px] uppercase text-slate-500 mb-1">Jenis Sertifikasi</label>
+                <select
+                  value={formRegType}
+                  onChange={(e) => setFormRegType(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 font-black text-slate-800"
+                >
+                  <option value="SKP">SKP (Surat Keputusan Penunjukan)</option>
+                  <option value="KEMENAKER">KEMENAKER (Lisensi Resmi K3 Kemenaker)</option>
+                  <option value="BNSP">BNSP (Badan Nasional Sertifikasi Profesi)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-500 mb-1">Tanggal Terbit / Pembinaan</label>
+                  <input
+                    type="date"
+                    value={formIssueDate}
+                    onChange={(e) => setFormIssueDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-500 mb-1">Tanggal Berakhir (Expired)</label>
+                  <input
+                    type="date"
+                    required
+                    value={formExpiryDate}
+                    onChange={(e) => setFormExpiryDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase rounded-lg transition shadow-sm"
+                >
+                  Simpan Data
                 </button>
               </div>
             </form>
@@ -199,237 +489,6 @@ export default function CompetencyTrackerPage() {
         </div>
       )}
 
-      {/* Header Utama Web */}
-      <div className="border-b border-slate-300 pb-5 print:hidden">
-        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-          <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Kepatuhan & Audit Legal</span>
-        </div>
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Competency & License Tracker</h1>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">Database Manajemen Lisensi Alat & Kompetensi Karyawan Syspex.</p>
-          </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={handleOpenAdd}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2 uppercase tracking-wider"
-            >
-              + Tambah Data
-            </button>
-            <button 
-              onClick={() => window.print()} 
-              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-              CETAK RENEWAL
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        <div className="lg:col-span-12 space-y-6 print:hidden">
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Total Lisensi & SKP</p>
-              <div className="text-4xl font-black text-slate-900">{metrics.total}</div>
-            </div>
-            <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm flex flex-col justify-between">
-              <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-2">Aman (&gt; 60 Hari)</p>
-              <div className="text-4xl font-black text-emerald-600">{metrics.safe}</div>
-            </div>
-            <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 text-7xl opacity-10">⚠️</div>
-              <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-2">Perlu Perpanjangan (≤ 60 Hari)</p>
-              <div className="text-4xl font-black text-amber-600">{metrics.warning}</div>
-            </div>
-            <div className="bg-red-50 p-5 rounded-2xl border border-red-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 text-7xl opacity-10">🚨</div>
-              <p className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-2">KADALUARSA (EXPIRED)</p>
-              <div className="text-4xl font-black text-red-600">{metrics.expired}</div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-            <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-              {(['ALL', 'KOMPETENSI', 'SIO', 'SILO'] as const).map(type => (
-                <button 
-                  key={type} 
-                  onClick={() => setFilterType(type)}
-                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition whitespace-nowrap ${filterType === type ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                >
-                  {type === 'ALL' ? 'Semua Data' : type}
-                </button>
-              ))}
-            </div>
-            <div className="relative w-full md:w-72">
-              <input 
-                type="text" 
-                placeholder="Cari nama karyawan / alat..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 pl-9 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-500 transition"
-              />
-              <svg className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipe Dokumen</th>
-                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nama Holder / ID Alat</th>
-                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Kategori / No. Registrasi</th>
-                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Masa Berlaku (Expired)</th>
-                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Status Kepatuhan</th>
-                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredLicenses.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-8 text-center text-sm font-bold text-slate-500">Tidak ada data lisensi. Silakan tambah data baru.</td>
-                    </tr>
-                  ) : (
-                    filteredLicenses.map((lic) => (
-                      <tr key={lic.id} className="hover:bg-slate-50 transition group">
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${lic.type === 'KOMPETENSI' ? 'bg-indigo-100 text-indigo-700' : lic.type === 'SIO' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                            {lic.type}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <p className="text-sm font-black text-slate-900">{lic.holderName}</p>
-                        </td>
-                        <td className="p-4">
-                          <p className="text-xs font-bold text-slate-700">{lic.category}</p>
-                          <p className="text-[10px] font-mono text-slate-500 mt-0.5">{lic.licenseNo}</p>
-                        </td>
-                        <td className="p-4">
-                          <p className="text-xs font-bold text-slate-700">{new Date(lic.expiryDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                          <p className={`text-[10px] font-black uppercase mt-0.5 ${lic.status === 'EXPIRED' ? 'text-red-600' : lic.status === 'WARNING' ? 'text-amber-600' : 'text-emerald-600'}`}>
-                            {lic.diffDays < 0 ? `${Math.abs(lic.diffDays)} hari lewat` : `${lic.diffDays} hari lagi`}
-                          </p>
-                        </td>
-                        <td className="p-4 text-right">
-                          {lic.status === 'EXPIRED' && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-wider border border-red-200 shadow-sm"><span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span> EXPIRED (ILEGAL)</span>}
-                          {lic.status === 'WARNING' && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider border border-amber-200"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> RENEW SEGERA</span>}
-                          {lic.status === 'ACTIVE' && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider border border-emerald-100">✓ AMAN</span>}
-                        </td>
-                        <td className="p-4 text-center">
-                          <div className="flex justify-center gap-2">
-                            {/* Tombol EDIT */}
-                            <button onClick={() => handleOpenEdit(lic)} className="text-slate-400 hover:text-emerald-600 transition p-1.5 rounded-lg hover:bg-emerald-50" title="Perbarui / Edit Data">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            </button>
-                            {/* Tombol HAPUS */}
-                            <button onClick={() => handleDelete(lic.id)} className="text-slate-400 hover:text-red-600 transition p-1.5 rounded-lg hover:bg-red-50" title="Hapus Lisensi">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* DOKUMEN CETAK (Hanya Tampil Saat Print) */}
-        <div className="hidden print:block w-full text-black">
-          <div className="border-b-4 border-black pb-4 mb-6 flex justify-between items-end">
-            <div>
-              <h1 className="text-3xl font-black uppercase tracking-tighter">Compliance Renewal Request Report</h1>
-              <h2 className="text-xs font-bold uppercase tracking-widest mt-1 text-gray-600">PT. Syspex Kemasindo - Competency & License Audit</h2>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-bold uppercase">Report Generated:</p>
-              <p className="text-sm font-black">{new Date().toLocaleDateString('en-GB')}</p>
-            </div>
-          </div>
-
-          <div className="border-2 border-black p-4 mb-8 bg-gray-50 flex gap-12">
-            <div>
-              <p className="text-[10px] font-bold uppercase text-gray-500 mb-1">Status Kepatuhan Kritis</p>
-              <p className="text-3xl font-black">{metrics.expired} <span className="text-sm font-bold uppercase">Expired</span></p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase text-gray-500 mb-1">Segera Berakhir (≤ 60 Hari)</p>
-              <p className="text-3xl font-black">{metrics.warning} <span className="text-sm font-bold uppercase">Warning</span></p>
-            </div>
-            <div className="ml-auto flex flex-col justify-center">
-              <p className="text-xs font-black uppercase border-b-2 border-black pb-1 mb-1">Tindakan Diperlukan:</p>
-              <p className="text-[10px] font-bold w-64 leading-tight">Data di bawah ini memerlukan pengajuan anggaran perpanjangan/pelatihan penyegaran ke HRD segera untuk mencegah pelanggaran regulasi Kemenaker.</p>
-            </div>
-          </div>
-
-          <h3 className="text-sm font-black uppercase border-b-2 border-black mb-3 pb-1">Daftar Sertifikasi Memerlukan Perpanjangan (Renewal Required)</h3>
-          <table className="w-full border-collapse border-2 border-black text-xs mb-12">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border-2 border-black p-2 text-center w-[5%]">No</th>
-                <th className="border-2 border-black p-2 text-center w-[15%]">Tipe</th>
-                <th className="border-2 border-black p-2 text-left w-[25%]">Nama Karyawan / ID Alat</th>
-                <th className="border-2 border-black p-2 text-left w-[25%]">Kategori & No. Registrasi</th>
-                <th className="border-2 border-black p-2 text-center w-[15%]">Tgl Expired</th>
-                <th className="border-2 border-black p-2 text-center w-[15%]">Sisa Waktu</th>
-              </tr>
-            </thead>
-            <tbody>
-              {processedLicenses
-                .filter(lic => lic.status !== 'ACTIVE')
-                .sort((a, b) => a.diffDays - b.diffDays)
-                .map((lic, idx) => (
-                <tr key={lic.id}>
-                  <td className="border-2 border-black p-2 text-center font-bold">{idx + 1}</td>
-                  <td className="border-2 border-black p-2 text-center font-black">{lic.type}</td>
-                  <td className="border-2 border-black p-2 font-bold">{lic.holderName}</td>
-                  <td className="border-2 border-black p-2">
-                    {lic.category}<br/>
-                    <span className="font-mono text-[10px]">{lic.licenseNo}</span>
-                  </td>
-                  <td className="border-2 border-black p-2 text-center">{new Date(lic.expiryDate).toLocaleDateString('en-GB')}</td>
-                  <td className="border-2 border-black p-2 text-center font-black uppercase">
-                    {lic.diffDays < 0 ? `${Math.abs(lic.diffDays)} hr Lewat` : `${lic.diffDays} hr Lagi`}
-                  </td>
-                </tr>
-              ))}
-              {!needsRenewal && (
-                <tr>
-                  <td colSpan={6} className="border-2 border-black p-4 text-center font-bold uppercase">
-                    Kepatuhan 100%. Tidak ada sertifikat atau lisensi yang perlu diperpanjang saat ini.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="grid grid-cols-3 gap-8 text-center text-xs font-bold">
-            <div>
-              <p className="uppercase mb-12">Prepared By (HSE Admin)</p>
-              <div className="border-b-2 border-black w-3/4 mx-auto mb-1"></div>
-              <p>Name & Signature</p>
-            </div>
-            <div>
-              <p className="uppercase mb-12">Reviewed By (HSE Manager)</p>
-              <div className="border-b-2 border-black w-3/4 mx-auto mb-1"></div>
-              <p>Name & Signature</p>
-            </div>
-            <div>
-              <p className="uppercase mb-12">Approved By (HR/GA Manager)</p>
-              <div className="border-b-2 border-black w-3/4 mx-auto mb-1"></div>
-              <p>For Training Budget / Renewal</p>
-            </div>
-          </div>
-        </div>
-
-      </div>
     </div>
   )
 }
