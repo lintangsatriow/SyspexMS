@@ -17,7 +17,8 @@ export default function RootLayout({
     <html lang="id">
       <head>
         <title>Syspex HSE Management System</title>
-        <meta name="description" content="Industrial HSE Management System for PT. Syspex Kemasindo" />
+        <meta name="description" content="Integrated HSE Management System for Syspex " />
+        <link rel="icon" href="/Syspex%20Logo%20(Trademark)%20black.png" />
       </head>
       <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
         
