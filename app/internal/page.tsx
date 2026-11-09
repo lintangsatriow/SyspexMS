@@ -16,7 +16,7 @@ export default function DashboardPage() {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teizyhspjjhwvnwrgmxj.supabase.co'
         
         // GANTI TEKS DI BAWAH INI DENGAN API KEY PANJANG ANDA
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'MASUKKAN_API_KEY_ANDA_DISINI'
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXp5aHNwampod3Zud3JnbXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4NTQ0ODIsImV4cCI6MjEwOTQzMDQ4Mn0.HgzYCrftZLyWELHjNFZyGJzLCH9DlYCKh5tRfOvlu_A'
         
         const supabase = createClient(supabaseUrl, supabaseKey)
 
