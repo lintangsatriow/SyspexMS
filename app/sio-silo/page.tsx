@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 
 type LicenseType = 'SIO' | 'SILO'
@@ -8,38 +8,37 @@ type LicenseType = 'SIO' | 'SILO'
 interface LicenseRecord {
   id: string
   type: LicenseType
-  holderName: string // Nama orang atau ID Alat
-  category: string // e.g., Forklift Kelas II, Reach Truck
+  holderName: string 
+  category: string 
   licenseNo: string
   issueDate: string
   expiryDate: string
 }
 
 export default function SioSiloTrackerPage() {
+  // FIX: Mencegah Hydration Error akibat perbedaan waktu Server Vercel & Browser
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const [filterType, setFilterType] = useState<'ALL' | 'SIO' | 'SILO'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // MOCK DATA DINAMIS: Menyesuaikan dengan tanggal hari ini agar demo warna selalu berfungsi
-  const today = new Date()
-  
-  const addDays = (date: Date, days: number) => {
-    const result = new Date(date)
-    result.setDate(result.getDate() + days)
-    return result.toISOString().split('T')[0]
-  }
-
+  // FIX: Menggunakan Tanggal Statis yang Aman untuk Server SSR Next.js
   const [licenses] = useState<LicenseRecord[]>([
-    { id: '1', type: 'SIO', holderName: 'Budi Santoso', category: 'Forklift Kelas II', licenseNo: 'KEMENAKER/SIO/001', issueDate: '2021-05-10', expiryDate: addDays(today, 250) },
-    { id: '2', type: 'SIO', holderName: 'Ahmad Faisal', category: 'Forklift Kelas I', licenseNo: 'KEMENAKER/SIO/042', issueDate: '2021-12-01', expiryDate: addDays(today, 45) }, // Warning
-    { id: '3', type: 'SILO', holderName: 'FL-01 (Toyota 3.0T)', category: 'Pusat K3 MHE', licenseNo: '566/SILO-MHE/23', issueDate: '2022-01-15', expiryDate: addDays(today, -10) }, // Expired
-    { id: '4', type: 'SILO', holderName: 'FL-02 (Komatsu 2.5T)', category: 'Pusat K3 MHE', licenseNo: '566/SILO-MHE/24', issueDate: '2022-08-20', expiryDate: addDays(today, 120) },
-    { id: '5', type: 'SIO', holderName: 'Rudi Hermawan', category: 'Reach Truck', licenseNo: 'KEMENAKER/SIO/088', issueDate: '2021-11-10', expiryDate: addDays(today, 15) }, // Warning
-    { id: '6', type: 'SILO', holderName: 'RCH-01 (Reach Truck)', category: 'Pusat K3 MHE', licenseNo: '566/SILO-MHE/29', issueDate: '2023-02-10', expiryDate: addDays(today, 300) },
-    { id: '7', type: 'SIO', holderName: 'Siti Aminah', category: 'Scissor Lift', licenseNo: 'KEMENAKER/SIO/102', issueDate: '2019-10-05', expiryDate: addDays(today, -50) }, // Expired
+    { id: '1', type: 'SIO', holderName: 'Budi Santoso', category: 'Forklift Kelas II', licenseNo: 'KEMENAKER/SIO/001', issueDate: '2021-05-10', expiryDate: '2028-05-10' },
+    { id: '2', type: 'SIO', holderName: 'Ahmad Faisal', category: 'Forklift Kelas I', licenseNo: 'KEMENAKER/SIO/042', issueDate: '2021-12-01', expiryDate: '2026-12-15' }, 
+    { id: '3', type: 'SILO', holderName: 'FL-01 (Toyota 3.0T)', category: 'Pusat K3 MHE', licenseNo: '566/SILO-MHE/23', issueDate: '2022-01-15', expiryDate: '2026-10-01' }, 
+    { id: '4', type: 'SILO', holderName: 'FL-02 (Komatsu 2.5T)', category: 'Pusat K3 MHE', licenseNo: '566/SILO-MHE/24', issueDate: '2022-08-20', expiryDate: '2028-08-20' },
+    { id: '5', type: 'SIO', holderName: 'Rudi Hermawan', category: 'Reach Truck', licenseNo: 'KEMENAKER/SIO/088', issueDate: '2021-11-10', expiryDate: '2026-11-20' }, 
+    { id: '6', type: 'SILO', holderName: 'RCH-01 (Reach Truck)', category: 'Pusat K3 MHE', licenseNo: '566/SILO-MHE/29', issueDate: '2023-02-10', expiryDate: '2028-02-10' },
+    { id: '7', type: 'SIO', holderName: 'Siti Aminah', category: 'Scissor Lift', licenseNo: 'KEMENAKER/SIO/102', issueDate: '2019-10-05', expiryDate: '2026-09-05' }, 
   ])
 
-  // Logika Kalkulasi Status
+  // Logika Kalkulasi Status Real-Time di Browser Anda
   const processedLicenses = useMemo(() => {
+    const today = new Date()
     return licenses.map(lic => {
       const expDate = new Date(lic.expiryDate)
       const diffTime = expDate.getTime() - today.getTime()
@@ -51,16 +50,15 @@ export default function SioSiloTrackerPage() {
 
       return { ...lic, diffDays, status }
     })
-  }, [licenses, today])
+  }, [licenses])
 
-  // Filter & Pencarian
   const filteredLicenses = useMemo(() => {
     return processedLicenses.filter(lic => {
       const matchType = filterType === 'ALL' || lic.type === filterType
       const matchSearch = lic.holderName.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           lic.licenseNo.toLowerCase().includes(searchQuery.toLowerCase())
       return matchType && matchSearch
-    }).sort((a, b) => a.diffDays - b.diffDays) // Urutkan dari yang paling mendesak
+    }).sort((a, b) => a.diffDays - b.diffDays)
   }, [processedLicenses, filterType, searchQuery])
 
   // KPI Metrics
@@ -71,13 +69,21 @@ export default function SioSiloTrackerPage() {
     safe: processedLicenses.filter(l => l.status === 'ACTIVE').length,
   }
 
-  // Apakah ada data yang harus diperpanjang? (Expired + Warning)
   const needsRenewal = metrics.expired > 0 || metrics.warning > 0
+
+  // FIX: Loading state singkat untuk menghindari bentrok SSR Next.js
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+        <div className="w-8 h-8 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
+        <p className="text-slate-500 font-bold animate-pulse text-sm">Sinkronisasi Database Lisensi...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
       
-      {/* Header - Sembunyikan saat cetak */}
       <div className="border-b border-slate-300 pb-5 print:hidden">
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
           <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Kepatuhan & Audit Legal</span>
@@ -99,10 +105,7 @@ export default function SioSiloTrackerPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Konten Utama Web - Sembunyikan saat cetak */}
         <div className="lg:col-span-12 space-y-6 print:hidden">
-          
-          {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Total Lisensi Terdaftar</p>
@@ -124,7 +127,6 @@ export default function SioSiloTrackerPage() {
             </div>
           </div>
 
-          {/* Tools: Filter & Search */}
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex gap-2">
               {(['ALL', 'SIO', 'SILO'] as const).map(type => (
@@ -149,7 +151,6 @@ export default function SioSiloTrackerPage() {
             </div>
           </div>
 
-          {/* Tabel Data Lisensi */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -205,12 +206,7 @@ export default function SioSiloTrackerPage() {
           </div>
         </div>
 
-        {/* ================================================== */}
-        {/* DOKUMEN CETAK (Laporan Pengajuan Renewal Lisensi) */}
-        {/* ================================================== */}
         <div className="hidden print:block w-full text-black">
-          
-          {/* Header Dokumen Formal */}
           <div className="border-b-4 border-black pb-4 mb-6 flex justify-between items-end">
             <div>
               <h1 className="text-3xl font-black uppercase tracking-tighter">License Renewal Request Report</h1>
@@ -222,7 +218,6 @@ export default function SioSiloTrackerPage() {
             </div>
           </div>
 
-          {/* Executive Summary */}
           <div className="border-2 border-black p-4 mb-8 bg-gray-50 flex gap-12">
             <div>
               <p className="text-[10px] font-bold uppercase text-gray-500 mb-1">Status Kepatuhan Kritis</p>
@@ -238,7 +233,6 @@ export default function SioSiloTrackerPage() {
             </div>
           </div>
 
-          {/* Tabel Cetak - HANYA MENAMPILKAN YANG EXPIRED & WARNING */}
           <h3 className="text-sm font-black uppercase border-b-2 border-black mb-3 pb-1">Daftar Lisensi Memerlukan Perpanjangan (Renewal Required)</h3>
           <table className="w-full border-collapse border-2 border-black text-xs mb-12">
             <thead className="bg-gray-100">
@@ -280,7 +274,6 @@ export default function SioSiloTrackerPage() {
             </tbody>
           </table>
 
-          {/* Area Tanda Tangan */}
           <div className="grid grid-cols-3 gap-8 text-center text-xs font-bold">
             <div>
               <p className="uppercase mb-12">Prepared By (HSE Admin)</p>
@@ -298,7 +291,6 @@ export default function SioSiloTrackerPage() {
               <p>For Budgeting / Renewal</p>
             </div>
           </div>
-
         </div>
 
       </div>
