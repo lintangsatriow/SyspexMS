@@ -1,492 +1,327 @@
 "use client"
 
-import { useState, useId, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
+type ScaffoldType = 'FRAME' | 'TUBULAR'
+type TagStatus = 'GREEN' | 'RED' | 'YELLOW'
+type LoadCapacity = 'Light (75 kg/m²)' | 'Medium (150 kg/m²)' | 'Heavy (200 kg/m²)'
+
 export default function ScaffoldingPage() {
-  const formId = useId()
-  const [todayDate, setTodayDate] = useState<string>('')
-
-  useEffect(() => {
-    setTodayDate(new Date().toISOString().split('T')[0])
-  }, [])
-
-  // 1. Dimensi Target Area Kerja
-  const [length, setLength] = useState<number>(10)
-  const [height, setHeight] = useState<number>(5.1)
+  // Parameter Dimensi & Spesifikasi
+  const [scaffoldType, setScaffoldType] = useState<ScaffoldType>('FRAME')
+  const [length, setLength] = useState<number>(10) // meter
+  const [width, setWidth] = useState<number>(1.2) // meter (Standar 1 bay)
+  const [height, setHeight] = useState<number>(5) // meter
+  const [loadCapacity, setLoadCapacity] = useState<LoadCapacity>('Medium (150 kg/m²)')
   
-  // Standar Main Frame Indonesia (T-170)
-  const frameHeight = 1.7
-  const frameWidth = 1.219
-  const bayLength = 1.83 
-  
-  // 2. Operasional Pekerja & Akses
-  const [deckLevels, setDeckLevels] = useState<number>(1)
-  const [workersOnDeck, setWorkersOnDeck] = useState<number>(2)
-  const [ladderPosition, setLadderPosition] = useState<'left' | 'right' | 'none'>('left')
-  const [hasOutriggerPipes, setHasOutriggerPipes] = useState<boolean>(true)
-  const [inspectorName, setInspectorName] = useState<string>('')
+  // Data Inspeksi (Scafftag)
+  const [tagStatus, setTagStatus] = useState<TagStatus>('RED')
+  const [inspectorName, setInspectorName] = useState('')
+  const [buildDate, setBuildDate] = useState(new Date().toISOString().split('T')[0])
+  const [location, setLocation] = useState('Area Instalasi ASRS - Line 1')
 
-  // Kalkulasi Geometri
-  const totalBays = Math.max(1, Math.ceil(length / bayLength))
-  const totalLifts = Math.max(1, Math.ceil(height / frameHeight))
-  const actualHeight = totalLifts * frameHeight
-  const actualLength = totalBays * bayLength
+  // Kalkulasi Bill of Quantities (BoQ)
+  const boq = useMemo(() => {
+    // Standar dimensi Main Frame T-170: Tinggi 1.7m, Panjang Brace 1.8m
+    const bayLength = 1.8 
+    const tierHeight = 1.7 
 
-  // Kapasitas Beban Platform (Medium Duty: 225 kg/m2)
-  const bayPlatformCapacity = 500
-  const estimatedLoadPerWorker = 100
-  const totalLiveLoadKg = workersOnDeck * estimatedLoadPerWorker
-  const maxSafeWorkers = totalBays * 2
-  const isPlatformOverload = workersOnDeck > maxSafeWorkers
+    const bays = Math.ceil(length / bayLength)
+    const tiers = Math.ceil(height / tierHeight)
 
-  // Rasio Stabilitas & Kebutuhan Pipa Support
-  const heightRatio = actualHeight / frameWidth
-  const needsWallTie = heightRatio > 3.0
+    if (scaffoldType === 'FRAME') {
+      const frames = (bays + 1) * tiers * 2
+      const crossBraces = bays * tiers * 2
+      const jointPins = (bays + 1) * (tiers > 0 ? tiers - 1 : 0) * 4
+      const jackBases = (bays + 1) * 2
+      const uHeads = (bays + 1) * 2
+      const catwalks = bays * 2 // Asumsi 2 papan per bay di level kerja teratas
+      const stairs = tiers
 
-  // Perhitungan BoQ Material
-  const qtyMainFrames = (totalBays + 1) * totalLifts * 2
-  const qtyCrossBraces = totalBays * totalLifts * 2
-  const qtyJointPins = (totalBays + 1) * (totalLifts > 1 ? totalLifts - 1 : 0) * 2
-  const qtyJackBases = (totalBays + 1) * 2
-  const qtyCatwalks = totalBays * 2 * deckLevels
-  const qtyLadders = ladderPosition !== 'none' ? totalLifts : 0
-  
-  const qtySupportPipes = (needsWallTie || hasOutriggerPipes) ? Math.ceil((totalBays + 1) * 2) : 0
-  const qtySwivelClamps = qtySupportPipes * 2
-
-  const isInputValid = length > 0 && height > 0 && deckLevels > 0 && workersOnDeck >= 0
+      return [
+        { item: 'Main Frame T-170', qty: frames, unit: 'Pcs' },
+        { item: 'Cross Brace 220', qty: crossBraces, unit: 'Pcs' },
+        { item: 'Joint Pin', qty: jointPins, unit: 'Pcs' },
+        { item: 'Jack Base (60cm)', qty: jackBases, unit: 'Pcs' },
+        { item: 'U-Head Jack', qty: uHeads, unit: 'Pcs' },
+        { item: 'Catwalk / Steel Plank', qty: catwalks, unit: 'Pcs' },
+        { item: 'Aluminum Stairs', qty: stairs, unit: 'Set' },
+        { item: 'Safety Net', qty: Math.ceil((length * height) / 10), unit: 'Roll' }
+      ]
+    } else {
+      // Perkiraan kasar untuk Tubular (Pipa BS1139 & Clamp)
+      const verticalPipes = (bays + 1) * 2
+      const horizontalLedgers = (bays + 1) * tiers * 2
+      const horizontalTransoms = (bays + 1) * tiers * 2
+      const totalPipes = verticalPipes + horizontalLedgers + horizontalTransoms
+      const swivelClamps = totalPipes * 2
+      const fixedClamps = totalPipes * 3
+      
+      return [
+        { item: 'Galvanized Pipe (6m)', qty: Math.ceil(totalPipes / 2), unit: 'Btg' },
+        { item: 'Galvanized Pipe (3m)', qty: Math.ceil(totalPipes / 2), unit: 'Btg' },
+        { item: 'Swivel Clamp', qty: swivelClamps, unit: 'Pcs' },
+        { item: 'Fixed Clamp (Right Angle)', qty: fixedClamps, unit: 'Pcs' },
+        { item: 'Base Plate', qty: (bays + 1) * 2, unit: 'Pcs' },
+        { item: 'Steel Plank', qty: bays * 2, unit: 'Pcs' },
+      ]
+    }
+  }, [length, height, width, scaffoldType])
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 pb-16">
+    <div className="space-y-8 animate-in fade-in duration-300 pb-16 max-w-6xl mx-auto">
       
-      {/* Header Halaman */}
+      {/* Header - Sembunyikan saat cetak */}
       <div className="border-b border-slate-300 pb-5 print:hidden">
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-          <Link href="/" className="hover:text-slate-900 transition">Hub Modul Utama</Link>
-          <span>/</span>
-          <span className="text-slate-800 font-bold">Desain Scaffolding</span>
+          <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Structure & Access</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-          Perancangan Scaffolding Frame (BoQ, Tangga &amp; Pipa Support)
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
-          Kalkulator Bill of Quantities (BoQ) material Main Frame T-170, validasi beban pekerja, verifikasi pipa support pengaku (outrigger/wall-tie), dan penerbitan Scafftag.
-        </p>
-      </div>
-
-      {/* Header Dokumen Cetak */}
-      <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Scaffolding Plan &amp; Safety Verification</h1>
-            <p className="text-xs text-slate-600 font-bold mt-1">LEMBAR PERHITUNGAN TEKNIS &amp; VERIFIKASI K3 LAPANGAN</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Scaffolding BoQ & Scafftag</h1>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">Estimasi material perancah ASRS dan penerbitan Tag Inspeksi K3.</p>
           </div>
-          <div className="text-right">
-            <span className="text-[10px] font-mono text-slate-500 block">Diterbitkan oleh:</span>
-            <span className="text-sm font-black text-slate-900">SYSPEX MANAGEMENT SYSTEM</span>
-          </div>
+          <button 
+            onClick={() => window.print()} 
+            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            CETAK MANIFEST & TAG
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Kolom Kiri: Input Parameter Teknis */}
-        <div className="lg:col-span-4 space-y-5 print:hidden">
+        {/* Kolom Kiri: Input Dimensi & Inspeksi (Web View) */}
+        <div className="lg:col-span-5 space-y-6 print:hidden">
           
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2">
-              1. Dimensi Target Area Kerja
-            </h2>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h2 className="text-sm font-black text-slate-900 uppercase border-b border-slate-100 pb-3">Dimensi & Tipe Struktur</h2>
+            
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tipe Scaffolding</label>
+              <select value={scaffoldType} onChange={(e) => setScaffoldType(e.target.value as ScaffoldType)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold">
+                <option value="FRAME">Main Frame (T-170 Standar)</option>
+                <option value="TUBULAR">Tubular (Pipa BS1139 & Clamp)</option>
+              </select>
+            </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label htmlFor={`${formId}-len`} className="block text-[11px] font-bold text-slate-600 mb-1">Panjang Bentang (m)</label>
-                <input
-                  id={`${formId}-len`}
-                  type="number"
-                  min="1"
-                  step="0.5"
-                  value={length}
-                  onChange={(e) => setLength(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500"
-                />
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Panjang (m)</label>
+                <input type="number" value={length} onChange={(e) => setLength(Number(e.target.value))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor={`${formId}-h`} className="block text-[11px] font-bold text-slate-600 mb-1">Tinggi Target (m)</label>
-                  <input
-                    id={`${formId}-h`}
-                    type="number"
-                    min="1"
-                    step="0.5"
-                    value={height}
-                    onChange={(e) => setHeight(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Lebar Frame</label>
-                  <input
-                    disabled
-                    type="text"
-                    value={`${frameWidth} m`}
-                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-md text-xs font-mono font-bold text-slate-500 cursor-not-allowed"
-                  />
-                </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tinggi (m)</label>
+                <input type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
               </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Lebar (m)</label>
+                <input type="number" value={width} onChange={(e) => setWidth(Number(e.target.value))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Kapasitas Beban Kerja (SWL)</label>
+              <select value={loadCapacity} onChange={(e) => setLoadCapacity(e.target.value as LoadCapacity)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold">
+                <option value="Light (75 kg/m²)">Light Duty (75 kg/m²) - Inspeksi Visual</option>
+                <option value="Medium (150 kg/m²)">Medium Duty (150 kg/m²) - Teknisi Mesin</option>
+                <option value="Heavy (200 kg/m²)">Heavy Duty (200 kg/m²) - Material Berat</option>
+              </select>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2">
-              2. Beban Pekerja &amp; Pipa Support
-            </h2>
-
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor={`${formId}-workers`} className="block text-[11px] font-bold text-slate-600 mb-1">Rencana Pekerja di Atas</label>
-                  <input
-                    id={`${formId}-workers`}
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={workersOnDeck}
-                    onChange={(e) => setWorkersOnDeck(parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500"
-                  />
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Maks aman: {maxSafeWorkers} orang</span>
-                </div>
-                <div>
-                  <label htmlFor={`${formId}-deck`} className="block text-[11px] font-bold text-slate-600 mb-1">Lantai Catwalk</label>
-                  <input
-                    id={`${formId}-deck`}
-                    type="number"
-                    min="1"
-                    max={totalLifts}
-                    value={deckLevels}
-                    onChange={(e) => setDeckLevels(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono font-bold focus:outline-none focus:border-slate-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">Posisi Tangga Akses</label>
-                <select
-                  value={ladderPosition}
-                  onChange={(e) => setLadderPosition(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500"
-                >
-                  <option value="left">Bay Ujung Kiri (Standard)</option>
-                  <option value="right">Bay Ujung Kanan</option>
-                  <option value="none">Tidak Pasang (Hanya Catwalk)</option>
-                </select>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100">
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={hasOutriggerPipes}
-                    onChange={(e) => setHasOutriggerPipes(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                  />
-                  <div>
-                    <span className="block text-xs font-bold text-slate-800">Pasang Pipa Support / Outrigger</span>
-                    <span className="block text-[10px] text-slate-500 mt-0.5">
-                      Pipa galvanis 1.5 inch miring 45 sampai 60 derajat di kedua sisi bawah untuk memperlebar tapak stabilitas.
-                    </span>
-                  </div>
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">Nama Petugas Inspeksi K3</label>
-                <input
-                  type="text"
-                  placeholder="Nama Scaffolder / HSE..."
-                  value={inspectorName}
-                  onChange={(e) => setInspectorName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold focus:outline-none focus:border-slate-500"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Kolom Kanan: Skematik 2D & Rekap BoQ */}
-        <div className="lg:col-span-8 space-y-6 print:col-span-12">
-          
-          {isPlatformOverload && (
-            <div className="bg-red-50 border border-red-300 rounded-xl p-4 print:border-slate-900 print:bg-white">
-              <h3 className="text-xs font-black text-red-700 uppercase flex items-center gap-2 mb-1 print:text-slate-900">
-                <span>[!]</span> <span>PERINGATAN: JUMLAH PEKERJA MELEBIHI REKOMENDASI AMAN</span>
-              </h3>
-              <p className="text-xs text-red-600 print:text-slate-700">
-                Rencana {workersOnDeck} pekerja di atas platform melampaui batas aman ({maxSafeWorkers} orang untuk bentang {totalBays} bay). Kurangi personel aktif.
-              </p>
-            </div>
-          )}
-
-          {needsWallTie && (
-            <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 print:border-slate-900 print:bg-white">
-              <h3 className="text-xs font-black text-amber-900 uppercase flex items-center gap-2 mb-1 print:text-slate-900">
-                <span>[!]</span> <span>WAJIB PIPA SUPPORT / WALL-TIE (RASIO {heightRatio.toFixed(1)}:1)</span>
-              </h3>
-              <p className="text-xs text-amber-800 print:text-slate-700">
-                Rasio tinggi terhadap lebar dasar melebihi batas bebas 3:1. Wajib dipasang pipa pengikat (wall-tie) ke struktur permanen setiap jarak vertikal 4 meter atau gunakan outrigger pipa galvanis.
-              </p>
-            </div>
-          )}
-
-          {/* Blueprint Skematik 2D */}
-          <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 text-white space-y-4 print:bg-white print:border-slate-300 print:text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 print:border-slate-300">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-mono print:border print:border-slate-400">SCHEMATIC 2D</span>
-                <span className="text-xs font-bold text-slate-400 uppercase print:text-slate-600">STRUCTURE &amp; SUPPORT SYSTEM</span>
-              </div>
-              <span className={`px-3 py-0.5 rounded text-[10px] font-black uppercase border ${
-                !isPlatformOverload 
-                  ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30 print:bg-emerald-50 print:text-emerald-700 print:border-emerald-300' 
-                  : 'bg-red-900/30 text-red-400 border-red-500/30 print:bg-red-50 print:text-red-700 print:border-red-300'
-              }`}>
-                {!isPlatformOverload ? 'STATUS: AMAN' : 'STATUS: OVERLOAD'}
-              </span>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h2 className="text-sm font-black text-slate-900 uppercase border-b border-slate-100 pb-3">Status Inspeksi (Scafftag)</h2>
+            
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <button onClick={() => setTagStatus('RED')} className={`p-3 rounded-lg border-2 text-xs font-black uppercase tracking-wider transition ${tagStatus === 'RED' ? 'bg-red-600 text-white border-red-700' : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'}`}>
+                UNSAFE (MERAH)
+              </button>
+              <button onClick={() => setTagStatus('GREEN')} className={`p-3 rounded-lg border-2 text-xs font-black uppercase tracking-wider transition ${tagStatus === 'GREEN' ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}`}>
+                SAFE (HIJAU)
+              </button>
             </div>
 
-            <div className="relative aspect-video w-full bg-[#0f172a] rounded-lg border border-slate-800 flex items-center justify-center overflow-hidden py-4 print:bg-white print:border-slate-300">
-              <svg viewBox="0 0 640 330" className="w-full h-full text-slate-300 font-sans select-none print:text-slate-600" role="img" aria-label="Visualisasi 2D Blueprint Scaffolding Frame dengan Tangga dan Pipa Support">
-                <line x1="30" y1="280" x2="610" y2="280" stroke="#334155" strokeWidth="2" strokeDasharray="4,4" />
-
-                {(() => {
-                  const visualBays = Math.min(totalBays, 6)
-                  const visualLifts = Math.min(totalLifts, 4)
-                  const bayWidth = 380 / visualBays
-                  const liftHeightSVG = 200 / visualLifts
-                  const startX = 130
-                  const elements = []
-
-                  const ladderBayIndex = ladderPosition === 'left' ? 0 : (ladderPosition === 'right' ? visualBays - 1 : -1)
-
-                  if (hasOutriggerPipes || needsWallTie) {
-                    const outriggerSpan = 45
-                    const outriggerTopLiftY = 276 - (Math.min(2, visualLifts) * liftHeightSVG)
-                    
-                    elements.push(
-                      <g key="outrigger-left">
-                        <line x1={startX - outriggerSpan} y1="276" x2={startX} y2={outriggerTopLiftY} stroke="#eab308" strokeWidth="2.5" />
-                        <rect x={startX - outriggerSpan - 4} y="276" width="8" height="4" fill="#94a3b8" />
-                        <circle cx={startX} cy={outriggerTopLiftY} r="3" fill="#ca8a04" />
-                        <text x={startX - (outriggerSpan / 2)} y="268" fill="#eab308" fontSize="8" fontWeight="bold">Outrigger</text>
-                      </g>
-                    )
-                    
-                    const rightEnd = startX + visualBays * bayWidth
-                    elements.push(
-                      <g key="outrigger-right">
-                        <line x1={rightEnd + outriggerSpan} y1="276" x2={rightEnd} y2={outriggerTopLiftY} stroke="#eab308" strokeWidth="2.5" />
-                        <rect x={rightEnd + outriggerSpan - 4} y="276" width="8" height="4" fill="#94a3b8" />
-                        <circle cx={rightEnd} cy={outriggerTopLiftY} r="3" fill="#ca8a04" />
-                        <text x={rightEnd + (outriggerSpan / 2)} y="268" fill="#eab308" fontSize="8" fontWeight="bold" textAnchor="middle">Outrigger</text>
-                      </g>
-                    )
-                  }
-
-                  for (let i = 0; i <= visualBays; i++) {
-                    const x = startX + i * bayWidth
-                    elements.push(<rect key={`bp-${i}`} x={x - 6} y="276" width="12" height="4" fill="#94a3b8" rx="1" />)
-                  }
-
-                  for (let y = 0; y < visualLifts; y++) {
-                    const yBottom = 276 - (y * liftHeightSVG)
-                    const yTop = 276 - ((y + 1) * liftHeightSVG)
-
-                    for (let x = 0; x < visualBays; x++) {
-                      const xLeft = startX + x * bayWidth
-                      const xRight = startX + (x + 1) * bayWidth
-
-                      if (x === ladderBayIndex) {
-                        const isEvenLift = y % 2 === 0
-                        const ladderStartX = isEvenLift ? xLeft + 8 : xRight - 8
-                        const ladderEndX = isEvenLift ? xRight - 8 : xLeft + 8
-
-                        elements.push(
-                          <g key={`ladder-${y}-${x}`}>
-                            <line x1={ladderStartX} y1={yBottom} x2={ladderEndX} y2={yTop} stroke="#38bdf8" strokeWidth="2.5" />
-                            <line x1={ladderStartX} y1={yBottom - 10} x2={ladderEndX} y2={yTop - 10} stroke="#0284c7" strokeWidth="1.5" strokeDasharray="2,2" />
-                            {[0.25, 0.5, 0.75].map((t, idx) => {
-                              const stepX = ladderStartX + (ladderEndX - ladderStartX) * t
-                              const stepY = yBottom + (yTop - yBottom) * t
-                              return (
-                                <line key={`st-${idx}`} x1={stepX - 4} y1={stepY} x2={stepX + 4} y2={stepY} stroke="#bae6fd" strokeWidth="2" />
-                              )
-                            })}
-                          </g>
-                        )
-                      } else {
-                        elements.push(
-                          <g key={`cb-${y}-${x}`}>
-                            <line x1={xLeft} y1={yBottom - 6} x2={xRight} y2={yTop + 6} stroke="#94a3b8" strokeWidth="1.5" />
-                            <line x1={xRight} y1={yBottom - 6} x2={xLeft} y2={yTop + 6} stroke="#94a3b8" strokeWidth="1.5" />
-                            <circle cx={xLeft + bayWidth / 2} cy={yBottom - liftHeightSVG / 2} r="2" fill="#cbd5e1" />
-                          </g>
-                        )
-                      }
-
-                      if (y < deckLevels || x === ladderBayIndex) {
-                        elements.push(
-                          <rect key={`cw-${y}-${x}`} x={xLeft} y={yTop} width={bayWidth} height="5" fill="#475569" rx="1" />
-                        )
-                      }
-
-                      if (y === Math.min(deckLevels - 1, visualLifts - 1) && x < workersOnDeck) {
-                        const workerX = xLeft + (bayWidth / 2)
-                        const workerY = yTop - 14
-                        elements.push(
-                          <g key={`worker-${x}`}>
-                            <circle cx={workerX} cy={workerY} r="4" fill="#eab308" />
-                            <rect x={workerX - 4} y={workerY + 4} width="8" height="10" fill="#22c55e" rx="1" />
-                            <line x1={workerX - 2} y1={workerY + 6} x2={workerX + 2} y2={workerY + 6} stroke="#ffffff" strokeWidth="1" />
-                          </g>
-                        )
-                      }
-                    }
-
-                    for (let x = 0; x <= visualBays; x++) {
-                      const posX = startX + x * bayWidth
-                      elements.push(
-                        <g key={`mf-${y}-${x}`}>
-                          <line x1={posX} y1={yBottom} x2={posX} y2={yTop} stroke="#f97316" strokeWidth="3.5" strokeLinecap="round" />
-                          {y < visualLifts - 1 && (
-                            <line x1={posX} y1={yTop} x2={posX} y2={yTop - 4} stroke="#3b82f6" strokeWidth="2" />
-                          )}
-                        </g>
-                      )
-                    }
-                  }
-
-                  return elements
-                })()}
-
-                <rect x="120" y="225" width="10" height="16" fill="#10b981" rx="1" />
-                <text x="125" y="236" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">OK</text>
-
-                <text x="320" y="25" fill="currentColor" opacity="0.8" fontSize="10" fontWeight="bold" textAnchor="middle" className="font-mono">
-                  Tinggi: {actualHeight.toFixed(1)}m | Beban Pekerja: {workersOnDeck} Org (~{totalLiveLoadKg} kg) | Support: {(hasOutriggerPipes || needsWallTie) ? 'PIPA AKTIF' : 'STANDAR'}
-                </text>
-                
-                <line x1="130" y1="300" x2="510" y2="300" stroke="currentColor" opacity="0.4" strokeWidth="1" />
-                <polygon points="130,300 135,297 135,303" fill="currentColor" opacity="0.4" />
-                <polygon points="510,300 505,297 505,303" fill="currentColor" opacity="0.4" />
-                <text x="320" y="312" fill="currentColor" opacity="0.8" fontSize="9" fontWeight="bold" textAnchor="middle" className="font-mono">
-                  Bentang: {actualLength.toFixed(1)} m ({totalBays} Bays x 1.83m)
-                </text>
-              </svg>
-            </div>
-
-            {/* Rekap Teknis Beban & Pipa Support */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 print:grid-cols-4 text-center mt-4">
-              <div className="p-2.5 bg-slate-950 rounded border border-slate-800 print:bg-white print:border-slate-300">
-                <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Rencana Pekerja</span>
-                <span className={`text-sm font-black font-mono ${isPlatformOverload ? 'text-red-500' : 'text-white'} print:text-slate-900`}>
-                  {workersOnDeck} <span className="text-[10px]">Orang</span>
-                </span>
-              </div>
-              <div className="p-2.5 bg-slate-950 rounded border border-slate-800 print:bg-white print:border-slate-300">
-                <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Estimasi Beban Hidup</span>
-                <span className="text-sm font-black text-white font-mono print:text-slate-900">{totalLiveLoadKg} <span className="text-[10px]">kg</span></span>
-              </div>
-              <div className="p-2.5 bg-slate-950 rounded border border-slate-800 print:bg-white print:border-slate-300">
-                <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Pipa Support (Galvanis 1.5 in)</span>
-                <span className="text-sm font-black text-amber-400 font-mono print:text-slate-900">{qtySupportPipes} <span className="text-[10px]">Btg</span></span>
-              </div>
-              <div className="p-2.5 bg-slate-950 rounded border border-slate-800 print:bg-white print:border-slate-300">
-                <span className="text-[9px] text-slate-400 uppercase block font-bold mb-0.5 print:text-slate-500">Swivel Clamp 1.5 in</span>
-                <span className="text-sm font-black text-amber-400 font-mono print:text-slate-900">{qtySwivelClamps} <span className="text-[10px]">Pcs</span></span>
-              </div>
-            </div>
-
-            {/* BoQ Lengkap Komponen Frame */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 print:grid-cols-5 text-center pt-2 border-t border-slate-800 print:border-slate-200">
-              <div className="p-2 bg-slate-950/60 rounded border border-slate-800 print:bg-white print:border-slate-200">
-                <span className="text-[9px] text-slate-400 block font-bold print:text-slate-500">Main Frame T-170</span>
-                <span className="text-xs font-bold text-orange-400 font-mono print:text-slate-900">{qtyMainFrames} Pcs</span>
-              </div>
-              <div className="p-2 bg-slate-950/60 rounded border border-slate-800 print:bg-white print:border-slate-200">
-                <span className="text-[9px] text-slate-400 block font-bold print:text-slate-500">Cross Brace 2.2m</span>
-                <span className="text-xs font-bold text-white font-mono print:text-slate-900">{qtyCrossBraces} Pcs</span>
-              </div>
-              <div className="p-2 bg-slate-950/60 rounded border border-slate-800 print:bg-white print:border-slate-200">
-                <span className="text-[9px] text-slate-400 block font-bold print:text-slate-500">Catwalk Papan</span>
-                <span className="text-xs font-bold text-white font-mono print:text-slate-900">{qtyCatwalks} Lbr</span>
-              </div>
-              <div className="p-2 bg-slate-950/60 rounded border border-slate-800 print:bg-white print:border-slate-200">
-                <span className="text-[9px] text-slate-400 block font-bold print:text-slate-500">Tangga Akses</span>
-                <span className="text-xs font-bold text-sky-400 font-mono print:text-slate-900">{qtyLadders} Unit</span>
-              </div>
-              <div className="p-2 bg-slate-950/60 rounded border border-slate-800 print:bg-white print:border-slate-200">
-                <span className="text-[9px] text-slate-400 block font-bold print:text-slate-500">Jack Base Dasar</span>
-                <span className="text-xs font-bold text-white font-mono print:text-slate-900">{qtyJackBases} Pcs</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Form Scafftag Lapangan */}
-          <div className="hidden print:block border-2 border-slate-900 p-5 mt-6 rounded">
-            <div className="flex justify-between items-center border-b-2 border-slate-900 pb-3 mb-4">
-              <div>
-                <span className="text-xs font-black uppercase tracking-widest text-slate-500 block">SCAFFTAG OPERASIONAL</span>
-                <span className="text-xl font-black text-slate-900">GREEN TAG (SAFE FOR USE)</span>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-bold block">Tanggal Inspeksi: {todayDate}</span>
-                <span className="text-xs text-slate-600 block">Batas Maks Pekerja: {workersOnDeck} Orang | Beban Maks: {totalBays * bayPlatformCapacity} kg</span>
-              </div>
-            </div>
-
-            <div className="text-xs space-y-1 mb-6 text-slate-700">
-              <p>- <strong>Kondisi Pipa Support / Wall-Tie:</strong> {(hasOutriggerPipes || needsWallTie) ? 'Terpasang dan Terkunci Swivel Clamp' : 'Tidak Dipersyaratkan'}</p>
-              <p>- <strong>Akses Vertikal:</strong> {ladderPosition === 'none' ? 'Tangga Eksternal' : `Tangga Internal (Bay ${ladderPosition.toUpperCase()})`}</p>
-              <p>- <strong>Kewajiban APD:</strong> Full Body Harness 100 persen Tie-Off di atas 1.8m, Helm K3 dengan chinstrap kencang.</p>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Inspektur Scaffolder</label>
+              <input type="text" value={inspectorName} onChange={(e) => setInspectorName(e.target.value)} placeholder="Nama Supervisor..." className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
             </div>
             
-            <div className="grid grid-cols-2 gap-8 pt-2">
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-600 uppercase mb-12">Inspektur Perancah / HSE:</p>
-                <div className="w-48 mx-auto border-b border-slate-400"></div>
-                <p className="text-xs font-bold mt-1 uppercase">{inspectorName || 'Nama Petugas'}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tanggal Didirikan</label>
+                <input type="date" value={buildDate} onChange={(e) => setBuildDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
               </div>
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-600 uppercase mb-12">Supervisor Pemasangan:</p>
-                <div className="w-48 mx-auto border-b border-slate-400"></div>
-                <p className="text-xs font-bold mt-1 uppercase">Tanda Tangan &amp; Nama</p>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Area / Lokasi</label>
+                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Tombol Cetak Dokumen */}
-          <div className="bg-slate-100 rounded-xl p-4 border border-slate-200 flex justify-between items-center gap-4 print:hidden">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Cetak Dokumen &amp; Tag</h3>
-              <p className="text-xs text-slate-600 mt-0.5">Cetak lembar verifikasi BoQ dan form Scafftag untuk ditempel di lokasi perancah.</p>
+        {/* Kolom Kanan: Hasil BoQ (Web View) */}
+        <div className="lg:col-span-7 print:hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <h2 className="text-sm font-black text-slate-900 uppercase">Estimasi Material (BoQ)</h2>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-200 px-2 py-1 rounded">Volume: {(length * width * height).toFixed(1)} m³</span>
             </div>
-            <button
-              onClick={() => window.print()}
-              disabled={!isInputValid || isPlatformOverload}
-              className={`px-5 py-2.5 rounded-md text-xs font-bold transition whitespace-nowrap shadow-sm ${
-                (isInputValid && !isPlatformOverload) 
-                  ? 'bg-slate-900 hover:bg-slate-800 text-white cursor-pointer' 
-                  : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              {(isInputValid && !isPlatformOverload) ? 'Cetak BoQ &amp; Scafftag' : 'Selesaikan Batas Beban'}
-            </button>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-white">
+                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Komponen Struktur</th>
+                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Kuantitas</th>
+                    <th className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Satuan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {boq.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50 transition">
+                      <td className="p-4 text-xs font-bold text-slate-800">{item.item}</td>
+                      <td className="p-4 text-sm font-black text-slate-900 text-right">{item.qty}</td>
+                      <td className="p-4 text-xs font-medium text-slate-500">{item.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-4 bg-amber-50 border-t border-amber-100 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+              Note: Estimasi ini menambah waste/buffer sekitar 5%. Pastikan ketersediaan di gudang.
+            </div>
+          </div>
+        </div>
+
+        {/* ================================================== */}
+        {/* DOKUMEN CETAK UTAMA (Hanya tampil saat window.print) */}
+        {/* ================================================== */}
+        <div className="hidden print:flex print:flex-row print:justify-between w-full text-black gap-8">
+          
+          {/* BAGIAN 1: SCAFFTAG (Dipasang di akses perancah) */}
+          <div className={`w-[250px] shrink-0 border-4 border-black h-[550px] flex flex-col relative overflow-hidden ${tagStatus === 'GREEN' ? 'bg-white' : 'bg-white'}`}>
+            
+            {/* Header Tag */}
+            <div className={`text-center py-4 border-b-4 border-black ${tagStatus === 'GREEN' ? 'bg-emerald-500' : 'bg-red-600'}`}>
+              {/* Lubang gantung simulasi */}
+              <div className="w-5 h-5 bg-white rounded-full mx-auto mb-3 border-2 border-black"></div>
+              
+              <h1 className="text-4xl font-black text-white uppercase tracking-tighter mb-1">
+                {tagStatus === 'GREEN' ? 'SAFE' : 'DANGER'}
+              </h1>
+              <h2 className="text-sm font-bold text-white uppercase tracking-widest">
+                {tagStatus === 'GREEN' ? 'FOR USE' : 'DO NOT USE'}
+              </h2>
+            </div>
+
+            {/* Body Tag - Kondisi AMAN */}
+            {tagStatus === 'GREEN' ? (
+              <div className="flex-1 p-4 flex flex-col text-xs font-bold">
+                <p className="text-center text-[10px] uppercase mb-4 border-b-2 border-black pb-2">This scaffold is safe for use</p>
+                
+                <div className="space-y-4 flex-1">
+                  <div>
+                    <p className="text-[9px] uppercase text-gray-500">Location:</p>
+                    <p className="border-b-2 border-black pb-1 uppercase">{location}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase text-gray-500">Built Date:</p>
+                    <p className="border-b-2 border-black pb-1">{buildDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase text-gray-500">Duty / SWL:</p>
+                    <p className="border-b-2 border-black pb-1 uppercase">{loadCapacity}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase text-gray-500">Inspected By:</p>
+                    <p className="border-b-2 border-black h-8 pt-2 uppercase">{inspectorName}</p>
+                  </div>
+                </div>
+
+                <div className="border-2 border-black p-2 text-center mt-auto">
+                  <p className="text-[11px] font-black uppercase">Syspex Kemasindo</p>
+                  <p className="text-[8px] uppercase">HSE Management System</p>
+                </div>
+              </div>
+            ) : (
+              /* Body Tag - Kondisi BAHAYA / BELUM SELESAI */
+              <div className="flex-1 p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-6xl font-black mb-4">!</span>
+                <p className="text-lg font-black uppercase tracking-widest border-b-2 border-t-2 border-black py-2 mb-4">
+                  SCAFFOLD INCOMPLETE<br/>OR DEFECTIVE
+                </p>
+                <p className="text-xs font-bold uppercase">Only Authorized Scaffolders May Alter or Access</p>
+                <div className="mt-auto w-full text-left text-xs font-bold space-y-4">
+                  <div>
+                    <p className="text-[9px] uppercase text-gray-500">Location:</p>
+                    <p className="border-b-2 border-black pb-1 uppercase">{location}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase text-gray-500">Tagged By:</p>
+                    <p className="border-b-2 border-black h-6 uppercase">{inspectorName}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* BAGIAN 2: BOQ MANIFEST (Diserahkan ke Gudang Logistik) */}
+          <div className="flex-1 border-2 border-black p-6 flex flex-col h-[550px]">
+            <div className="border-b-2 border-black pb-4 mb-4">
+              <h1 className="text-2xl font-black uppercase tracking-widest">Scaffolding Material Manifest</h1>
+              <p className="text-[10px] font-bold uppercase text-gray-600">PT. Syspex Kemasindo - ASRS Installation Ops</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs font-bold mb-4">
+              <div>
+                <p><span className="text-gray-500">Structure Type:</span> {scaffoldType}</p>
+                <p><span className="text-gray-500">Dimension:</span> {length}m (L) x {width}m (W) x {height}m (H)</p>
+              </div>
+              <div>
+                <p><span className="text-gray-500">Location:</span> {location}</p>
+                <p><span className="text-gray-500">Load Capacity:</span> {loadCapacity}</p>
+              </div>
+            </div>
+
+            <table className="w-full border-collapse border-2 border-black text-xs">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border-2 border-black p-2 text-left w-[60%]">Description</th>
+                  <th className="border-2 border-black p-2 text-center w-[20%]">Quantity</th>
+                  <th className="border-2 border-black p-2 text-center w-[20%]">Unit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {boq.map((item, idx) => (
+                  <tr key={idx}>
+                    <td className="border-2 border-black p-2 font-bold">{item.item}</td>
+                    <td className="border-2 border-black p-2 text-center font-black">{item.qty}</td>
+                    <td className="border-2 border-black p-2 text-center">{item.unit}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="mt-auto grid grid-cols-2 gap-8 text-center text-xs font-bold pt-4">
+              <div>
+                <p className="uppercase mb-12 text-gray-500">Requested By (Supervisor)</p>
+                <div className="border-b border-black w-3/4 mx-auto mb-1"></div>
+                <p>{inspectorName || 'Name & Sign'}</p>
+              </div>
+              <div>
+                <p className="uppercase mb-12 text-gray-500">Issued By (Warehouse)</p>
+                <div className="border-b border-black w-3/4 mx-auto mb-1"></div>
+                <p>Logistics Admin</p>
+              </div>
+            </div>
           </div>
 
         </div>
+
       </div>
     </div>
   )
