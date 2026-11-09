@@ -1,239 +1,284 @@
 "use client"
 
-import { useState, useId, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
-interface CheckItem {
+type CheckStatus = 'PASS' | 'FAIL' | 'NA' | null
+
+interface InspectionItem {
   id: string
+  category: 'Visual' | 'Fungsional'
   label: string
-  critical: boolean
-  pass: boolean
+  isCritical: boolean
+  status: CheckStatus
 }
 
 export default function ForkliftInspectionPage() {
-  const formId = useId()
-  const [todayDate, setTodayDate] = useState<string>('')
+  // Metadata Inspeksi
+  const [operatorName, setOperatorName] = useState('')
+  const [forkliftId, setForkliftId] = useState('FL-01')
+  const [hourMeter, setHourMeter] = useState('')
   
-  const [unitCode, setUnitCode] = useState<string>('FL-01 (Toyota 3.0T)')
-  const [operatorName, setOperatorName] = useState<string>('Dedi Kurniawan')
-  const [hourMeter, setHourMeter] = useState<number>(4182)
-  const [shift, setShift] = useState<string>('Shift 1')
-
-  const [items, setItems] = useState<CheckItem[]>([
-    { id: '1', label: 'Level Oli Mesin & Cairan Pendingin (Coolant)', critical: false, pass: true },
-    { id: '2', label: 'Kondisi Ban (Solid/Pneumatic) & Baut Roda Kencang', critical: true, pass: true },
-    { id: '3', label: 'Fungsi Rem Kaki (Foot Brake) & Rem Parkir (Handbrake)', critical: true, pass: true },
-    { id: '4', label: 'Sistem Hidrolik (Lift, Tilt, Side-Shift) Tanpa Kebocoran', critical: true, pass: true },
-    { id: '5', label: 'Rantai Garpu & Pelat Garpu (Fork Tines) Tanpa Retak/Bengkok', critical: true, pass: true },
-    { id: '6', label: 'Klakson, Lampu Sorot Depan & Beacon/Strobe Light Berfungsi', critical: true, pass: true },
-    { id: '7', label: 'Alarm Mundur (Backup Beeper) Bersuara Jelas', critical: true, pass: true },
-    { id: '8', label: 'Seatbelt Pengemudi & Overhead Guard Kokoh Tanpa Deformasi', critical: true, pass: true },
-    { id: '9', label: 'Tabung APAR di Unit Masih Terisi (Jarum Hijau & Pin Segel Utuh)', critical: false, pass: true }
+  // Daftar Checklist Standar K3 MHE
+  const [checklist, setChecklist] = useState<InspectionItem[]>([
+    { id: 'v1', category: 'Visual', label: 'Kondisi Garpu (Forks) & Pin', isCritical: true, status: null },
+    { id: 'v2', category: 'Visual', label: 'Tiang (Mast) & Rantai Pengangkat', isCritical: true, status: null },
+    { id: 'v3', category: 'Visual', label: 'Roda & Tekanan Ban (Tires)', isCritical: false, status: null },
+    { id: 'v4', category: 'Visual', label: 'Kebocoran Oli / Fluida (Bawah Mesin)', isCritical: true, status: null },
+    { id: 'v5', category: 'Visual', label: 'Kondisi Body & Pelindung Atap (FOHG)', isCritical: false, status: null },
+    { id: 'f1', category: 'Fungsional', label: 'Fungsi Rem Kaki & Rem Tangan (Brakes)', isCritical: true, status: null },
+    { id: 'f2', category: 'Fungsional', label: 'Sistem Kemudi (Steering)', isCritical: true, status: null },
+    { id: 'f3', category: 'Fungsional', label: 'Tuas Hidrolik (Naik/Turun/Tilt)', isCritical: true, status: null },
+    { id: 'f4', category: 'Fungsional', label: 'Klakson & Alarm Mundur', isCritical: true, status: null },
+    { id: 'f5', category: 'Fungsional', label: 'Lampu Rotari & Lampu Kerja', isCritical: false, status: null },
   ])
 
-  useEffect(() => {
-    setTodayDate(new Date().toISOString().split('T')[0])
-  }, [])
+  const [notes, setNotes] = useState('')
 
-  const toggleItem = (id: string) => {
-    setItems(items.map(it => it.id === id ? { ...it, pass: !it.pass } : it))
+  const handleCheck = (id: string, status: CheckStatus) => {
+    setChecklist(prev => prev.map(item => item.id === id ? { ...item, status } : item))
   }
 
-  // Unit otomatis ditolak jika ada komponen critical yang gagal (pass = false)
-  const hasCriticalFail = items.some(it => it.critical && !it.pass)
-  const totalFails = items.filter(it => !it.pass).length
-  const isUnitOperational = !hasCriticalFail && totalFails <= 1
+  // Evaluasi Keselamatan
+  const evaluation = useMemo(() => {
+    const isComplete = checklist.every(item => item.status !== null)
+    const failedItems = checklist.filter(item => item.status === 'FAIL')
+    const hasCriticalFail = failedItems.some(item => item.isCritical)
+    
+    return {
+      isComplete,
+      failedItems,
+      hasCriticalFail,
+      isSafeToOperate: isComplete && !hasCriticalFail
+    }
+  }, [checklist])
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 pb-16">
+    <div className="space-y-8 animate-in fade-in duration-300 pb-16 max-w-6xl mx-auto">
       
-      {/* Header Halaman */}
+      {/* Header - Sembunyikan saat cetak */}
       <div className="border-b border-slate-300 pb-5 print:hidden">
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-          <Link href="/" className="hover:text-slate-900 transition">Hub Modul Utama</Link>
-          <span>/</span>
-          <span className="text-slate-800 font-bold">Forklift Inspection</span>
+          <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Peralatan Berat</span>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Pemeriksaan Harian Forklift (Pre-Use Checklist)
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
-              Formulir inspeksi pra-operasional sebelum shift kerja dimulai. Mencegah kegagalan rem, kebocoran hidrolik, dan kecelakaan fatal logistik.
-            </p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">MHE Pre-Operation Checklist</h1>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">Inspeksi harian forklift dengan sistem deteksi item kritis & Auto-Tagging.</p>
           </div>
-          <button
-            onClick={() => window.print()}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-bold transition shadow-sm self-start sm:self-auto cursor-pointer"
+          <button 
+            onClick={() => window.print()} 
+            disabled={!evaluation.isComplete}
+            className={`px-5 py-2.5 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2 ${evaluation.isComplete ? 'bg-slate-900 hover:bg-slate-800' : 'bg-slate-400 cursor-not-allowed'}`}
           >
-            🖨️ Cetak Kartu Inspeksi
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            CETAK HASIL / TAG
           </button>
         </div>
       </div>
 
-      {/* Header Hasil Cetak */}
-      <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-6">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Daily Forklift Inspection Sheet</h1>
-            <p className="text-xs text-slate-600 font-bold mt-1">LOGBOOK PEMERIKSAAN KELAYAKAN ALAT ANGKAT &bull; SYSPEX HSE</p>
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] font-mono text-slate-500 block">Unit:</span>
-            <span className="text-sm font-black text-slate-900 font-mono">{unitCode}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Banner Status Kelayakan Unit */}
-      <div className={`p-5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-        isUnitOperational 
-          ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
-          : 'bg-red-50 border-red-300 text-red-900'
-      }`}>
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg ${
-            isUnitOperational ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
-          }`}>
-            {isUnitOperational ? '✓' : '!'}
-          </div>
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-75">Status Operasional Unit</span>
-            <h2 className="text-lg font-black tracking-tight">
-              {isUnitOperational ? 'LAYAK OPERASI (SAFE TO OPERATE)' : 'DILARANG OPERASI (OUT OF SERVICE / TAG-OUT)'}
-            </h2>
-          </div>
-        </div>
-        <div className="text-left sm:text-right text-xs">
-          <span className="font-bold block">
-            {isUnitOperational 
-              ? 'Seluruh item keselamatan kritis terpenuhi' 
-              : 'Ditemukan kerusakan pada komponen kritis! Cabut kunci unit.'}
-          </span>
-          <span className="text-[11px] opacity-75">Terkoreksi otomatis sesuai standar OSHA 1910.178</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Kolom Kiri: Data Unit & Operator */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4 print:border-none print:p-0">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2 print:border-slate-900">
-              Parameter Unit &amp; Shift
-            </h3>
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pilih Unit Forklift</label>
-                <select 
-                  value={unitCode} 
-                  onChange={(e) => setUnitCode(e.target.value)} 
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded font-bold text-slate-900 focus:outline-none print:hidden"
-                >
-                  <option>FL-01 (Toyota 3.0T Diesel)</option>
-                  <option>FL-02 (Nichiyu 2.5T Electric Reach)</option>
-                  <option>FL-03 (Komatsu 3.5T Gas)</option>
-                </select>
-                <div className="hidden print:block font-bold">{unitCode}</div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Operator Bertugas</label>
-                <input 
-                  type="text" 
-                  value={operatorName} 
-                  onChange={(e) => setOperatorName(e.target.value)} 
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded font-bold text-slate-900 focus:outline-none print:border-none print:bg-transparent print:p-0"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Hour Meter (HM)</label>
-                  <input 
-                    type="number" 
-                    value={hourMeter} 
-                    onChange={(e) => setHourMeter(parseFloat(e.target.value) || 0)} 
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded font-bold font-mono text-slate-900 focus:outline-none print:border-none print:bg-transparent print:p-0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Shift</label>
-                  <select 
-                    value={shift} 
-                    onChange={(e) => setShift(e.target.value)} 
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded font-bold text-slate-900 focus:outline-none print:hidden"
-                  >
-                    <option>Shift 1</option>
-                    <option>Shift 2</option>
-                  </select>
-                  <div className="hidden print:block font-bold">{shift}</div>
-                </div>
-              </div>
+        {/* Panel Input Interaktif - Sembunyikan saat cetak */}
+        <div className="lg:col-span-7 space-y-6 print:hidden">
+          
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">ID Forklift</label>
+              <select value={forkliftId} onChange={(e) => setForkliftId(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold">
+                <option value="FL-01">FL-01 (Toyota 3.0T)</option>
+                <option value="FL-02">FL-02 (Komatsu 2.5T)</option>
+                <option value="RCH-01">RCH-01 (Reach Truck)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nama Operator</label>
+              <input type="text" value={operatorName} onChange={(e) => setOperatorName(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" placeholder="Sesuai SIO..." />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hour Meter</label>
+              <input type="number" value={hourMeter} onChange={(e) => setHourMeter(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" placeholder="Jam awal..." />
             </div>
           </div>
-        </div>
 
-        {/* Kolom Kanan: 9 Checklist Lapangan */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4 print:border-none print:p-0">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2 print:border-slate-900">
-              Daftar Pemeriksaan Komponen Fisik &amp; Mekanikal
-            </h3>
-            
-            <div className="space-y-2">
-              {items.map((it, idx) => (
-                <div 
-                  key={it.id} 
-                  onClick={() => toggleItem(it.id)}
-                  className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition ${
-                    it.pass 
-                      ? 'bg-slate-50/70 border-slate-200 hover:border-slate-300' 
-                      : 'bg-red-50 border-red-300 text-red-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-slate-400 font-bold">{idx + 1}.</span>
-                    <div>
-                      <span className="text-xs font-bold block">{it.label}</span>
-                      {it.critical && (
-                        <span className="text-[9px] font-bold uppercase text-red-600 bg-red-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                          Critical Safety
-                        </span>
-                      )}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h2 className="text-sm font-black text-slate-900 uppercase">Item Inspeksi</h2>
+              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                Tanda ⚠️ adalah item kritis (Keselamatan)
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {['Visual', 'Fungsional'].map(category => (
+                <div key={category} className="space-y-2">
+                  <h3 className="text-[11px] font-black text-slate-700 uppercase bg-slate-50 p-2 rounded">{category} Check</h3>
+                  {checklist.filter(item => item.category === category).map(item => (
+                    <div key={item.id} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded border-b border-slate-100 last:border-0 transition">
+                      <div className="flex items-center gap-2">
+                        {item.isCritical && <span className="text-amber-500 text-xs" title="Item Kritis">⚠️</span>}
+                        <span className="text-xs font-bold text-slate-700">{item.label}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleCheck(item.id, 'PASS')} className={`px-3 py-1 text-[10px] font-black rounded border transition ${item.status === 'PASS' ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-slate-500 hover:bg-emerald-50'}`}>PASS</button>
+                        <button onClick={() => handleCheck(item.id, 'FAIL')} className={`px-3 py-1 text-[10px] font-black rounded border transition ${item.status === 'FAIL' ? 'bg-red-500 text-white border-red-600' : 'bg-white text-slate-500 hover:bg-red-50'}`}>FAIL</button>
+                        <button onClick={() => handleCheck(item.id, 'NA')} className={`px-3 py-1 text-[10px] font-black rounded border transition ${item.status === 'NA' ? 'bg-slate-500 text-white border-slate-600' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>N/A</button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase ${
-                      it.pass 
-                        ? 'bg-emerald-600 text-white' 
-                        : 'bg-red-600 text-white'
-                    }`}>
-                      {it.pass ? 'NORMAL' : 'RUSAK / BOCOR'}
-                    </span>
-                  </div>
+                  ))}
                 </div>
               ))}
             </div>
 
-            {/* Pengesahan Tanda Tangan Cetak */}
-            <div className="hidden print:grid grid-cols-2 gap-8 pt-10 mt-8 border-t-2 border-slate-900">
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-600 uppercase mb-12">Operator Pemeriksa:</p>
-                <div className="w-40 mx-auto border-b border-slate-400"></div>
-                <p className="text-xs font-bold mt-1 uppercase">{operatorName}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-slate-600 uppercase mb-12">Supervisor Gudang / HSE:</p>
-                <div className="w-40 mx-auto border-b border-slate-400"></div>
-                <p className="text-xs font-bold mt-1 uppercase">Tanda Tangan &amp; Nama</p>
-              </div>
+            <div className="pt-4 border-t border-slate-100">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Catatan Tambahan / Detail Kerusakan</label>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium resize-none" placeholder="Isi jika ada temuan (FAIL)..." />
             </div>
+          </div>
+        </div>
 
+        {/* Panel Output & Tampilan Cetak (Print View) */}
+        <div className="lg:col-span-5 print:col-span-12 w-full">
+          
+          {/* Status Monitor (Web View) - Sembunyikan saat cetak */}
+          <div className="print:hidden space-y-4 sticky top-6">
+            <div className={`p-6 rounded-2xl border-2 shadow-sm text-center ${!evaluation.isComplete ? 'bg-slate-50 border-slate-200' : evaluation.isSafeToOperate ? 'bg-emerald-50 border-emerald-400' : 'bg-red-50 border-red-500'}`}>
+              {!evaluation.isComplete ? (
+                <>
+                  <div className="text-4xl mb-2">📋</div>
+                  <h3 className="text-lg font-black text-slate-700 uppercase">Inspeksi Belum Selesai</h3>
+                  <p className="text-xs text-slate-500 mt-1">Selesaikan seluruh checklist untuk melihat hasil.</p>
+                </>
+              ) : evaluation.isSafeToOperate ? (
+                <>
+                  <div className="text-4xl mb-2">✅</div>
+                  <h3 className="text-lg font-black text-emerald-700 uppercase tracking-widest">SAFE TO OPERATE</h3>
+                  <p className="text-xs text-emerald-600 mt-1 font-bold">Forklift layak digunakan operasional.</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-5xl mb-2 animate-bounce">🚨</div>
+                  <h3 className="text-xl font-black text-red-700 uppercase tracking-widest">DO NOT OPERATE</h3>
+                  <p className="text-xs text-red-600 mt-2 font-bold bg-red-100 p-2 rounded mx-4">
+                    Terdapat temuan kritis pada alat. Segera cetak Tag dan hubungi tim Maintenance.
+                  </p>
+                </>
+              )}
+            </div>
+            
+            {evaluation.failedItems.length > 0 && (
+              <div className="bg-white p-4 rounded-xl border border-red-200">
+                <h4 className="text-xs font-black text-red-700 uppercase mb-2">Ringkasan Kerusakan:</h4>
+                <ul className="list-disc pl-4 text-xs text-slate-600 font-medium space-y-1">
+                  {evaluation.failedItems.map(item => (
+                    <li key={item.id}>{item.label} {item.isCritical && <span className="font-bold text-red-500">(KRITIS)</span>}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* DOKUMEN CETAK UTAMA (Hanya tampil saat window.print()) */}
+          <div className="hidden print:block w-full">
+            
+            {/* Cabang Logika Cetak: Aman vs Rusak */}
+            {evaluation.isComplete && !evaluation.isSafeToOperate ? (
+              
+              /* PRINT LAYOUT: DANGER TAG (Bentuk Vertikal memanjang) */
+              <div className="w-[400px] border-4 border-black mx-auto p-0 flex flex-col min-h-[600px] text-center">
+                <div className="bg-black text-white py-6 px-4">
+                  <h1 className="text-5xl font-black tracking-tighter uppercase mb-2">DANGER</h1>
+                  <h2 className="text-2xl font-bold uppercase tracking-widest">Do Not Operate</h2>
+                </div>
+                <div className="p-6 flex-1 flex flex-col">
+                  <div className="w-24 h-24 rounded-full border-4 border-black mx-auto flex items-center justify-center mb-6">
+                    <span className="text-6xl font-black text-black">!</span>
+                  </div>
+                  <p className="text-sm font-black uppercase mb-1">Equipment ID:</p>
+                  <p className="text-3xl font-black mb-6">{forkliftId}</p>
+                  
+                  <div className="border-t-2 border-b-2 border-black py-4 mb-6 text-left">
+                    <p className="text-xs font-bold uppercase mb-2">Reason / Failed Critical Items:</p>
+                    <ul className="list-disc pl-4 text-xs font-bold space-y-1">
+                      {evaluation.failedItems.map(item => (
+                        <li key={item.id}>{item.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="mt-auto pt-4 flex justify-between text-[10px] font-bold uppercase text-left">
+                    <div>
+                      <p>Date: {new Date().toLocaleDateString('en-GB')}</p>
+                      <p>Tagged By: {operatorName || '....................'}</p>
+                    </div>
+                    <div>
+                      <p>Syspex MHE Maintenance</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            ) : (
+
+              /* PRINT LAYOUT: SAFE LOG RECORD (A4 Horizontal/Vertical) */
+              <div className="border-2 border-black p-6 w-full max-w-[800px] mx-auto">
+                <div className="flex justify-between items-center border-b-2 border-black pb-4 mb-6">
+                  <div>
+                    <h1 className="text-2xl font-black uppercase tracking-widest">MHE Daily Inspection Log</h1>
+                    <h2 className="text-xs font-bold text-gray-600 uppercase mt-1">PT. SYSPEX KEMASINDO</h2>
+                  </div>
+                  <div className="text-right text-[10px] font-bold uppercase border border-black p-2 bg-gray-100">
+                    <p className="text-lg font-black">{forkliftId}</p>
+                    <p>Status: SAFE TO OPERATE</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4 text-xs font-bold mb-6 border-b border-black pb-4">
+                  <p>Date: {new Date().toLocaleDateString('en-GB')}</p>
+                  <p>Operator: {operatorName || '....................'}</p>
+                  <p>Hour Meter: {hourMeter || '....................'}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 mb-8">
+                  {['Visual', 'Fungsional'].map(category => (
+                    <div key={category}>
+                      <h3 className="text-xs font-black uppercase border-b border-black mb-2">{category} Checks</h3>
+                      <ul className="text-[10px] space-y-2">
+                        {checklist.filter(item => item.category === category).map(item => (
+                          <li key={item.id} className="flex justify-between border-b border-dashed border-gray-300 pb-1">
+                            <span>{item.label}</span>
+                            <span className="font-black">{item.status}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-[10px] border border-black p-2 mb-8 min-h-[60px]">
+                  <p className="font-bold uppercase mb-1">Remarks:</p>
+                  <p>{notes || 'N/A'}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-12 text-center text-xs font-bold">
+                  <div>
+                    <p className="uppercase mb-12">Inspected By (Operator)</p>
+                    <div className="border-b border-black w-3/4 mx-auto mb-1"></div>
+                    <p>{operatorName || 'Name & Signature'}</p>
+                  </div>
+                  <div>
+                    <p className="uppercase mb-12">Acknowledged By (Supervisor)</p>
+                    <div className="border-b border-black w-3/4 mx-auto mb-1"></div>
+                    <p>Name & Signature</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
           </div>
         </div>
 
       </div>
-
     </div>
   )
 }
