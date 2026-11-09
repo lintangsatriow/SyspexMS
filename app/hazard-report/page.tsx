@@ -4,12 +4,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 
-// FAIL-SAFE: Mencegah error "Invalid supabaseUrl" saat Vercel Build
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teizyhspjjhwvnwrgmxj.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXp5aHNwampod3Zud3JnbXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4NTQ0ODIsImV4cCI6MjEwOTQzMDQ4Mn0.HgzYCrftZLyWELHjNFZyGJzLCH9DlYCKh5tRfOvlu_A'
-
-const supabase = createClient(supabaseUrl, supabaseKey)
-
 export default function HazardReportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
@@ -27,6 +21,15 @@ export default function HazardReportPage() {
     setSuccessMsg('')
 
     try {
+      // KUNCI ANTI-ERROR: Koneksi database diletakkan DI DALAM fungsi klik.
+      // Robot Vercel Build tidak akan bisa mengeksekusi ini.
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teizyhspjjhwvnwrgmxj.supabase.co'
+      
+      // HAPUS TEKS INI DAN PASTE API KEY PANJANG ANDA (JANGAN HAPUS TANDA KUTIPNYA)
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXp5aHNwampod3Zud3JnbXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4NTQ0ODIsImV4cCI6MjEwOTQzMDQ4Mn0.HgzYCrftZLyWELHjNFZyGJzLCH9DlYCKh5tRfOvlu_A'
+      
+      const supabase = createClient(supabaseUrl, supabaseKey)
+
       const { error } = await supabase
         .from('hazard_reports')
         .insert([{ reported_by: reportedBy, area: area, description: description, risk_level: riskLevel }])
