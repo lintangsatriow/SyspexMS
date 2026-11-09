@@ -154,7 +154,7 @@ export default function HomePage() {
         </h1>
 
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
-          Your integrated workplace portal for daily safety inspections, engineering calculations, hazard mitigation, and ISO & SMK3 compliance across all PT. Syspex Kemasindo operations.
+          Your integrated workplace portal for daily safety inspections, engineering calculations, hazard mitigation, and ISO & SMK3 compliance across all Syspex operations.
         </p>
       </div>
 
