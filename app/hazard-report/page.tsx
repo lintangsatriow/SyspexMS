@@ -2,28 +2,47 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
+
+// FAIL-SAFE: Mencegah error "Invalid supabaseUrl" saat Vercel Build
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://teizyhspjjhwvnwrgmxj.supabase.co'
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaXp5aHNwampod3Zud3JnbXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4NTQ0ODIsImV4cCI6MjEwOTQzMDQ4Mn0.HgzYCrftZLyWELHjNFZyGJzLCH9DlYCKh5tRfOvlu_A'
+
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default function HazardReportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
 
   const [reportedBy, setReportedBy] = useState('')
   const [area, setArea] = useState('')
   const [description, setDescription] = useState('')
   const [riskLevel, setRiskLevel] = useState('Low')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
-    // Simulasi loading 1 detik, lalu sukses (tanpa nyambung database dulu)
-    setTimeout(() => {
-      setSuccessMsg('Mode Aman: Laporan berhasil disimulasikan. (Koneksi database sedang diistirahatkan sementara).')
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    try {
+      const { error } = await supabase
+        .from('hazard_reports')
+        .insert([{ reported_by: reportedBy, area: area, description: description, risk_level: riskLevel }])
+
+      if (error) throw error
+
+      setSuccessMsg('Laporan Bahaya berhasil dikirim dan tersimpan di database!')
       setReportedBy('')
       setArea('')
       setDescription('')
+      setRiskLevel('Low')
+    } catch (error: any) {
+      setErrorMsg(error.message || 'Gagal mengirim laporan.')
+    } finally {
       setIsSubmitting(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -33,16 +52,24 @@ export default function HazardReportPage() {
           <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">HSE Ops</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Hazard Hunting Form</h1>
-        <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">Laporkan kondisi tidak aman atau tindakan tidak aman. (Saat ini dalam Mode Visual).</p>
+        <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+          Laporkan kondisi tidak aman atau tindakan tidak aman.
+        </p>
       </div>
 
       {successMsg && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3">
           <span className="text-emerald-600 font-black text-lg">✓</span>
           <div>
-            <h3 className="text-sm font-bold text-emerald-900">Terkirim!</h3>
+            <h3 className="text-sm font-bold text-emerald-900">Berhasil!</h3>
             <p className="text-xs text-emerald-700 mt-0.5">{successMsg}</p>
           </div>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs font-bold text-red-700">
+          ⚠️ {errorMsg}
         </div>
       )}
 
