@@ -43,15 +43,8 @@ export default function HomePage() {
 
       {/* Subtle Corporate Credentials */}
       <div className="mt-14 pt-6 border-t border-slate-200/80 flex flex-wrap items-center justify-center gap-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-        <span>ISO 9001</span>
-        <span>•</span>
-        <span>ISO 14001</span>
-        <span>•</span>
-        <span>ISO 45001</span>
-        <span>•</span>
-        <span>SMK3 Kemnaker</span>
+        <span>HSE Managament System</span>
       </div>
-
     </div>
   )
 }
