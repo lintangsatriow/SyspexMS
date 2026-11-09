@@ -25,29 +25,27 @@ export default function RootLayout({
         <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm print:hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
-            {/* Logo Resmi Syspex (SVG Presisi) */}
+            {/* Logo Resmi Syspex Langsung Memanggil File di Folder Public */}
             <div className="flex items-center gap-3">
-              <Link href="/" className="flex items-center gap-2 group">
-                <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center shadow-sm">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                    <line x1="4" y1="22" x2="4" y2="15" />
-                  </svg>
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center">
-                    <span className="font-black text-xl tracking-tighter text-slate-900 font-sans">SYS</span>
-                    <span className="font-black text-xl tracking-tighter text-teal-600 font-sans">PEX</span>
-                    <span className="text-[10px] text-teal-600 font-bold ml-0.5 align-top">®</span>
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 -mt-1">
-                    Management System
+              <Link href="/" className="flex items-center gap-3 group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src="/Syspex%20Logo%20(Trademark)%20black.png" 
+                  alt="Syspex Logo" 
+                  className="h-7 w-auto object-contain"
+                />
+                <div className="hidden sm:block border-l border-slate-300 pl-3">
+                  <span className="block text-[11px] font-black uppercase tracking-wider text-slate-800 leading-none">
+                    MANAGEMENT SYSTEM
+                  </span>
+                  <span className="block text-[8px] font-bold uppercase tracking-widest text-teal-600 mt-0.5">
+                    HSE & Compliance Portal
                   </span>
                 </div>
               </Link>
             </div>
 
-            {/* Navigasi Utama Sesuai Folder Repo */}
+            {/* Navigasi Menu */}
             <nav className="flex items-center gap-1 sm:gap-2">
               <Link 
                 href="/" 
@@ -150,15 +148,11 @@ export default function RootLayout({
                     <Link href="/induction" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       📋 Induction & Training ID
                     </Link>
-                    <div className="border-t border-slate-100 my-1"></div>
-                    <Link href="/ai-assistant" className="block px-4 py-2 text-xs font-black text-teal-700 hover:bg-teal-50">
-                      🤖 HSE AI Copilot
-                    </Link>
                   </div>
                 )}
               </div>
 
-              {/* Tombol Standalone AI Copilot (Tepat ke /ai-assistant) */}
+              {/* Tombol AI Copilot Langsung Mengarah ke /ai-assistant */}
               <Link
                 href="/ai-assistant"
                 className="ml-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-lg transition flex items-center gap-1.5 shadow-sm"
@@ -171,7 +165,7 @@ export default function RootLayout({
           </div>
         </header>
 
-        {/* Konten Halaman */}
+        {/* Area Konten Utama */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
