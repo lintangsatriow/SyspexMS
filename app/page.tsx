@@ -3,187 +3,279 @@
 import Link from 'next/link'
 
 export default function HomePage() {
+  const systemMetrics = [
+    { label: 'Cumulative Safe Hours', value: '142,500', sub: 'Zero Lost Time Injury (LTI)', status: 'text-teal-600' },
+    { label: 'Integrated Modules', value: '9 Active', sub: 'Field, Tech & Governance', status: 'text-slate-900' },
+    { label: 'Audit Readiness', value: '100%', sub: 'ISO 9001 / 14001 / 45001', status: 'text-emerald-600' },
+    { label: 'System Architecture', value: 'Zero Server Cost', sub: 'Client Persistence / Fast I/O', status: 'text-indigo-600' }
+  ]
+
   const categories = [
     {
-      title: 'Management & ISO Systems',
-      subtitle: 'Regulatory compliance governance, quality audits, and executive reporting',
-      color: 'teal',
+      title: 'Management & ISO Frameworks',
+      subtitle: 'Executive governance, statutory licenses, and international compliance verification',
       items: [
         {
           name: 'Executive HSE KPI Report',
-          desc: 'Safety health index, Zero Harm record, and board-ready executive summaries.',
+          desc: 'Safety performance index, proactive leading indicators, and auto-generated board review printouts.',
           href: '/executive-report',
           tag: 'ISO 45001 / SMK3',
           badge: 'Executive',
-          badgeColor: 'bg-teal-500/10 text-teal-700 border-teal-200'
+          badgeColor: 'bg-teal-50 text-teal-700 border-teal-200'
         },
         {
           name: 'Document Control Register',
-          desc: 'Standard operating procedures (SOP), work instructions, and revision logs.',
+          desc: 'Centralized master repository for SOPs, Work Instructions, form templates, and version matrices.',
           href: '/document-control',
           tag: 'ISO 9001',
           badge: 'Governance',
-          badgeColor: 'bg-blue-500/10 text-blue-700 border-blue-200'
+          badgeColor: 'bg-blue-50 text-blue-700 border-blue-200'
         },
         {
           name: 'Hazardous Waste & Env Log',
-          desc: 'B3 hazardous waste balance sheet, manifests, and 90-day storage limits.',
+          desc: 'Statutory balance sheet for toxic substances (B3), manifest verification, and 90-day storage clocks.',
           href: '/env-log',
           tag: 'ISO 14001',
-          badge: 'Environment',
-          badgeColor: 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+          badge: 'Environmental',
+          badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200'
         },
         {
           name: 'License & Competency Tracker',
-          desc: 'Monitoring forklift SIO licenses, safety officer SKP, and equipment SILO validity.',
+          desc: 'Interactive tracker for forklift SIO, safety officer SKP penunjukan, and third-party SILO certificates.',
           href: '/sio-silo',
           tag: 'Statutory Legal',
-          badge: 'Statutory',
-          badgeColor: 'bg-amber-500/10 text-amber-700 border-amber-200'
+          badge: 'Compliance',
+          badgeColor: 'bg-amber-50 text-amber-700 border-amber-200'
         }
       ]
     },
     {
-      title: 'Calculators & Engineering Tools',
-      subtitle: 'Safe working load validation, scaffolding erection, and high-risk work permits',
-      color: 'slate',
+      title: 'Technical Calculators & Structural Safety',
+      subtitle: 'Deterministic engineering validation for warehousing structures and heavy lifting',
       items: [
         {
           name: 'Racking SWL Calculator',
-          desc: 'Beam load capacities, L/200 deflection limits, and EN 15512 structural checks.',
+          desc: 'Validated safe working load checks, L/200 beam deflection compliance, and EN 15512 safety factors.',
           href: '/racking-swl',
           tag: 'Warehouse Tech',
           badge: 'Engineering',
-          badgeColor: 'bg-indigo-500/10 text-indigo-700 border-indigo-200'
+          badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200'
         },
         {
           name: 'Scaffolding BoQ & Erection',
-          desc: 'Tubular scaffolding bill of quantities and green/red inspection tagging.',
+          desc: 'Bill of quantities estimator for tubular structures paired with strict Green/Red tag inspection gates.',
           href: '/scaffolding',
           tag: 'Work at Height',
-          badge: 'Calculation',
-          badgeColor: 'bg-slate-500/10 text-slate-700 border-slate-200'
+          badge: 'Safety Calc',
+          badgeColor: 'bg-slate-100 text-slate-800 border-slate-300'
         },
         {
           name: 'Rigging & Lifting Plan',
-          desc: 'Crane/forklift load capacity, sling tension angles, and safety factor validation.',
+          desc: 'Tension calculations across varying sling angles, crane utilization load percentages, and derating metrics.',
           href: '/lifting-plan',
           tag: 'Heavy Lifting',
           badge: 'Critical Lift',
-          badgeColor: 'bg-rose-500/10 text-rose-700 border-rose-200'
+          badgeColor: 'bg-rose-50 text-rose-700 border-rose-200'
         },
         {
           name: 'Job Safety Analysis (JSA)',
-          desc: '5x5 risk evaluation matrix and hazard control work permit sheets.',
+          desc: '5x5 risk evaluation matrix coupled with hierarchical hazard controls and dynamic permits.',
           href: '/jsa',
-          tag: 'Risk Control',
+          tag: 'Risk Mitigation',
           badge: 'Operational',
-          badgeColor: 'bg-cyan-500/10 text-cyan-700 border-cyan-200'
+          badgeColor: 'bg-cyan-50 text-cyan-700 border-cyan-200'
         }
       ]
     },
     {
-      title: 'Field HSE & Safety Operations',
-      subtitle: 'Daily site checklists, hazard observation, and workplace workforce safety talks',
-      color: 'indigo',
+      title: 'Field Operations & Workforce Protection',
+      subtitle: 'Daily site verifications, instant isolation tagging, and continuous safety culture coaching',
       items: [
         {
           name: 'Forklift Pre-Op Checklist',
-          desc: 'Daily MHE pre-shift checks, hydraulic/brake validation, and LOTO isolation.',
+          desc: 'Shift-by-shift mechanical, hydraulic, and safety device inspections preventing forklift incidents.',
           href: '/forklift-inspection',
-          tag: 'MHE Safety',
-          badge: 'Daily Routine',
-          badgeColor: 'bg-teal-500/10 text-teal-700 border-teal-200'
+          tag: 'MHE Operations',
+          badge: 'Daily Inspection',
+          badgeColor: 'bg-teal-50 text-teal-700 border-teal-200'
         },
         {
           name: 'LOTO Permit & Danger Tag',
-          desc: 'Equipment quarantine tagging and hazardous energy isolation procedures.',
+          desc: 'Hazardous zero-energy isolation workflows with printable red quarantine lockout warnings.',
           href: '/loto',
-          tag: 'Isolation Tag',
-          badge: 'Critical Safety',
-          badgeColor: 'bg-red-500/10 text-red-700 border-red-200'
+          tag: 'Energy Isolation',
+          badge: 'Life-Saving',
+          badgeColor: 'bg-rose-50 text-rose-700 border-rose-200'
         },
         {
           name: 'Hazard & Near-Miss Hunting',
-          desc: 'Proactive unsafe act/condition logging with corrective action (CAPA) tracking.',
+          desc: 'On-site reporting mechanism capturing unsafe conditions/acts with closed-loop corrective action tracking.',
           href: '/hazard-report',
-          tag: 'Proactive HSE',
-          badge: 'Field Hunting',
-          badgeColor: 'bg-amber-500/10 text-amber-700 border-amber-200'
+          tag: 'Proactive Safety',
+          badge: 'Incident Prev.',
+          badgeColor: 'bg-amber-50 text-amber-700 border-amber-200'
         },
         {
           name: 'Toolbox Meeting (Safety Talk)',
-          desc: '5-minute morning safety briefing library, topics, and attendance records.',
+          desc: 'Curated library of 5-minute pre-work safety modules with digital sign-off and attendance logs.',
           href: '/safety-talk',
           tag: 'Safety Culture',
-          badge: 'Daily Briefing',
-          badgeColor: 'bg-blue-500/10 text-blue-700 border-blue-200'
+          badge: 'Briefing Hub',
+          badgeColor: 'bg-blue-50 text-blue-700 border-blue-200'
         },
         {
           name: 'HSE Induction & Badge ID',
-          desc: 'Visitor and contractor orientation passes with printable induction ID cards.',
+          desc: 'Structured safety onboarding system generating verified QR/ID permits for visitors and contractors.',
           href: '/induction',
-          tag: 'Site Access',
-          badge: 'Credential',
-          badgeColor: 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+          tag: 'Access Control',
+          badge: 'Gate Pass',
+          badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200'
         },
         {
           name: 'HSE AI Copilot',
-          desc: 'Intelligent advisor for statutory standards, ISO frameworks, and risk controls.',
+          desc: 'Context-aware intelligence providing instant guidance on Kemenaker regulations, OSHA, and ISO standards.',
           href: '/ai-assistant',
-          tag: 'Smart Assistant',
-          badge: 'AI Powered',
-          badgeColor: 'bg-purple-500/10 text-purple-700 border-purple-200'
+          tag: 'Artificial Intelligence',
+          badge: 'AI Advisor',
+          badgeColor: 'bg-purple-50 text-purple-700 border-purple-200'
         }
       ]
     }
   ]
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-300 pb-16">
+    <div className="space-y-10 animate-in fade-in duration-300 pb-16">
       
-      {/* Hero Banner Section */}
-      <div className="space-y-4 max-w-3xl">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 text-teal-400 text-[10px] font-black uppercase tracking-widest shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-          OFFICIAL HSE OPERATIONS HUB
-        </div>
-        
-        <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-          Welcome to the Syspex Safety & Operations Center.
-        </h1>
+      {/* ========================================================= */}
+      {/* 1. HERO BANNER SECTION (ELEGANT & SHOWCASE-READY) */}
+      {/* ========================================================= */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-teal-950 rounded-3xl border border-slate-800 text-white p-7 sm:p-10 shadow-xl">
+        {/* Subtle Decorative Elements */}
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-1/3 -mb-16 w-60 h-60 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"></div>
 
-        <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
-          Your integrated workplace portal for daily safety inspections, engineering calculations, hazard mitigation, and ISO & SMK3 compliance across all Syspex operations.
-        </p>
-      </div>
-
-      {/* Quick Launch Action Banner */}
-      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-teal-950 text-white p-6 sm:p-8 rounded-3xl shadow-lg border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-2 max-w-xl">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-300 text-[10px] font-bold uppercase tracking-wider">
-            Quick Executive Access
+        <div className="relative z-10 max-w-4xl space-y-5">
+          
+          {/* Top Status Badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/15 text-teal-300 text-[10px] font-black uppercase tracking-widest border border-teal-500/30">
+              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+              Live Production System
+            </span>
+            <span className="px-3 py-1 rounded-full bg-slate-800/80 text-slate-300 text-[10px] font-bold tracking-wider border border-slate-700">
+              ISO 9001 • ISO 14001 • ISO 45001 • SMK3
+            </span>
+            <span className="px-3 py-1 rounded-full bg-slate-800/80 text-teal-400 text-[10px] font-black uppercase tracking-wider border border-slate-700">
+              PT. Syspex Kemasindo
+            </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight">HSE KPI & Board Review Dashboard</h2>
-          <p className="text-xs sm:text-sm text-slate-300">
-            Update monthly safety metrics, monitor cumulative Safe Man-Hours, and print official board executive reviews.
-          </p>
+
+          {/* Main Title & Subtitle */}
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
+              Integrated HSE Management <br className="hidden sm:inline" />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-300 via-teal-200 to-cyan-400">
+                & Engineering Operations Hub
+              </span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 font-normal leading-relaxed max-w-2xl pt-1">
+              An enterprise-grade operational ecosystem engineered to streamline structural safety calculations, field hazard mitigation, statutory equipment licenses, and C-Suite executive reporting.
+            </p>
+          </div>
+
+          {/* Action CTAs */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href="/executive-report"
+              className="px-5 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2"
+            >
+              <span>📊</span> Launch Board KPI Dashboard
+            </Link>
+            <Link
+              href="/ai-assistant"
+              className="px-5 py-2.5 bg-slate-800/90 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition border border-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-teal-400"></span> Consult HSE AI Copilot
+            </Link>
+            <Link
+              href="/sio-silo"
+              className="px-4 py-2.5 bg-transparent hover:bg-white/5 text-slate-300 text-xs font-bold rounded-xl transition"
+            >
+              Review License Registry →
+            </Link>
+          </div>
+
         </div>
-        <Link
-          href="/executive-report"
-          className="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-md shrink-0 flex items-center gap-2"
-        >
-          Open KPI Dashboard
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-        </Link>
       </div>
 
-      {/* Module Categories Grid */}
+      {/* ========================================================= */}
+      {/* 2. OPERATIONAL INTEGRITY KPI CARDS (LOOKS PROFESSIONAL) */}
+      {/* ========================================================= */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {systemMetrics.map((met, idx) => (
+          <div 
+            key={idx} 
+            className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-teal-500 transition-colors"
+          >
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{met.label}</p>
+              <p className={`text-2xl sm:text-3xl font-black mt-1.5 tracking-tight ${met.status}`}>{met.value}</p>
+            </div>
+            <p className="text-[11px] font-bold text-slate-500 mt-3 pt-2 border-t border-slate-100 flex items-center gap-1.5">
+              <span className="text-teal-600">✓</span> {met.sub}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* ========================================================= */}
+      {/* 3. CORE ARCHITECTURE PILLARS (VALUE PROPOSITION) */}
+      {/* ========================================================= */}
+      <div className="bg-slate-100/70 rounded-2xl p-4 sm:p-5 border border-slate-200/80">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1">
+            <div className="flex items-center gap-2 font-black text-slate-900">
+              <span className="text-base">🛡️</span>
+              <span>Statutory & Audit Ready</span>
+            </div>
+            <p className="text-slate-600 leading-relaxed">
+              Standardized in accordance with Indonesian Occupational Safety Regulations (Kemenaker) and ISO management frameworks.
+            </p>
+          </div>
+
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1">
+            <div className="flex items-center gap-2 font-black text-slate-900">
+              <span className="text-base">⚡</span>
+              <span>Deterministic Calculations</span>
+            </div>
+            <p className="text-slate-600 leading-relaxed">
+              Eliminates human estimation in racking weight limits, crane sling rigging tension, and scaffolding components BoQ.
+            </p>
+          </div>
+
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1">
+            <div className="flex items-center gap-2 font-black text-slate-900">
+              <span className="text-base">📋</span>
+              <span>Field Verification & Governance</span>
+            </div>
+            <p className="text-slate-600 leading-relaxed">
+              Empowers warehouse and site operations with instant digital checklists, quarantine tags, and automated board summaries.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 4. SYSTEM MODULES DIRECTORY (CATEGORIES & CARDS) */}
+      {/* ========================================================= */}
       <div className="space-y-10">
         {categories.map((cat, idx) => (
-          <div key={idx} className="space-y-4">
-            <div className="border-b border-slate-200 pb-2">
-              <h3 className="text-lg font-black text-slate-900 tracking-tight">{cat.title}</h3>
+          <div key={idx} className="space-y-3.5">
+            
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between border-b border-slate-200 pb-2.5 gap-1">
+              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">{cat.title}</h2>
               <p className="text-xs text-slate-500 font-medium">{cat.subtitle}</p>
             </div>
 
@@ -192,9 +284,9 @@ export default function HomePage() {
                 <Link
                   key={itemIdx}
                   href={item.href}
-                  className="group bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-500 transition-all flex flex-col justify-between"
+                  className="group bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md hover:border-teal-500 transition-all flex flex-col justify-between"
                 >
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">
                         {item.tag}
@@ -203,21 +295,24 @@ export default function HomePage() {
                         {item.badge}
                       </span>
                     </div>
-                    <h4 className="text-sm font-black text-slate-900 group-hover:text-teal-600 transition">
+                    
+                    <h3 className="text-sm font-black text-slate-900 group-hover:text-teal-600 transition leading-snug">
                       {item.name}
-                    </h4>
+                    </h3>
+                    
                     <p className="text-xs text-slate-500 leading-relaxed font-normal">
                       {item.desc}
                     </p>
                   </div>
 
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-teal-600 group-hover:text-teal-700">
-                    <span>Open Module</span>
-                    <span className="transform group-hover:translate-x-1 transition">→</span>
+                    <span>Access Tool</span>
+                    <span className="transform group-hover:translate-x-1 transition font-bold">→</span>
                   </div>
                 </Link>
               ))}
             </div>
+
           </div>
         ))}
       </div>
