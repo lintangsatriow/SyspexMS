@@ -6,12 +6,12 @@ export default function HomePage() {
   const categories = [
     {
       title: 'Management & ISO Systems',
-      subtitle: 'Tata kelola kepatuhan regulasi, audit mutu, dan laporan direksi',
+      subtitle: 'Regulatory compliance governance, quality audits, and executive reporting',
       color: 'teal',
       items: [
         {
           name: 'Executive HSE KPI Report',
-          desc: 'Indeks kesehatan K3, metrik Zero Harm, dan laporan cetak siap direksi.',
+          desc: 'Safety health index, Zero Harm record, and board-ready executive summaries.',
           href: '/executive-report',
           tag: 'ISO 45001 / SMK3',
           badge: 'Executive',
@@ -19,25 +19,25 @@ export default function HomePage() {
         },
         {
           name: 'Document Control Register',
-          desc: 'Pengendalian prosedur SOP, WI, Form, dan status revisi dokumen resmi.',
+          desc: 'Standard operating procedures (SOP), work instructions, and revision logs.',
           href: '/document-control',
           tag: 'ISO 9001',
           badge: 'Governance',
           badgeColor: 'bg-blue-500/10 text-blue-700 border-blue-200'
         },
         {
-          name: 'B3 Waste & Environmental Log',
-          desc: 'Neraca limbah B3, manifes festronik, dan batas 90 hari penyimpanan.',
+          name: 'Hazardous Waste & Env Log',
+          desc: 'B3 hazardous waste balance sheet, manifests, and 90-day storage limits.',
           href: '/env-log',
           tag: 'ISO 14001',
           badge: 'Environment',
           badgeColor: 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
         },
         {
-          name: 'Competency & License Tracker',
-          desc: 'Database masa berlaku SIO forklift, SKP Ahli K3, dan riksa uji SILO alat.',
+          name: 'License & Competency Tracker',
+          desc: 'Monitoring forklift SIO licenses, safety officer SKP, and equipment SILO validity.',
           href: '/sio-silo',
-          tag: 'Kemenaker Legal',
+          tag: 'Statutory Legal',
           badge: 'Statutory',
           badgeColor: 'bg-amber-500/10 text-amber-700 border-amber-200'
         }
@@ -45,12 +45,12 @@ export default function HomePage() {
     },
     {
       title: 'Calculators & Engineering Tools',
-      subtitle: 'Validasi beban kerja aman, perancah, dan izin pekerjaan berisiko',
+      subtitle: 'Safe working load validation, scaffolding erection, and high-risk work permits',
       color: 'slate',
       items: [
         {
           name: 'Racking SWL Calculator',
-          desc: 'Verifikasi kapasitas beban balok, defleksi L/200, dan kepatuhan EN 15512.',
+          desc: 'Beam load capacities, L/200 deflection limits, and EN 15512 structural checks.',
           href: '/racking-swl',
           tag: 'Warehouse Tech',
           badge: 'Engineering',
@@ -58,7 +58,7 @@ export default function HomePage() {
         },
         {
           name: 'Scaffolding BoQ & Erection',
-          desc: 'Kalkulator kebutuhan material perancah tubular & checklist inspeksi hijau/merah.',
+          desc: 'Tubular scaffolding bill of quantities and green/red inspection tagging.',
           href: '/scaffolding',
           tag: 'Work at Height',
           badge: 'Calculation',
@@ -66,7 +66,7 @@ export default function HomePage() {
         },
         {
           name: 'Rigging & Lifting Plan',
-          desc: 'Kapasitas angkat crane/forklift, sudut sling sling tension, dan safety factor.',
+          desc: 'Crane/forklift load capacity, sling tension angles, and safety factor validation.',
           href: '/lifting-plan',
           tag: 'Heavy Lifting',
           badge: 'Critical Lift',
@@ -74,7 +74,7 @@ export default function HomePage() {
         },
         {
           name: 'Job Safety Analysis (JSA)',
-          desc: 'Matriks mitigasi risiko 5x5 dan lembar kerja izin bahaya terpadu.',
+          desc: '5x5 risk evaluation matrix and hazard control work permit sheets.',
           href: '/jsa',
           tag: 'Risk Control',
           badge: 'Operational',
@@ -84,12 +84,12 @@ export default function HomePage() {
     },
     {
       title: 'Field HSE & Safety Operations',
-      subtitle: 'Checklist lapangan harian, pelaporan bahaya, dan edukasi pekerja',
+      subtitle: 'Daily site checklists, hazard observation, and workplace workforce safety talks',
       color: 'indigo',
       items: [
         {
           name: 'Forklift Pre-Op Checklist',
-          desc: 'Inspeksi harian unit MHE, verifikasi sistem rem/hidrolik, dan isolasi LOTO.',
+          desc: 'Daily MHE pre-shift checks, hydraulic/brake validation, and LOTO isolation.',
           href: '/forklift-inspection',
           tag: 'MHE Safety',
           badge: 'Daily Routine',
@@ -97,7 +97,7 @@ export default function HomePage() {
         },
         {
           name: 'LOTO Permit & Danger Tag',
-          desc: 'Penerbitan label karantina alat rusak & prosedur isolasi energi berbahaya.',
+          desc: 'Equipment quarantine tagging and hazardous energy isolation procedures.',
           href: '/loto',
           tag: 'Isolation Tag',
           badge: 'Critical Safety',
@@ -105,7 +105,7 @@ export default function HomePage() {
         },
         {
           name: 'Hazard & Near-Miss Hunting',
-          desc: 'Pelaporan temuan tindakan/kondisi tidak aman dengan tracking CAPA.',
+          desc: 'Proactive unsafe act/condition logging with corrective action (CAPA) tracking.',
           href: '/hazard-report',
           tag: 'Proactive HSE',
           badge: 'Field Hunting',
@@ -113,7 +113,7 @@ export default function HomePage() {
         },
         {
           name: 'Toolbox Meeting (Safety Talk)',
-          desc: 'Bank materi briefing pagi 5 menit, modul K3 spesifik, dan lembar absensi.',
+          desc: '5-minute morning safety briefing library, topics, and attendance records.',
           href: '/safety-talk',
           tag: 'Safety Culture',
           badge: 'Daily Briefing',
@@ -121,7 +121,7 @@ export default function HomePage() {
         },
         {
           name: 'HSE Induction & Badge ID',
-          desc: 'Pendaftaran visitor, kontraktor, dan pembuatan kartu izin induksi proyek.',
+          desc: 'Visitor and contractor orientation passes with printable induction ID cards.',
           href: '/induction',
           tag: 'Site Access',
           badge: 'Credential',
@@ -129,7 +129,7 @@ export default function HomePage() {
         },
         {
           name: 'HSE AI Copilot',
-          desc: 'Asisten cerdas regulasi Kemenaker, standar ISO, dan saran mitigasi teknis.',
+          desc: 'Intelligent advisor for statutory standards, ISO frameworks, and risk controls.',
           href: '/ai-assistant',
           tag: 'Smart Assistant',
           badge: 'AI Powered',
@@ -142,7 +142,7 @@ export default function HomePage() {
   return (
     <div className="space-y-12 animate-in fade-in duration-300 pb-16">
       
-      {/* Hero Banner Section (Option 1) */}
+      {/* Hero Banner Section */}
       <div className="space-y-4 max-w-3xl">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 text-teal-400 text-[10px] font-black uppercase tracking-widest shadow-sm">
           <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
@@ -166,19 +166,19 @@ export default function HomePage() {
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight">HSE KPI & Board Review Dashboard</h2>
           <p className="text-xs sm:text-sm text-slate-300">
-            Perbarui angka metrik bulanan, pantau Safe Man-Hours, dan cetak lembar ringkasan eksekutif resmi untuk manajemen.
+            Update monthly safety metrics, monitor cumulative Safe Man-Hours, and print official board executive reviews.
           </p>
         </div>
         <Link
           href="/executive-report"
           className="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-md shrink-0 flex items-center gap-2"
         >
-          Buka Dashboard KPI
+          Open KPI Dashboard
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
         </Link>
       </div>
 
-      {/* Grid Menu Kategori Modul */}
+      {/* Module Categories Grid */}
       <div className="space-y-10">
         {categories.map((cat, idx) => (
           <div key={idx} className="space-y-4">
@@ -212,7 +212,7 @@ export default function HomePage() {
                   </div>
 
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-teal-600 group-hover:text-teal-700">
-                    <span>Buka Modul</span>
+                    <span>Open Module</span>
                     <span className="transform group-hover:translate-x-1 transition">→</span>
                   </div>
                 </Link>
