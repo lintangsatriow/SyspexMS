@@ -9,7 +9,6 @@ export default function ExecutiveReportPage() {
   const [lang, setLang] = useState<Language>('ID')
   const [reportMonth, setReportMonth] = useState('2026-10')
 
-  // Dictionary Bilingual
   const dict = {
     ID: {
       title: 'Laporan Eksekutif K3L',
@@ -71,7 +70,6 @@ export default function ExecutiveReportPage() {
             <p className="text-xs sm:text-sm text-slate-600 mt-1">{t.subtitle}</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Language Toggle */}
             <div className="flex bg-slate-200 p-1 rounded-lg">
               <button onClick={() => setLang('ID')} className={`px-3 py-1.5 text-xs font-black rounded transition ${lang === 'ID' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>ID</button>
               <button onClick={() => setLang('EN')} className={`px-3 py-1.5 text-xs font-black rounded transition ${lang === 'EN' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>EN</button>
@@ -87,10 +85,9 @@ export default function ExecutiveReportPage() {
         </div>
       </div>
 
-      {/* Konten Dashboard (Mirip dengan Print Layout, namun dengan styling Web Modern) */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden print:border-none print:shadow-none print:bg-transparent">
         
-        {/* Print Header (Visible in print, styled in Web) */}
+        {/* Print Header */}
         <div className="p-6 border-b border-slate-200 print:border-b-4 print:border-black flex justify-between items-center bg-slate-50 print:bg-transparent">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-slate-900 print:bg-black text-white flex items-center justify-center font-black text-xs tracking-widest rounded-xl print:rounded-none">
@@ -109,7 +106,7 @@ export default function ExecutiveReportPage() {
 
         <div className="p-6 md:p-8 space-y-8">
           
-          {/* Section: Lagging Indicators (Hasil / Insiden) */}
+          {/* Section: Lagging Indicators */}
           <div>
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 print:text-black border-l-4 border-emerald-500 print:border-black pl-3 mb-4">{t.lagging}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -131,7 +128,7 @@ export default function ExecutiveReportPage() {
             </div>
           </div>
 
-          {/* Section: Leading Indicators (Upaya Pencegahan) */}
+          {/* Section: Leading Indicators */}
           <div>
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 print:text-black border-l-4 border-blue-500 print:border-black pl-3 mb-4">{t.leading}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -192,12 +189,12 @@ export default function ExecutiveReportPage() {
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 print:text-black border-l-4 border-amber-500 print:border-black pl-3 mb-4">{t.conclusion}</h3>
             <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl print:bg-transparent print:border-2 print:border-black">
               <p className="text-sm font-medium leading-relaxed text-slate-800 print:text-black">
-                "{t.conclusionText}"
+                &ldquo;{t.conclusionText}&rdquo;
               </p>
             </div>
           </div>
 
-          {/* Signatures (Visible largely on Print, but shown on web for context) */}
+          {/* Signatures */}
           <div className="grid grid-cols-2 gap-12 pt-12 mt-8 border-t-2 border-slate-100 print:border-black print:mt-16 text-center text-xs font-bold text-slate-900 print:text-black">
             <div>
               <p className="uppercase text-slate-500 print:text-gray-600 mb-16">{t.signPrepared}</p>
