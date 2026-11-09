@@ -39,7 +39,10 @@ export default function SioSiloTrackerPage() {
   const [filterCategory, setFilterCategory] = useState<string>('ALL')
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED'>('ALL')
   const [searchTerm, setSearchTerm] = useState('')
+  
+  // State Modal & Edit
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   // Form State
   const [formCategory, setFormCategory] = useState<'KOMPETENSI' | 'SIO' | 'SILO'>('KOMPETENSI')
@@ -49,7 +52,7 @@ export default function SioSiloTrackerPage() {
   const [formIssueDate, setFormIssueDate] = useState('')
   const [formExpiryDate, setFormExpiryDate] = useState('')
 
-  // AUTO-RECOVERY: Memeriksa semua kemungkinan kunci localStorage
+  // AUTO-RECOVERY & LOAD DATA DARI LOCALSTORAGE
   useEffect(() => {
     const candidateKeys = [
       'syspex_license_data',
@@ -77,7 +80,6 @@ export default function SioSiloTrackerPage() {
               issueDate: item.issueDate || item.tglTerbit || '2024-01-01',
               expiryDate: item.expiryDate || item.tglExpired || item.expiredDate || '2026-12-31'
             }))
-            // Sinkronkan ke kunci utama
             localStorage.setItem('syspex_license_data', JSON.stringify(foundData))
             break
           }
@@ -94,46 +96,86 @@ export default function SioSiloTrackerPage() {
     }
   }, [])
 
-  // Simpan Data
-  const handleAddItem = (e: React.FormEvent) => {
+  // Buka Modal Mode Tambah Baru
+  const handleOpenAddModal = () => {
+    setEditingId(null)
+    setFormCategory('KOMPETENSI')
+    setFormHolder('')
+    setFormSpec('')
+    setFormRegType('SKP')
+    setFormIssueDate('')
+    setFormExpiryDate('')
+    setIsModalOpen(true)
+  }
+
+  // Buka Modal Mode Edit Data Lama
+  const handleOpenEditModal = (item: LicenseItem) => {
+    setEditingId(item.id)
+    setFormCategory(item.category)
+    setFormHolder(item.holderName)
+    setFormSpec(item.spec)
+    setFormRegType(['SKP', 'KEMENAKER', 'BNSP'].includes(item.regNo) ? item.regNo : 'KEMENAKER')
+    setFormIssueDate(item.issueDate)
+    setFormExpiryDate(item.expiryDate)
+    setIsModalOpen(true)
+  }
+
+  // Simpan Data (Support Tambah Baru & Edit)
+  const handleSaveItem = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formHolder || !formExpiryDate) {
       alert('Nama pemegang izin dan Tanggal Berakhir wajib diisi.')
       return
     }
 
-    const newItem: LicenseItem = {
-      id: `lic-${Date.now()}`,
-      category: formCategory,
-      holderName: formHolder,
-      spec: formSpec || (formCategory === 'KOMPETENSI' ? 'Ahli K3' : formCategory === 'SIO' ? 'Operator MHE' : 'Unit Riksa Uji'),
-      regNo: formRegType,
-      issueDate: formIssueDate || new Date().toISOString().split('T')[0],
-      expiryDate: formExpiryDate
+    if (editingId) {
+      // Mode Edit
+      const updated = items.map(it => {
+        if (it.id === editingId) {
+          return {
+            ...it,
+            category: formCategory,
+            holderName: formHolder,
+            spec: formSpec || it.spec,
+            regNo: formRegType,
+            issueDate: formIssueDate || it.issueDate,
+            expiryDate: formExpiryDate
+          }
+        }
+        return it
+      })
+      setItems(updated)
+      localStorage.setItem('syspex_license_data', JSON.stringify(updated))
+    } else {
+      // Mode Tambah Baru
+      const newItem: LicenseItem = {
+        id: `lic-${Date.now()}`,
+        category: formCategory,
+        holderName: formHolder,
+        spec: formSpec || (formCategory === 'KOMPETENSI' ? 'Ahli K3' : formCategory === 'SIO' ? 'Operator MHE' : 'Unit Riksa Uji'),
+        regNo: formRegType,
+        issueDate: formIssueDate || new Date().toISOString().split('T')[0],
+        expiryDate: formExpiryDate
+      }
+      const updated = [newItem, ...items]
+      setItems(updated)
+      localStorage.setItem('syspex_license_data', JSON.stringify(updated))
     }
 
-    const updated = [newItem, ...items]
-    setItems(updated)
-    localStorage.setItem('syspex_license_data', JSON.stringify(updated))
-
-    setFormHolder('')
-    setFormSpec('')
-    setFormRegType('SKP')
-    setFormIssueDate('')
-    setFormExpiryDate('')
     setIsModalOpen(false)
+    setEditingId(null)
   }
 
   // Hapus Data
   const handleDeleteItem = (id: string) => {
-    if (confirm('Hapus sertifikasi ini dari tracker?')) {
+    if (confirm('Hapus sertifikasi ini dari daftar tracker?')) {
       const updated = items.filter(it => it.id !== id)
       setItems(updated)
       localStorage.setItem('syspex_license_data', JSON.stringify(updated))
     }
   }
 
-  // Kalkulasi Status
+  // Kalkulasi Status Batas 60 Hari
   const getStatus = (expiryDateStr: string) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -196,7 +238,7 @@ export default function SioSiloTrackerPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleOpenAddModal}
               className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-1.5 uppercase tracking-wider"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
@@ -284,7 +326,7 @@ export default function SioSiloTrackerPage() {
         </div>
       </div>
 
-      {/* Tabs & Search */}
+      {/* Tabs Filter Kategori & Search */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="flex bg-slate-200 p-1 rounded-xl w-full sm:w-auto">
@@ -322,7 +364,7 @@ export default function SioSiloTrackerPage() {
         </div>
       </div>
 
-      {/* Tabel Data */}
+      {/* Tabel Data Lisensi */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
@@ -370,13 +412,29 @@ export default function SioSiloTrackerPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center print:hidden">
-                        <button
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-slate-400 hover:text-rose-600 transition p-1.5 font-bold rounded-lg hover:bg-rose-50"
-                          title="Hapus lisensi ini"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          {/* Tombol Edit */}
+                          <button
+                            onClick={() => handleOpenEditModal(item)}
+                            className="text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition p-1.5 rounded-lg font-bold"
+                            title="Edit data sertifikasi"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                          </button>
+
+                          {/* Tombol Hapus */}
+                          <button
+                            onClick={() => handleDeleteItem(item.id)}
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition p-1.5 rounded-lg font-bold"
+                            title="Hapus lisensi ini"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -387,18 +445,20 @@ export default function SioSiloTrackerPage() {
         </div>
       </div>
 
-      {/* Modal Tambah Data */}
+      {/* MODAL (UNTUK TAMBAH MAUPUN EDIT DATA) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">Tambah Data Lisensi</h3>
+              <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">
+                {editingId ? 'Edit Data Lisensi / Sertifikasi' : 'Tambah Data Lisensi'}
+              </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-black text-sm">
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleAddItem} className="space-y-4 mt-4 text-xs font-bold">
+            <form onSubmit={handleSaveItem} className="space-y-4 mt-4 text-xs font-bold">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] uppercase text-slate-500 mb-1">Kategori Sertifikasi</label>
@@ -483,7 +543,7 @@ export default function SioSiloTrackerPage() {
                   type="submit"
                   className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase rounded-lg transition shadow-sm"
                 >
-                  Simpan Data
+                  {editingId ? 'Simpan Perubahan' : 'Simpan Data'}
                 </button>
               </div>
             </form>
