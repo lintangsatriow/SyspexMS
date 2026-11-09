@@ -16,7 +16,6 @@ interface LicenseRecord {
 }
 
 export default function SioSiloTrackerPage() {
-  // FIX: Mencegah Hydration Error akibat perbedaan waktu Server Vercel & Browser
   const [isMounted, setIsMounted] = useState(false)
   useEffect(() => {
     setIsMounted(true)
@@ -25,7 +24,6 @@ export default function SioSiloTrackerPage() {
   const [filterType, setFilterType] = useState<'ALL' | 'SIO' | 'SILO'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // FIX: Menggunakan Tanggal Statis yang Aman untuk Server SSR Next.js
   const [licenses] = useState<LicenseRecord[]>([
     { id: '1', type: 'SIO', holderName: 'Budi Santoso', category: 'Forklift Kelas II', licenseNo: 'KEMENAKER/SIO/001', issueDate: '2021-05-10', expiryDate: '2028-05-10' },
     { id: '2', type: 'SIO', holderName: 'Ahmad Faisal', category: 'Forklift Kelas I', licenseNo: 'KEMENAKER/SIO/042', issueDate: '2021-12-01', expiryDate: '2026-12-15' }, 
@@ -36,7 +34,6 @@ export default function SioSiloTrackerPage() {
     { id: '7', type: 'SIO', holderName: 'Siti Aminah', category: 'Scissor Lift', licenseNo: 'KEMENAKER/SIO/102', issueDate: '2019-10-05', expiryDate: '2026-09-05' }, 
   ])
 
-  // Logika Kalkulasi Status Real-Time di Browser Anda
   const processedLicenses = useMemo(() => {
     const today = new Date()
     return licenses.map(lic => {
@@ -61,7 +58,6 @@ export default function SioSiloTrackerPage() {
     }).sort((a, b) => a.diffDays - b.diffDays)
   }, [processedLicenses, filterType, searchQuery])
 
-  // KPI Metrics
   const metrics = {
     total: processedLicenses.length,
     expired: processedLicenses.filter(l => l.status === 'EXPIRED').length,
@@ -71,7 +67,6 @@ export default function SioSiloTrackerPage() {
 
   const needsRenewal = metrics.expired > 0 || metrics.warning > 0
 
-  // FIX: Loading state singkat untuk menghindari bentrok SSR Next.js
   if (!isMounted) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
@@ -112,7 +107,7 @@ export default function SioSiloTrackerPage() {
               <div className="text-4xl font-black text-slate-900">{metrics.total}</div>
             </div>
             <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm flex flex-col justify-between">
-              <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-2">Aman (> 60 Hari)</p>
+              <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-2">Aman (&gt; 60 Hari)</p>
               <div className="text-4xl font-black text-emerald-600">{metrics.safe}</div>
             </div>
             <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
