@@ -25,15 +25,27 @@ export default function RootLayout({
         <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm print:hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
-            {/* Logo Brand */}
-            <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center text-white font-black text-sm tracking-wider">
-                  SX
-                </div>
-                <div className="leading-tight">
-                  <span className="font-black text-lg text-slate-900 tracking-tight">SYSPEX</span>
-                  <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">HSE System</span>
+            {/* Logo Resmi Syspex */}
+            <div className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-2 group">
+                <div className="flex items-center gap-1.5">
+                  {/* Ikon Vektor Brand Syspex */}
+                  <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center shadow-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                      <line x1="4" y1="22" x2="4" y2="15" />
+                    </svg>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <span className="font-black text-xl tracking-tighter text-slate-900 font-sans">SYS</span>
+                      <span className="font-black text-xl tracking-tighter text-teal-600 font-sans">PEX</span>
+                      <span className="text-[10px] text-teal-600 font-bold ml-0.5 align-top">®</span>
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 -mt-1">
+                      Management System
+                    </span>
+                  </div>
                 </div>
               </Link>
             </div>
@@ -47,7 +59,6 @@ export default function RootLayout({
                 Hub Utama
               </Link>
 
-              {/* Tautan Langsung ke Laporan Eksekutif / KPI */}
               <Link 
                 href="/executive-report" 
                 className="px-3 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
@@ -55,7 +66,7 @@ export default function RootLayout({
                 Dashboard KPI
               </Link>
 
-              {/* Dropdown 1: Kepatuhan & Manajemen (ISO) */}
+              {/* Dropdown: Manajemen & ISO */}
               <div className="relative">
                 <button 
                   onClick={() => { setMgmtOpen(!mgmtOpen); setTechOpen(false); setOpsOpen(false) }}
@@ -68,23 +79,23 @@ export default function RootLayout({
                     onClick={() => setMgmtOpen(false)}
                     className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
-                    <Link href="/executive-report" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/executive-report" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       📊 Executive HSE Report
                     </Link>
-                    <Link href="/document-control" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/document-control" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       📑 Document Control (ISO 9001)
                     </Link>
-                    <Link href="/env-log" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/env-log" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       ♻️ B3 Waste Log (ISO 14001)
                     </Link>
-                    <Link href="/sio-silo" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/sio-silo" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       📜 Competency & License Tracker
                     </Link>
                   </div>
                 )}
               </div>
 
-              {/* Dropdown 2: Kalkulator & Teknis */}
+              {/* Dropdown: Kalkulator & Teknis */}
               <div className="relative">
                 <button 
                   onClick={() => { setTechOpen(!techOpen); setOpsOpen(false); setMgmtOpen(false) }}
@@ -97,23 +108,23 @@ export default function RootLayout({
                     onClick={() => setTechOpen(false)}
                     className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
-                    <Link href="/scaffolding" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/scaffolding" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       🏗️ Scaffolding BoQ & Erection
                     </Link>
-                    <Link href="/racking-swl" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/racking-swl" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       📦 Racking SWL Calculator
                     </Link>
-                    <Link href="/lifting-plan" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/lifting-plan" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       🪝 Lifting Plan Rigging
                     </Link>
-                    <Link href="/jsa" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/jsa" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       🛡️ Job Safety Analysis (JSA)
                     </Link>
                   </div>
                 )}
               </div>
 
-              {/* Dropdown 3: K3 & Operasional Lapangan */}
+              {/* Dropdown: K3 & Operasional */}
               <div className="relative">
                 <button 
                   onClick={() => { setOpsOpen(!opsOpen); setTechOpen(false); setMgmtOpen(false) }}
@@ -126,44 +137,39 @@ export default function RootLayout({
                     onClick={() => setOpsOpen(false)}
                     className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
-                    <Link href="/forklift-inspection" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/forklift-inspection" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       🚜 Forklift Pre-Op & LOTO
                     </Link>
-                    <Link href="/loto" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/loto" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       🔒 LOTO Permit & Danger Tag
                     </Link>
-                    <Link href="/safety-talk" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/safety-talk" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       🗣️ Daily Safety Talk (TBM)
                     </Link>
-                    <Link href="/hazard-report" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/hazard-report" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       ⚠️ Hazard & Near-Miss Hunting
                     </Link>
-                    <Link href="/induction" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/induction" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       📋 Induction & Training ID
-                    </Link>
-                    <div className="border-t border-slate-100 my-1"></div>
-                    {/* Rute ke Asisten AI (Folder internal) */}
-                    <Link href="/internal" className="block px-4 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50">
-                      🤖 HSE AI Copilot
                     </Link>
                   </div>
                 )}
               </div>
 
-              {/* Tombol AI Copilot Khusus di Navbar */}
+              {/* Tombol Langsung HSE AI Copilot */}
               <Link
                 href="/internal"
                 className="ml-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-lg transition flex items-center gap-1.5 shadow-sm"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                AI Copilot
+                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                HSE AI Copilot
               </Link>
             </nav>
 
           </div>
         </header>
 
-        {/* Main Content Area */}
+        {/* Konten Halaman */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
