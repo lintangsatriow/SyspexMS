@@ -5,13 +5,7 @@ import Link from 'next/link'
 export default function HomePage() {
   return (
     <div className="min-h-[75vh] flex flex-col justify-center items-center text-center px-4 animate-in fade-in duration-500">
-      
-      {/* Status Pill Badge */}
-      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-teal-400 text-[11px] font-black uppercase tracking-widest shadow-sm mb-6 border border-slate-800">
-        <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-        HSE & Compliance Operations System
-      </div>
-
+     
       {/* Main Headline */}
       <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-slate-900 tracking-tight leading-[1.15] max-w-4xl">
         Engineering Precision. <br />
@@ -43,7 +37,7 @@ export default function HomePage() {
 
       {/* Subtle Corporate Credentials */}
       <div className="mt-14 pt-6 border-t border-slate-200/80 flex flex-wrap items-center justify-center gap-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-        <span>HSE Managament System</span>
+        <span>HSE Department</span>
       </div>
     </div>
   )
