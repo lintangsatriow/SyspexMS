@@ -8,12 +8,12 @@ interface LicenseItem {
   category: 'KOMPETENSI' | 'SIO' | 'SILO'
   holderName: string
   spec: string
-  regNo: string // SKP, KEMENAKER, BNSP atau nomor registrasi lama
+  regNo: string
   issueDate: string
   expiryDate: string
 }
 
-const INITIAL_DATA: LicenseItem[] = [
+const INITIAL_FALLBACK: LicenseItem[] = [
   {
     id: 'lic-1',
     category: 'KOMPETENSI',
@@ -31,35 +31,17 @@ const INITIAL_DATA: LicenseItem[] = [
     regNo: 'KEMENAKER',
     issueDate: '2021-05-15',
     expiryDate: '2026-05-15'
-  },
-  {
-    id: 'lic-3',
-    category: 'SILO',
-    holderName: 'Unit FL-01 (Toyota 3-Ton)',
-    spec: 'Riksa Uji Forklift Counterbalance',
-    regNo: 'KEMENAKER',
-    issueDate: '2025-12-01',
-    expiryDate: '2026-12-01'
-  },
-  {
-    id: 'lic-4',
-    category: 'KOMPETENSI',
-    holderName: 'Siti Rahma',
-    spec: 'Petugas P3K Kimia',
-    regNo: 'BNSP',
-    issueDate: '2024-01-12',
-    expiryDate: '2027-01-12'
   }
 ]
 
 export default function SioSiloTrackerPage() {
-  const [items, setItems] = useState<LicenseItem[]>(INITIAL_DATA)
+  const [items, setItems] = useState<LicenseItem[]>([])
   const [filterCategory, setFilterCategory] = useState<string>('ALL')
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED'>('ALL')
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Form State untuk Tambah Data
+  // Form State
   const [formCategory, setFormCategory] = useState<'KOMPETENSI' | 'SIO' | 'SILO'>('KOMPETENSI')
   const [formHolder, setFormHolder] = useState('')
   const [formSpec, setFormSpec] = useState('')
@@ -67,22 +49,52 @@ export default function SioSiloTrackerPage() {
   const [formIssueDate, setFormIssueDate] = useState('')
   const [formExpiryDate, setFormExpiryDate] = useState('')
 
-  // Muat data dari localStorage
+  // AUTO-RECOVERY: Memeriksa semua kemungkinan kunci localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('syspex_license_data')
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setItems(parsed)
+    const candidateKeys = [
+      'syspex_license_data',
+      'syspex_licenses',
+      'licenses',
+      'sio_silo_data',
+      'syspex_sio_data',
+      'syspex_sio_silo'
+    ]
+
+    let foundData: LicenseItem[] | null = null
+
+    for (const key of candidateKeys) {
+      const raw = localStorage.getItem(key)
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            foundData = parsed.map((item: any, idx: number) => ({
+              id: item.id || `lic-recov-${idx}`,
+              category: item.category || item.type || 'KOMPETENSI',
+              holderName: item.holderName || item.name || item.holder || 'Tanpa Nama',
+              spec: item.spec || item.specification || item.bidang || '-',
+              regNo: item.regNo || item.jenis || item.noReg || item.regNumber || 'KEMENAKER',
+              issueDate: item.issueDate || item.tglTerbit || '2024-01-01',
+              expiryDate: item.expiryDate || item.tglExpired || item.expiredDate || '2026-12-31'
+            }))
+            // Sinkronkan ke kunci utama
+            localStorage.setItem('syspex_license_data', JSON.stringify(foundData))
+            break
+          }
+        } catch (e) {
+          console.error('Failed reading key:', key, e)
         }
-      } catch (err) {
-        console.error('Failed to load local license data', err)
       }
+    }
+
+    if (foundData && foundData.length > 0) {
+      setItems(foundData)
+    } else {
+      setItems(INITIAL_FALLBACK)
     }
   }, [])
 
-  // Fungsi Simpan Data Baru
+  // Simpan Data
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formHolder || !formExpiryDate) {
@@ -104,7 +116,6 @@ export default function SioSiloTrackerPage() {
     setItems(updated)
     localStorage.setItem('syspex_license_data', JSON.stringify(updated))
 
-    // Reset Form
     setFormHolder('')
     setFormSpec('')
     setFormRegType('SKP')
@@ -113,16 +124,16 @@ export default function SioSiloTrackerPage() {
     setIsModalOpen(false)
   }
 
-  // Fungsi Hapus Data
+  // Hapus Data
   const handleDeleteItem = (id: string) => {
-    if (confirm('Hapus sertifikasi ini dari daftar tracker?')) {
+    if (confirm('Hapus sertifikasi ini dari tracker?')) {
       const updated = items.filter(it => it.id !== id)
       setItems(updated)
       localStorage.setItem('syspex_license_data', JSON.stringify(updated))
     }
   }
 
-  // Kalkulasi Status Validitas & Batas 60 Hari
+  // Kalkulasi Status
   const getStatus = (expiryDateStr: string) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -153,13 +164,11 @@ export default function SioSiloTrackerPage() {
     }
   }
 
-  // Summary Metrics
   const totalCount = items.length
   const expiredCount = items.filter(it => getStatus(it.expiryDate).code === 'EXPIRED').length
   const expiringSoonCount = items.filter(it => getStatus(it.expiryDate).code === 'EXPIRING_SOON').length
   const activeCount = items.filter(it => getStatus(it.expiryDate).code === 'ACTIVE').length
 
-  // Filter Data Gabungan (Kategori + Status Kartu + Search)
   const filteredItems = items.filter(it => {
     const itemStatus = getStatus(it.expiryDate).code
     const matchStatus = filterStatus === 'ALL' || itemStatus === filterStatus
@@ -173,7 +182,7 @@ export default function SioSiloTrackerPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
       
-      {/* Breadcrumb & Header */}
+      {/* Header */}
       <div className="border-b border-slate-200 pb-5 print:hidden">
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
           <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Kepatuhan & Audit Legal</span>
@@ -204,10 +213,8 @@ export default function SioSiloTrackerPage() {
         </div>
       </div>
 
-      {/* KARTU KPI INTERAKTIF (BISA DI-KLIK UNTUK FILTER OTOMATIS) */}
+      {/* KPI Cards Interaktif */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
-        
-        {/* Card 1: Total */}
         <div 
           onClick={() => setFilterStatus('ALL')}
           className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
@@ -221,11 +228,10 @@ export default function SioSiloTrackerPage() {
           </p>
           <p className="text-3xl font-black mt-2">{totalCount}</p>
           <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'ALL' ? 'text-teal-400' : 'text-slate-400'}`}>
-            {filterStatus === 'ALL' ? '● Sedang Menampilkan Semua' : 'Klik untuk tampilkan semua'}
+            {filterStatus === 'ALL' ? '● Menampilkan Semua' : 'Klik untuk tampilkan semua'}
           </span>
         </div>
 
-        {/* Card 2: Aman (> 60 Hari) */}
         <div 
           onClick={() => setFilterStatus(filterStatus === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
           className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
@@ -239,11 +245,10 @@ export default function SioSiloTrackerPage() {
           </p>
           <p className={`text-3xl font-black mt-2 ${filterStatus === 'ACTIVE' ? 'text-white' : 'text-emerald-600'}`}>{activeCount}</p>
           <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'ACTIVE' ? 'text-emerald-100' : 'text-emerald-600'}`}>
-            {filterStatus === 'ACTIVE' ? '● Filter Aktif (Klik untuk Reset)' : 'Klik untuk filter data ini'}
+            {filterStatus === 'ACTIVE' ? '● Filter Aktif (Klik Reset)' : 'Klik untuk filter data ini'}
           </span>
         </div>
 
-        {/* Card 3: Perlu Perpanjangan (<= 60 Hari) */}
         <div 
           onClick={() => setFilterStatus(filterStatus === 'EXPIRING_SOON' ? 'ALL' : 'EXPIRING_SOON')}
           className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
@@ -257,11 +262,10 @@ export default function SioSiloTrackerPage() {
           </p>
           <p className={`text-3xl font-black mt-2 ${filterStatus === 'EXPIRING_SOON' ? 'text-white' : 'text-amber-600'}`}>{expiringSoonCount}</p>
           <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'EXPIRING_SOON' ? 'text-amber-100' : 'text-amber-600'}`}>
-            {filterStatus === 'EXPIRING_SOON' ? '● Filter Aktif (Klik untuk Reset)' : '👉 Klik untuk lihat data'}
+            {filterStatus === 'EXPIRING_SOON' ? '● Filter Aktif (Klik Reset)' : '👉 Klik untuk lihat data'}
           </span>
         </div>
 
-        {/* Card 4: Kadaluarsa (Expired) */}
         <div 
           onClick={() => setFilterStatus(filterStatus === 'EXPIRED' ? 'ALL' : 'EXPIRED')}
           className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
@@ -275,13 +279,12 @@ export default function SioSiloTrackerPage() {
           </p>
           <p className={`text-3xl font-black mt-2 ${filterStatus === 'EXPIRED' ? 'text-white' : 'text-rose-600'}`}>{expiredCount}</p>
           <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'EXPIRED' ? 'text-rose-100' : 'text-rose-600'}`}>
-            {filterStatus === 'EXPIRED' ? '● Filter Aktif (Klik untuk Reset)' : '👉 Klik untuk lihat data'}
+            {filterStatus === 'EXPIRED' ? '● Filter Aktif (Klik Reset)' : '👉 Klik untuk lihat data'}
           </span>
         </div>
-
       </div>
 
-      {/* Filter Kategori Tab & Search Bar */}
+      {/* Tabs & Search */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="flex bg-slate-200 p-1 rounded-xl w-full sm:w-auto">
@@ -319,7 +322,7 @@ export default function SioSiloTrackerPage() {
         </div>
       </div>
 
-      {/* Tabel Data Lisensi */}
+      {/* Tabel Data */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
@@ -337,7 +340,7 @@ export default function SioSiloTrackerPage() {
               {filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">
-                    Tidak ada data lisensi yang sesuai dengan filter yang dipilih.
+                    Tidak ada data lisensi yang sesuai dengan filter.
                   </td>
                 </tr>
               ) : (
@@ -384,7 +387,7 @@ export default function SioSiloTrackerPage() {
         </div>
       </div>
 
-      {/* MODAL TAMBAH DATA LISENSI */}
+      {/* Modal Tambah Data */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
@@ -433,7 +436,6 @@ export default function SioSiloTrackerPage() {
                 />
               </div>
 
-              {/* DROPDOWN PILIHAN JENIS (SKP, KEMENAKER, BNSP) */}
               <div>
                 <label className="block text-[10px] uppercase text-slate-500 mb-1">Jenis Sertifikasi</label>
                 <select
