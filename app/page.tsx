@@ -1,94 +1,227 @@
+"use client"
+
 import Link from 'next/link'
 
-export default function SyspexHubPage() {
-  const modules = [
-    { href: '/racking-swl', code: 'R', category: 'Engineering Tool', title: 'SWL Racking Calculator', desc: 'Validasi kapasitas balok, tiang upright, lendutan L/200, & Load Notice Plate.' },
-    { href: '/lifting-plan', code: 'L', category: 'Rigging & Equipment', title: 'Lifting Plan & CoG', desc: 'Tegangan sling crane, center of gravity (CoG), dan izin pengangkatan.' },
-    { href: '/scaffolding', code: 'S', category: 'Structure & Access', title: 'Scaffolding Design', desc: 'Estimasi material Main Frame T-170, pipa support, dan penerbitan Scafftag.' },
-    { href: '/internal', code: 'D', category: 'Operational Dashboard', title: 'KPI & CAPA Dashboard', desc: 'Pantauan Safe Man-Hours, status temuan bahaya, dan log izin kerja.' },
-    { href: '/executive-report', code: 'ER', category: 'Management Review', title: 'Executive Report (Dir)', desc: 'Laporan ringkasan tingkat tinggi (EN/ID) untuk Direktur terkait risiko K3.' },
-    { href: '/ai-assistant', code: 'AI', category: 'Artificial Intelligence', title: 'HSE Copilot Assistant', desc: 'Konsultasi regulasi K3, penyusunan JSA, dan analisis data instan.' },
-    { href: '/document-control', code: 'DC', category: 'ISO Compliance', title: 'Document Control', desc: 'Pengendalian informasi terdokumentasi (SOP, Kebijakan) sesuai Klausul 7.5.' },
-    { href: '/env-log', code: 'EV', category: 'ISO 14001', title: 'B3 Waste & Env Log', desc: 'Pelacakan neraca limbah B3, manifest transporter, dan aspek lingkungan.' },
-    { href: '/jsa', code: 'J', category: 'Safety Management', title: 'Job Safety Analysis', desc: 'Matriks mitigasi tahapan kerja, analisis risiko 5x5, & lembar persetujuan.' },
-    { href: '/safety-talk', code: 'T', category: 'Daily HSE Operations', title: 'Daily Safety Talk (TBM)', desc: 'Pustaka materi briefing 5 menit operasional dan absensi pekerja.' },
-    { href: '/induction', code: 'I', category: 'Security & Visitor', title: 'Safety Induction', desc: 'Registrasi orientasi K3 untuk tamu/vendor dan penerbitan Visitor Pass.' },
-    { href: '/forklift-inspection', code: 'F', category: 'Heavy Equipment', title: 'Forklift Inspection', desc: 'Pemeriksaan pra-operasi harian dengan sistem penandaan Tag-Out.' },
-    { href: '/loto', code: 'O', category: 'Machinery Maintenance', title: 'LOTO Permit & Tag', desc: 'Penerbitan kartu isolasi energi berbahaya untuk servis mesin.' },
-    { href: '/hazard-report', code: 'H', category: 'Employee Participation', title: 'Hazard Hunting', desc: 'Pelaporan kondisi tidak aman dari HP untuk ditindaklanjuti tim HSE.' },
-    { href: '/sio-silo', code: 'C', category: 'Compliance & Audit', title: 'SIO & SILO Tracker', desc: 'Basis data masa berlaku lisensi operator & sertifikat kelaikan alat.' }
+export default function HomePage() {
+  const categories = [
+    {
+      title: 'Management & ISO Systems',
+      subtitle: 'Tata kelola kepatuhan regulasi, audit mutu, dan laporan direksi',
+      color: 'teal',
+      items: [
+        {
+          name: 'Executive HSE KPI Report',
+          desc: 'Indeks kesehatan K3, metrik Zero Harm, dan laporan cetak siap direksi.',
+          href: '/executive-report',
+          tag: 'ISO 45001 / SMK3',
+          badge: 'Executive',
+          badgeColor: 'bg-teal-500/10 text-teal-700 border-teal-200'
+        },
+        {
+          name: 'Document Control Register',
+          desc: 'Pengendalian prosedur SOP, WI, Form, dan status revisi dokumen resmi.',
+          href: '/document-control',
+          tag: 'ISO 9001',
+          badge: 'Governance',
+          badgeColor: 'bg-blue-500/10 text-blue-700 border-blue-200'
+        },
+        {
+          name: 'B3 Waste & Environmental Log',
+          desc: 'Neraca limbah B3, manifes festronik, dan batas 90 hari penyimpanan.',
+          href: '/env-log',
+          tag: 'ISO 14001',
+          badge: 'Environment',
+          badgeColor: 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+        },
+        {
+          name: 'Competency & License Tracker',
+          desc: 'Database masa berlaku SIO forklift, SKP Ahli K3, dan riksa uji SILO alat.',
+          href: '/sio-silo',
+          tag: 'Kemenaker Legal',
+          badge: 'Statutory',
+          badgeColor: 'bg-amber-500/10 text-amber-700 border-amber-200'
+        }
+      ]
+    },
+    {
+      title: 'Calculators & Engineering Tools',
+      subtitle: 'Validasi beban kerja aman, perancah, dan izin pekerjaan berisiko',
+      color: 'slate',
+      items: [
+        {
+          name: 'Racking SWL Calculator',
+          desc: 'Verifikasi kapasitas beban balok, defleksi L/200, dan kepatuhan EN 15512.',
+          href: '/racking-swl',
+          tag: 'Warehouse Tech',
+          badge: 'Engineering',
+          badgeColor: 'bg-indigo-500/10 text-indigo-700 border-indigo-200'
+        },
+        {
+          name: 'Scaffolding BoQ & Erection',
+          desc: 'Kalkulator kebutuhan material perancah tubular & checklist inspeksi hijau/merah.',
+          href: '/scaffolding',
+          tag: 'Work at Height',
+          badge: 'Calculation',
+          badgeColor: 'bg-slate-500/10 text-slate-700 border-slate-200'
+        },
+        {
+          name: 'Rigging & Lifting Plan',
+          desc: 'Kapasitas angkat crane/forklift, sudut sling sling tension, dan safety factor.',
+          href: '/lifting-plan',
+          tag: 'Heavy Lifting',
+          badge: 'Critical Lift',
+          badgeColor: 'bg-rose-500/10 text-rose-700 border-rose-200'
+        },
+        {
+          name: 'Job Safety Analysis (JSA)',
+          desc: 'Matriks mitigasi risiko 5x5 dan lembar kerja izin bahaya terpadu.',
+          href: '/jsa',
+          tag: 'Risk Control',
+          badge: 'Operational',
+          badgeColor: 'bg-cyan-500/10 text-cyan-700 border-cyan-200'
+        }
+      ]
+    },
+    {
+      title: 'Field HSE & Safety Operations',
+      subtitle: 'Checklist lapangan harian, pelaporan bahaya, dan edukasi pekerja',
+      color: 'indigo',
+      items: [
+        {
+          name: 'Forklift Pre-Op Checklist',
+          desc: 'Inspeksi harian unit MHE, verifikasi sistem rem/hidrolik, dan isolasi LOTO.',
+          href: '/forklift-inspection',
+          tag: 'MHE Safety',
+          badge: 'Daily Routine',
+          badgeColor: 'bg-teal-500/10 text-teal-700 border-teal-200'
+        },
+        {
+          name: 'LOTO Permit & Danger Tag',
+          desc: 'Penerbitan label karantina alat rusak & prosedur isolasi energi berbahaya.',
+          href: '/loto',
+          tag: 'Isolation Tag',
+          badge: 'Critical Safety',
+          badgeColor: 'bg-red-500/10 text-red-700 border-red-200'
+        },
+        {
+          name: 'Hazard & Near-Miss Hunting',
+          desc: 'Pelaporan temuan tindakan/kondisi tidak aman dengan tracking CAPA.',
+          href: '/hazard-report',
+          tag: 'Proactive HSE',
+          badge: 'Field Hunting',
+          badgeColor: 'bg-amber-500/10 text-amber-700 border-amber-200'
+        },
+        {
+          name: 'Toolbox Meeting (Safety Talk)',
+          desc: 'Bank materi briefing pagi 5 menit, modul K3 spesifik, dan lembar absensi.',
+          href: '/safety-talk',
+          tag: 'Safety Culture',
+          badge: 'Daily Briefing',
+          badgeColor: 'bg-blue-500/10 text-blue-700 border-blue-200'
+        },
+        {
+          name: 'HSE Induction & Badge ID',
+          desc: 'Pendaftaran visitor, kontraktor, dan pembuatan kartu izin induksi proyek.',
+          href: '/induction',
+          tag: 'Site Access',
+          badge: 'Credential',
+          badgeColor: 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+        },
+        {
+          name: 'HSE AI Copilot',
+          desc: 'Asisten cerdas regulasi Kemenaker, standar ISO, dan saran mitigasi teknis.',
+          href: '/ai-assistant',
+          tag: 'Smart Assistant',
+          badge: 'AI Powered',
+          badgeColor: 'bg-purple-500/10 text-purple-700 border-purple-200'
+        }
+      ]
+    }
   ]
 
   return (
-    <div className="relative min-h-[85vh] w-full bg-slate-50 selection:bg-slate-900 selection:text-white pb-20">
+    <div className="space-y-12 animate-in fade-in duration-300 pb-16">
       
-      {/* Background Ornaments (Memecah kesan kaku template) */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-slate-200/50 to-transparent"></div>
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-slate-200/50 rounded-full blur-3xl opacity-50"></div>
-        <div className="absolute top-48 -left-24 w-72 h-72 bg-slate-300/30 rounded-full blur-3xl opacity-50"></div>
+      {/* Hero Banner Section (Option 1) */}
+      <div className="space-y-4 max-w-3xl">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 text-teal-400 text-[10px] font-black uppercase tracking-widest shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+          OFFICIAL HSE OPERATIONS HUB
+        </div>
+        
+        <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+          Welcome to the Syspex Safety & Operations Center.
+        </h1>
+
+        <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
+          Your integrated workplace portal for daily safety inspections, engineering calculations, hazard mitigation, and ISO & SMK3 compliance across all PT. Syspex Kemasindo operations.
+        </p>
       </div>
 
-      <div className="relative z-10 space-y-12">
-        
-        {/* Header Section (Lebih elegan dan berwibawa) */}
-        <div className="max-w-3xl pt-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest mb-6 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            System Live & Secured
+      {/* Quick Launch Action Banner */}
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-teal-950 text-white p-6 sm:p-8 rounded-3xl shadow-lg border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-2 max-w-xl">
+          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-300 text-[10px] font-bold uppercase tracking-wider">
+            Quick Executive Access
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-tight mb-4">
-            Engineering & HSE <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-500">
-              Operations Center.
-            </span>
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 leading-relaxed max-w-2xl font-medium">
-            Portal operasional terpadu untuk kalkulasi teknis struktur, validasi pengangkatan alat berat, dan manajemen kepatuhan K3L tingkat lanjut.
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight">HSE KPI & Board Review Dashboard</h2>
+          <p className="text-xs sm:text-sm text-slate-300">
+            Perbarui angka metrik bulanan, pantau Safe Man-Hours, dan cetak lembar ringkasan eksekutif resmi untuk manajemen.
           </p>
         </div>
-
-        {/* Grid Modules (Bento-style Cards, Glassmorphism, Premium Hover) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {modules.map((m) => (
-            <Link 
-              key={m.href} 
-              href={m.href} 
-              className="group relative flex flex-col justify-between p-6 rounded-2xl bg-white/60 backdrop-blur-lg border border-slate-200/60 hover:bg-white hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 hover:border-slate-300 transition-all duration-300 overflow-hidden"
-            >
-              {/* Efek Garis Dekoratif saat Hover */}
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-slate-800 to-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-              <div>
-                <div className="flex items-center justify-between mb-5">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-mono font-bold text-sm transition-colors duration-300 shadow-sm ${m.code === 'ER' ? 'bg-slate-900 text-white group-hover:bg-slate-800' : 'bg-white border border-slate-200 text-slate-800 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900'}`}>
-                    {m.code}
-                  </div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100/80 px-2.5 py-1 rounded-full group-hover:bg-slate-100 transition-colors">
-                    {m.category}
-                  </span>
-                </div>
-                
-                <h2 className="text-base font-black text-slate-900 tracking-tight group-hover:text-slate-800 transition-colors mb-2">
-                  {m.title}
-                </h2>
-                <p className="text-[13px] text-slate-500 leading-relaxed font-medium">
-                  {m.desc}
-                </p>
-              </div>
-
-              {/* Tanda Panah Interaktif */}
-              <div className="mt-6 flex items-center text-[11px] font-bold text-slate-400 group-hover:text-slate-900 transition-colors uppercase tracking-wider">
-                Buka Modul 
-                <svg className="w-3.5 h-3.5 ml-1 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </div>
-            </Link>
-          ))}
-        </div>
-
+        <Link
+          href="/executive-report"
+          className="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-md shrink-0 flex items-center gap-2"
+        >
+          Buka Dashboard KPI
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </Link>
       </div>
+
+      {/* Grid Menu Kategori Modul */}
+      <div className="space-y-10">
+        {categories.map((cat, idx) => (
+          <div key={idx} className="space-y-4">
+            <div className="border-b border-slate-200 pb-2">
+              <h3 className="text-lg font-black text-slate-900 tracking-tight">{cat.title}</h3>
+              <p className="text-xs text-slate-500 font-medium">{cat.subtitle}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {cat.items.map((item, itemIdx) => (
+                <Link
+                  key={itemIdx}
+                  href={item.href}
+                  className="group bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-500 transition-all flex flex-col justify-between"
+                >
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">
+                        {item.tag}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${item.badgeColor}`}>
+                        {item.badge}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-black text-slate-900 group-hover:text-teal-600 transition">
+                      {item.name}
+                    </h4>
+                    <p className="text-xs text-slate-500 leading-relaxed font-normal">
+                      {item.desc}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-teal-600 group-hover:text-teal-700">
+                    <span>Buka Modul</span>
+                    <span className="transform group-hover:translate-x-1 transition">→</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }
