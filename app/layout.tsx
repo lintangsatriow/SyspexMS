@@ -22,7 +22,7 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="id">
+    <html lang="en">
       <head>
         <title>Syspex HSE Management System</title>
         <meta name="description" content="Industrial HSE Management System for PT. Syspex Kemasindo" />
@@ -35,7 +35,7 @@ export default function RootLayout({
         <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm print:hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
-            {/* Logo Resmi Syspex */}
+            {/* Syspex Official Logo */}
             <div className="flex items-center gap-2">
               <Link href="/" onClick={closeAllMenus} className="flex items-center gap-2 sm:gap-3 group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -55,29 +55,29 @@ export default function RootLayout({
               </Link>
             </div>
 
-            {/* Navigasi Desktop (Hidden di HP) */}
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1 lg:gap-2">
               <Link 
                 href="/" 
                 className="px-3 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
               >
-                Hub Utama
+                Main Hub
               </Link>
 
               <Link 
                 href="/executive-report" 
                 className="px-3 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
               >
-                Dashboard KPI
+                KPI Dashboard
               </Link>
 
-              {/* Dropdown 1: Manajemen & ISO */}
+              {/* Dropdown 1: Management & ISO */}
               <div className="relative">
                 <button 
                   onClick={() => { setMgmtOpen(!mgmtOpen); setTechOpen(false); setOpsOpen(false) }}
                   className="px-3 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition flex items-center gap-1"
                 >
-                  Manajemen & ISO ▾
+                  Management & ISO ▾
                 </button>
                 {mgmtOpen && (
                   <div 
@@ -91,22 +91,22 @@ export default function RootLayout({
                       📑 Document Control (ISO 9001)
                     </Link>
                     <Link href="/env-log" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
-                      ♻️ B3 Waste Log (ISO 14001)
+                      ♻️ Hazardous Waste Log (ISO 14001)
                     </Link>
                     <Link href="/sio-silo" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
-                      📜 Competency & License Tracker
+                      📜 License & Competency Tracker
                     </Link>
                   </div>
                 )}
               </div>
 
-              {/* Dropdown 2: Kalkulator & Teknis */}
+              {/* Dropdown 2: Technical & Calculators */}
               <div className="relative">
                 <button 
                   onClick={() => { setTechOpen(!techOpen); setOpsOpen(false); setMgmtOpen(false) }}
                   className="px-3 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition flex items-center gap-1"
                 >
-                  Kalkulator & Teknis ▾
+                  Technical & Calculators ▾
                 </button>
                 {techOpen && (
                   <div 
@@ -120,7 +120,7 @@ export default function RootLayout({
                       📦 Racking SWL Calculator
                     </Link>
                     <Link href="/lifting-plan" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
-                      🪝 Lifting Plan Rigging
+                      🪝 Rigging & Lifting Plan
                     </Link>
                     <Link href="/jsa" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       🛡️ Job Safety Analysis (JSA)
@@ -129,13 +129,13 @@ export default function RootLayout({
                 )}
               </div>
 
-              {/* Dropdown 3: K3 & Operasional */}
+              {/* Dropdown 3: HSE & Operations */}
               <div className="relative">
                 <button 
                   onClick={() => { setOpsOpen(!opsOpen); setTechOpen(false); setMgmtOpen(false) }}
                   className="px-3 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition flex items-center gap-1"
                 >
-                  K3 & Operasional ▾
+                  HSE & Operations ▾
                 </button>
                 {opsOpen && (
                   <div 
@@ -149,13 +149,13 @@ export default function RootLayout({
                       🔒 LOTO Permit & Danger Tag
                     </Link>
                     <Link href="/safety-talk" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
-                      🗣️ Daily Safety Talk (TBM)
+                      🗣️ Daily Toolbox Meeting (TBM)
                     </Link>
                     <Link href="/hazard-report" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       ⚠️ Hazard & Near-Miss Hunting
                     </Link>
                     <Link href="/induction" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
-                      📋 Induction & Training ID
+                      📋 Induction & Badge ID
                     </Link>
                     <div className="border-t border-slate-100 my-1"></div>
                     <Link href="/ai-assistant" className="block px-4 py-2 text-xs font-black text-teal-700 hover:bg-teal-50">
@@ -165,7 +165,7 @@ export default function RootLayout({
                 )}
               </div>
 
-              {/* Tombol AI Copilot Desktop */}
+              {/* AI Copilot Direct Button */}
               <Link
                 href="/ai-assistant"
                 className="ml-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-lg transition flex items-center gap-1.5 shadow-sm"
@@ -175,7 +175,7 @@ export default function RootLayout({
               </Link>
             </nav>
 
-            {/* Tombol Hamburger Mobile Menu (Muncul hanya di HP) */}
+            {/* Mobile Hamburger Button */}
             <div className="flex items-center gap-2 md:hidden">
               <Link
                 href="/ai-assistant"
@@ -206,7 +206,7 @@ export default function RootLayout({
 
           </div>
 
-          {/* Drawer Menu Vertikal untuk HP */}
+          {/* Mobile Vertical Drawer */}
           {mobileMenuOpen && (
             <div className="md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-4 max-h-[85vh] overflow-y-auto shadow-xl animate-in slide-in-from-top-2 duration-200">
               <div className="grid grid-cols-2 gap-2 pt-2">
@@ -215,36 +215,36 @@ export default function RootLayout({
                   onClick={closeAllMenus}
                   className="px-3 py-2.5 text-center bg-slate-100 text-slate-900 text-xs font-bold rounded-xl"
                 >
-                  🏠 Hub Utama
+                  🏠 Main Hub
                 </Link>
                 <Link
                   href="/executive-report"
                   onClick={closeAllMenus}
                   className="px-3 py-2.5 text-center bg-teal-600 text-white text-xs font-black rounded-xl shadow-sm"
                 >
-                  📊 Dashboard KPI
+                  📊 KPI Dashboard
                 </Link>
               </div>
 
-              {/* Grup 1: Manajemen & ISO */}
+              {/* Group 1: Management & ISO */}
               <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">Manajemen & ISO</p>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">Management & ISO</p>
                 <div className="bg-slate-50 rounded-xl p-1.5 space-y-1 border border-slate-100">
                   <Link href="/document-control" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
                     📑 Document Control (ISO 9001)
                   </Link>
                   <Link href="/env-log" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    ♻️ B3 Waste Log (ISO 14001)
+                    ♻️ Hazardous Waste Log (ISO 14001)
                   </Link>
                   <Link href="/sio-silo" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    📜 License Tracker (SIO / SILO)
+                    📜 License Tracker (SIO / SILO / SKP)
                   </Link>
                 </div>
               </div>
 
-              {/* Grup 2: Kalkulator & Teknis */}
+              {/* Group 2: Technical & Calculators */}
               <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">Kalkulator & Teknis</p>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">Technical & Calculators</p>
                 <div className="bg-slate-50 rounded-xl p-1.5 space-y-1 border border-slate-100">
                   <Link href="/scaffolding" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
                     🏗️ Scaffolding BoQ & Erection
@@ -253,7 +253,7 @@ export default function RootLayout({
                     📦 Racking SWL Calculator
                   </Link>
                   <Link href="/lifting-plan" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    🪝 Lifting Plan Rigging
+                    🪝 Rigging & Lifting Plan
                   </Link>
                   <Link href="/jsa" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
                     🛡️ Job Safety Analysis (JSA)
@@ -261,9 +261,9 @@ export default function RootLayout({
                 </div>
               </div>
 
-              {/* Grup 3: K3 & Operasional */}
+              {/* Group 3: HSE & Operations */}
               <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">K3 & Operasional Lapangan</p>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">Field HSE Operations</p>
                 <div className="bg-slate-50 rounded-xl p-1.5 space-y-1 border border-slate-100">
                   <Link href="/forklift-inspection" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
                     🚜 Forklift Pre-Op Checklist
@@ -272,13 +272,13 @@ export default function RootLayout({
                     🔒 LOTO Permit & Danger Tag
                   </Link>
                   <Link href="/safety-talk" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    🗣️ Daily Safety Talk (TBM)
+                    🗣️ Daily Toolbox Meeting (TBM)
                   </Link>
                   <Link href="/hazard-report" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
                     ⚠️ Hazard & Near-Miss Hunting
                   </Link>
                   <Link href="/induction" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    📋 Induction & Training ID
+                    📋 Induction & Badge ID
                   </Link>
                 </div>
               </div>
@@ -286,7 +286,7 @@ export default function RootLayout({
           )}
         </header>
 
-        {/* Konten Halaman */}
+        {/* Main Content Area */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
           {children}
         </main>
