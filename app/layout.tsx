@@ -25,7 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <title>Syspex HSE Management System</title>
-        <meta name="description" content="Industrial HSE Management System for PT. Syspex Kemasindo" />
+        <meta name="description" content="Industrial HSE Management System for Syspex" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
         <link rel="icon" type="image/png" href="/favicon-syspex.png" />
       </head>
@@ -294,7 +294,7 @@ export default function RootLayout({
         {/* Footer */}
         <footer className="bg-white border-t border-slate-200 py-6 print:hidden">
           <div className="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 font-medium">
-            <p>© 2026 PT. Syspex Kemasindo — Integrated HSE Management System (ISO 9001 / 14001 / 45001 & SMK3)</p>
+            <p>© 2026 Syspex — Integrated HSE Management System (ISO 9001 / 14001 / 45001 & SMK3)</p>
           </div>
         </footer>
 
