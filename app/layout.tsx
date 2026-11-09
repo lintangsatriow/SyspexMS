@@ -17,8 +17,9 @@ export default function RootLayout({
     <html lang="id">
       <head>
         <title>Syspex HSE Management System</title>
-        <meta name="description" content="Integrated HSE Management System for Syspex " />
-        <link rel="icon" href="/Syspex%20Logo%20(Trademark)%20black.png" />
+        <meta name="description" content="Industrial HSE Management System for PT. Syspex Kemasindo" />
+        {/* Favicon Persegi Resmi Syspex */}
+        <link rel="icon" type="image/png" href="/logo.png" />
       </head>
       <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
         
@@ -26,7 +27,7 @@ export default function RootLayout({
         <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm print:hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
-            {/* Logo Resmi Syspex Langsung Memanggil File di Folder Public */}
+            {/* Logo Resmi Syspex di Navbar */}
             <div className="flex items-center gap-3">
               <Link href="/" className="flex items-center gap-3 group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -46,7 +47,7 @@ export default function RootLayout({
               </Link>
             </div>
 
-            {/* Navigasi Menu */}
+            {/* Menu Navigasi Utama */}
             <nav className="flex items-center gap-1 sm:gap-2">
               <Link 
                 href="/" 
@@ -149,11 +150,15 @@ export default function RootLayout({
                     <Link href="/induction" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       📋 Induction & Training ID
                     </Link>
+                    <div className="border-t border-slate-100 my-1"></div>
+                    <Link href="/ai-assistant" className="block px-4 py-2 text-xs font-black text-teal-700 hover:bg-teal-50">
+                      🤖 HSE AI Copilot
+                    </Link>
                   </div>
                 )}
               </div>
 
-              {/* Tombol AI Copilot Langsung Mengarah ke /ai-assistant */}
+              {/* Tombol AI Copilot Langsung */}
               <Link
                 href="/ai-assistant"
                 className="ml-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-lg transition flex items-center gap-1.5 shadow-sm"
@@ -166,7 +171,7 @@ export default function RootLayout({
           </div>
         </header>
 
-        {/* Area Konten Utama */}
+        {/* Konten Halaman */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
