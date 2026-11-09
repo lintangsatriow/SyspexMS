@@ -19,7 +19,7 @@ export default function RootLayout({
         <title>Syspex HSE Management System</title>
         <meta name="description" content="Industrial HSE Management System for PT. Syspex Kemasindo" />
         {/* Favicon Persegi Resmi Syspex */}
-        <link rel="icon" type="image/png" href="/logo.png" />
+        <link rel="icon" type="image/png" href="/favicon-syspex.png" />
       </head>
       <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
         
