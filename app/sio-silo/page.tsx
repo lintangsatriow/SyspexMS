@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 
-// DITAMBAH: Kategori KOMPETENSI untuk Ahli K3, P3K, Damkar, dll.
 type LicenseType = 'SIO' | 'SILO' | 'KOMPETENSI'
 
 interface LicenseRecord {
@@ -22,32 +21,27 @@ export default function CompetencyTrackerPage() {
     setIsMounted(true)
   }, [])
 
-  // State untuk Data Lisensi & Kompetensi
+  // State Data Lisensi
   const [licenses, setLicenses] = useState<LicenseRecord[]>([
     { id: '1', type: 'KOMPETENSI', holderName: 'Lintang Satrio', category: 'Ahli K3 Umum (AK3U)', licenseNo: '5/../AS.02.04/V/2024', issueDate: '2024-05-10', expiryDate: '2027-05-10' },
-    { id: '2', type: 'KOMPETENSI', holderName: 'dr. Sarah', category: 'Dokter Hiperkes', licenseNo: 'HIPERKES/099/2021', issueDate: '2021-01-10', expiryDate: '2026-11-20' }, // Warning
+    { id: '2', type: 'KOMPETENSI', holderName: 'dr. Sarah', category: 'Dokter Hiperkes', licenseNo: 'HIPERKES/099/2021', issueDate: '2021-01-10', expiryDate: '2026-11-20' }, 
     { id: '3', type: 'SIO', holderName: 'Budi Santoso', category: 'Forklift Kelas II', licenseNo: 'KEMENAKER/SIO/001', issueDate: '2021-05-10', expiryDate: '2028-05-10' },
     { id: '4', type: 'SIO', holderName: 'Ahmad Faisal', category: 'Forklift Kelas I', licenseNo: 'KEMENAKER/SIO/042', issueDate: '2021-12-01', expiryDate: '2026-12-15' }, 
     { id: '5', type: 'SILO', holderName: 'FL-01 (Toyota 3.0T)', category: 'Pusat K3 MHE', licenseNo: '566/SILO-MHE/23', issueDate: '2022-01-15', expiryDate: '2026-10-01' }, 
-    { id: '6', type: 'KOMPETENSI', holderName: 'Siti Aminah', category: 'Petugas P3K', licenseNo: 'P3K/KEMENAKER/55', issueDate: '2019-10-05', expiryDate: '2026-09-05' }, // Expired
+    { id: '6', type: 'KOMPETENSI', holderName: 'Siti Aminah', category: 'Petugas P3K', licenseNo: 'P3K/KEMENAKER/55', issueDate: '2019-10-05', expiryDate: '2026-09-05' }, 
   ])
 
-  // State untuk Fitur Filter & Search
   const [filterType, setFilterType] = useState<'ALL' | 'SIO' | 'SILO' | 'KOMPETENSI'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // State untuk Modal Form Tambah Data
+  // State Modal Form (Bisa untuk Tambah Baru atau Edit)
   const [showForm, setShowForm] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null) // Melacak ID yang sedang diedit
   const [formData, setFormData] = useState<Partial<LicenseRecord>>({
-    type: 'KOMPETENSI',
-    holderName: '',
-    category: 'Ahli K3 Umum',
-    licenseNo: '',
-    issueDate: '',
-    expiryDate: ''
+    type: 'KOMPETENSI', holderName: '', category: '', licenseNo: '', issueDate: '', expiryDate: ''
   })
 
-  // Logika Kalkulasi Status Real-Time
+  // Kalkulasi Status
   const processedLicenses = useMemo(() => {
     const today = new Date()
     return licenses.map(lic => {
@@ -63,7 +57,6 @@ export default function CompetencyTrackerPage() {
     })
   }, [licenses])
 
-  // Filter & Search
   const filteredLicenses = useMemo(() => {
     return processedLicenses.filter(lic => {
       const matchType = filterType === 'ALL' || lic.type === filterType
@@ -73,66 +66,85 @@ export default function CompetencyTrackerPage() {
     }).sort((a, b) => a.diffDays - b.diffDays)
   }, [processedLicenses, filterType, searchQuery])
 
-  // KPI Metrics
   const metrics = {
     total: processedLicenses.length,
     expired: processedLicenses.filter(l => l.status === 'EXPIRED').length,
     warning: processedLicenses.filter(l => l.status === 'WARNING').length,
     safe: processedLicenses.filter(l => l.status === 'ACTIVE').length,
   }
-
   const needsRenewal = metrics.expired > 0 || metrics.warning > 0
 
   // ==========================================
-  // FUNGSI OPERASIONAL CRUD (Tambah & Hapus)
+  // LOGIKA OPERASIONAL (CRUD)
   // ==========================================
-  const handleAddLicense = (e: React.FormEvent) => {
+  
+  // Fungsi Buka Form Tambah
+  const handleOpenAdd = () => {
+    setEditId(null)
+    setFormData({ type: 'KOMPETENSI', holderName: '', category: '', licenseNo: '', issueDate: '', expiryDate: '' })
+    setShowForm(true)
+  }
+
+  // Fungsi Buka Form Edit
+  const handleOpenEdit = (lic: LicenseRecord) => {
+    setEditId(lic.id)
+    setFormData(lic)
+    setShowForm(true)
+  }
+
+  // Fungsi Simpan (Berlaku untuk Tambah & Perbarui)
+  const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.holderName || !formData.licenseNo || !formData.issueDate || !formData.expiryDate) return
 
-    const newLicense: LicenseRecord = {
-      id: Math.random().toString(36).substr(2, 9),
-      type: formData.type as LicenseType,
-      holderName: formData.holderName,
-      category: formData.category || 'Lainnya',
-      licenseNo: formData.licenseNo,
-      issueDate: formData.issueDate,
-      expiryDate: formData.expiryDate
+    if (editId) {
+      // UPDATE DATA LAMA
+      setLicenses(licenses.map(lic => lic.id === editId ? { ...formData, id: editId } as LicenseRecord : lic))
+    } else {
+      // TAMBAH DATA BARU
+      const newLicense: LicenseRecord = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: formData.type as LicenseType,
+        holderName: formData.holderName,
+        category: formData.category || 'Lainnya',
+        licenseNo: formData.licenseNo,
+        issueDate: formData.issueDate,
+        expiryDate: formData.expiryDate
+      }
+      setLicenses([...licenses, newLicense])
     }
-
-    setLicenses([...licenses, newLicense])
     setShowForm(false)
-    setFormData({ type: 'KOMPETENSI', holderName: '', category: '', licenseNo: '', issueDate: '', expiryDate: '' })
   }
 
+  // Fungsi Hapus
   const handleDelete = (id: string) => {
-    if(window.confirm('Yakin ingin menghapus data sertifikat ini?')) {
+    if(window.confirm('Yakin ingin menghapus data sertifikat ini permanen?')) {
       setLicenses(licenses.filter(lic => lic.id !== id))
     }
   }
 
-  if (!isMounted) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
-        <div className="w-8 h-8 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
-        <p className="text-slate-500 font-bold animate-pulse text-sm">Memuat Sistem Database Kompetensi...</p>
-      </div>
-    )
-  }
+  if (!isMounted) return (
+    <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+      <div className="w-8 h-8 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin"></div>
+      <p className="text-slate-500 font-bold animate-pulse text-sm">Memuat Sistem Database Kompetensi...</p>
+    </div>
+  )
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto relative">
       
-      {/* Modal Form Tambah Lisensi */}
+      {/* Modal Form Tambah / Edit Lisensi */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 print:hidden">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">Tambah Data Lisensi / Kompetensi</h2>
+              <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                {editId ? 'Perbarui Data (Renewal)' : 'Tambah Data Lisensi'}
+              </h2>
               <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-red-500 font-bold px-2">✕</button>
             </div>
             
-            <form onSubmit={handleAddLicense} className="p-6 space-y-5">
+            <form onSubmit={handleSubmitForm} className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Kategori Sertifikasi</label>
@@ -148,61 +160,39 @@ export default function CompetencyTrackerPage() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Spesifikasi / Bidang</label>
-                  <input 
-                    type="text" 
-                    value={formData.category} 
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    placeholder={formData.type === 'KOMPETENSI' ? 'Contoh: Ahli K3 Umum' : 'Contoh: Forklift Kelas I'}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900"
-                  />
+                  <input type="text" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} placeholder={formData.type === 'KOMPETENSI' ? 'Contoh: Ahli K3 Umum' : 'Contoh: Forklift Kelas I'} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     {formData.type === 'SILO' ? 'ID & Nama Alat (Contoh: FL-01 Toyota)' : 'Nama Lengkap Karyawan / Pemegang Izin'}
                   </label>
-                  <input 
-                    type="text" 
-                    required
-                    value={formData.holderName} 
-                    onChange={(e) => setFormData({...formData, holderName: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900"
-                  />
+                  <input type="text" required value={formData.holderName} onChange={(e) => setFormData({...formData, holderName: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nomor Registrasi (SKP / Kemenaker / Disnaker)</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={formData.licenseNo} 
-                    onChange={(e) => setFormData({...formData, licenseNo: e.target.value})}
-                    placeholder="Nomor SKP atau Lisensi..."
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900"
-                  />
+                  <input type="text" required value={formData.licenseNo} onChange={(e) => setFormData({...formData, licenseNo: e.target.value})} placeholder="Nomor SKP atau Lisensi..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tanggal Terbit / Pembinaan</label>
-                  <input 
-                    type="date" 
-                    required
-                    value={formData.issueDate} 
-                    onChange={(e) => setFormData({...formData, issueDate: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900"
-                  />
+                  <input type="date" required value={formData.issueDate} onChange={(e) => setFormData({...formData, issueDate: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tanggal Berakhir (Expired)</label>
-                  <input 
-                    type="date" 
-                    required
-                    value={formData.expiryDate} 
-                    onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900"
-                  />
+                  <input type="date" required value={formData.expiryDate} onChange={(e) => setFormData({...formData, expiryDate: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-slate-900" />
                 </div>
               </div>
+              
+              {editId && (
+                <div className="bg-amber-50 p-3 border border-amber-200 rounded-lg">
+                  <p className="text-[10px] font-bold text-amber-700 uppercase">Perhatian: Memperbarui tanggal Expired akan langsung mereset status peringatan di sistem.</p>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4 border-t border-slate-100">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-wider rounded-lg hover:bg-slate-200 transition">Batal</button>
-                <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white text-xs font-black uppercase tracking-wider rounded-lg hover:bg-emerald-700 transition shadow-sm">Simpan Data</button>
+                <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white text-xs font-black uppercase tracking-wider rounded-lg hover:bg-emerald-700 transition shadow-sm">
+                  {editId ? 'Simpan Pembaruan' : 'Simpan Data'}
+                </button>
               </div>
             </form>
           </div>
@@ -221,7 +211,7 @@ export default function CompetencyTrackerPage() {
           </div>
           <div className="flex gap-3">
             <button 
-              onClick={() => setShowForm(true)}
+              onClick={handleOpenAdd}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2 uppercase tracking-wider"
             >
               + Tambah Data
@@ -331,9 +321,16 @@ export default function CompetencyTrackerPage() {
                           {lic.status === 'ACTIVE' && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider border border-emerald-100">✓ AMAN</span>}
                         </td>
                         <td className="p-4 text-center">
-                          <button onClick={() => handleDelete(lic.id)} className="text-slate-400 hover:text-red-600 transition p-1.5 rounded-lg hover:bg-red-50" title="Hapus Lisensi">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                          </button>
+                          <div className="flex justify-center gap-2">
+                            {/* Tombol EDIT */}
+                            <button onClick={() => handleOpenEdit(lic)} className="text-slate-400 hover:text-emerald-600 transition p-1.5 rounded-lg hover:bg-emerald-50" title="Perbarui / Edit Data">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </button>
+                            {/* Tombol HAPUS */}
+                            <button onClick={() => handleDelete(lic.id)} className="text-slate-400 hover:text-red-600 transition p-1.5 rounded-lg hover:bg-red-50" title="Hapus Lisensi">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
