@@ -59,10 +59,6 @@ export default function RootLayout({
                   alt="Syspex Logo" 
                   className="h-6 w-auto object-contain bg-white px-1.5 py-0.5 rounded"
                 />
-                <div>
-                  <span className="block text-[11px] font-black uppercase tracking-wider text-white leading-none">Syspex</span>
-                  <span className="block text-[8px] font-bold text-teal-400 uppercase tracking-widest mt-0.5">Management System</span>
-                </div>
               </Link>
 
               <button
