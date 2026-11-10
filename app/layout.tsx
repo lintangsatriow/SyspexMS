@@ -27,7 +27,7 @@ export default function RootLayout({
         <title>Syspex Management System</title>
         <meta name="description" content="Industrial HSE Management System for Syspex" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-        <link rel="icon" type="image/png" href="/favicon-syspex.png" />
+        <link rel="icon" href="/favicon-syspex.png?v=3" type="image/png" />
       </head>
       <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased selection:bg-teal-500 selection:text-white">
         
