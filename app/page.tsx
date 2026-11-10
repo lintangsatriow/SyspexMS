@@ -3,7 +3,6 @@
 import Link from 'next/link'
 
 export default function HomePage() {
-  // Data 6 Syspex Safety Rules
   const safetyRules = [
     { id: 1, title: 'Energy Isolation', icon: '🔌', desc: 'Verify zero-energy state (LOTO)' },
     { id: 2, title: 'Work at Height', icon: '🪜', desc: '100% tie-off & scaffolding check' },
@@ -13,13 +12,12 @@ export default function HomePage() {
     { id: 6, title: 'Fit to Work', icon: '⚕️', desc: 'Zero tolerance for drugs/fatigue' },
   ]
 
-  // Seamless loop untuk marquee
   const infiniteRules = [...safetyRules, ...safetyRules, ...safetyRules]
 
   return (
-    <div className="h-[85vh] flex flex-col justify-center items-center text-center px-4 bg-slate-950 rounded-3xl overflow-hidden relative">
+    // PERUBAHAN UTAMA: h-[85vh] diganti menjadi w-full py-12 lg:py-16
+    <div className="w-full flex flex-col justify-center items-center text-center px-4 py-12 lg:py-14 bg-slate-950 rounded-3xl overflow-hidden relative shadow-2xl border border-slate-900">
       
-      {/* CSS Animasi Infinite Marquee */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes scroll {
           0% { transform: translateX(0); }
@@ -39,28 +37,24 @@ export default function HomePage() {
         }
       `}} />
 
-      {/* Ambient Background Accents */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-teal-500/50 to-transparent"></div>
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-teal-900/20 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="relative z-10 w-full max-w-5xl flex flex-col items-center animate-in fade-in duration-700 zoom-in-95">
         
-        {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.10] max-w-4xl">
+        <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[1.10] max-w-4xl">
           Engineering Precision. <br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-cyan-500">
             Zero-Harm Governance.
           </span>
         </h1>
 
-        {/* Subtitle - margin diperkecil */}
         <p className="text-sm sm:text-base text-slate-400 font-medium max-w-2xl mt-4 leading-relaxed">
           An integrated workplace governance platform bridging statutory safety compliance, structural calculation integrity, and real-time executive visibility.
         </p>
 
-        {/* Action Buttons - margin diperkecil */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-4 mt-7">
           <Link
             href="/executive-report"
             className="px-7 py-3.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2"
@@ -75,14 +69,13 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* ANIMATED SYSPEX SAFETY RULES SECTION - margin atas diperkecil agar pas 1 layar */}
+        {/* Jarak (mt) diperpendek agar proporsional di layar normal */}
         <div className="mt-12 w-full">
           <div className="text-center mb-4">
             <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Syspex Safety Rules</h2>
             <p className="text-[10px] text-slate-500 mt-1">Our non-negotiable standards for a safe workplace</p>
           </div>
 
-          {/* Marquee Container */}
           <div className="w-full overflow-hidden mask-edges py-2">
             <div className="animate-scroll flex gap-4 items-center">
               {infiniteRules.map((rule, idx) => (
