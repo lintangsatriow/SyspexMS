@@ -15,7 +15,7 @@ export default function HomePage() {
   const infiniteRules = [...safetyRules, ...safetyRules, ...safetyRules]
 
   return (
-    <div className="w-full flex flex-col justify-between items-center text-center px-4 py-6 bg-slate-950 rounded-3xl relative shadow-2xl border border-slate-900">
+    <div className="w-full flex flex-col justify-between items-center text-center px-4 py-8 bg-slate-950 rounded-3xl relative shadow-2xl border border-slate-900">
       
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes scroll {
@@ -36,7 +36,7 @@ export default function HomePage() {
         }
       `}} />
 
-      {/* Background Accents */}
+      {/* Background Lighting */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-teal-500/50 to-transparent pointer-events-none"></div>
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-teal-900/20 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none"></div>
@@ -56,7 +56,7 @@ export default function HomePage() {
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-5 relative z-30">
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-5 relative z-30 pointer-events-auto">
           <Link
             href="/executive-report"
             className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2 cursor-pointer"
@@ -72,7 +72,7 @@ export default function HomePage() {
         </div>
 
         {/* Syspex Safety Rules Section */}
-        <div className="mt-8 w-full relative z-30">
+        <div className="mt-8 w-full relative z-30 pointer-events-auto">
           <div className="text-center mb-2">
             <h2 className="text-xs font-black text-slate-300 uppercase tracking-widest">Syspex Safety Rules</h2>
             <p className="text-[10px] text-slate-500 mt-0.5">Our non-negotiable standards for a safe workplace</p>
@@ -83,8 +83,8 @@ export default function HomePage() {
               {infiniteRules.map((rule, idx) => (
                 <Link
                   key={`${rule.id}-${idx}`}
-                  href="/life-saving-rules" 
-                  className="group relative w-56 flex-shrink-0 bg-slate-900/80 hover:bg-slate-800 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-3 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2 cursor-pointer"
+                  href="/syspex-safety-rules" 
+                  className="group relative w-56 flex-shrink-0 bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-3.5 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2 cursor-pointer z-30"
                 >
                   <div className="flex justify-between items-start">
                     <span className="text-xl">{rule.icon}</span>
