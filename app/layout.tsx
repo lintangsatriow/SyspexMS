@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <title>Syspex Management System</title>
-        <meta name="description" content="Syspex Management System" />
+        <meta name="description" content="Industrial HSE Management System for Syspex" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="/favicon-syspex.png?v=3" type="image/png" />
       </head>
@@ -50,26 +50,28 @@ export default function RootLayout({
         >
           <div className="flex flex-col overflow-y-auto pr-1 space-y-6">
             
-            {/* Header Sidebar: Logo & Tombol Tutup */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <Link href="/" className="flex items-center gap-2.5">
+            {/* Header Sidebar: Logo Full Kiri-Kanan & Tombol Tutup */}
+            <div className="flex flex-col gap-3 pb-5 border-b border-slate-800 relative">
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-1 rounded text-slate-500 hover:text-white hover:bg-slate-800 transition"
+                  title="Collapse Sidebar"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                </button>
+              </div>
+              
+              <Link href="/" className="w-full flex">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src="/Syspex%20Logo%20(Trademark)%20black.png" 
                   alt="Syspex Logo" 
-                  className="h-6 w-auto object-contain bg-white px-1.5 py-0.5 rounded"
+                  className="w-full h-10 object-contain bg-white px-4 py-2 rounded-lg shadow-sm"
                 />
               </Link>
-
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                title="Collapse Sidebar"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
             </div>
 
             {/* Quick Hub Links (Tanpa Emoji) */}
@@ -183,7 +185,7 @@ export default function RootLayout({
 
           {/* Footer Sidebar */}
           <div className="pt-4 border-t border-slate-800 text-[10px] font-medium text-slate-600 text-center">
-            Syspex Management System © 2026
+            Syspex MS © 2026
           </div>
         </aside>
 
@@ -191,8 +193,7 @@ export default function RootLayout({
         <div className="lg:hidden fixed top-0 inset-x-0 h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between z-50">
           <Link href="/" className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/Syspex%20Logo%20(Trademark)%20black.png" alt="Syspex" className="h-6 bg-white px-1.5 py-0.5 rounded" />
-            <span className="text-xs font-black text-white">Syspex Management System</span>
+            <img src="/Syspex%20Logo%20(Trademark)%20black.png" alt="Syspex" className="h-6 w-auto object-contain bg-white px-2 py-1 rounded" />
           </Link>
           <button 
             onClick={() => setMobileOpen(!mobileOpen)} 
