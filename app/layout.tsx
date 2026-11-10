@@ -13,8 +13,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      {/* min-h-screen dan flex-col memastikan tinggi web sama dengan monitor */}
-      <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased">
+      {/* Kembali ke layout standar yang aman */}
+      <body className="bg-slate-50 text-slate-900 font-sans antialiased relative min-h-screen flex flex-col">
         
         {/* HEADER / NAVBAR */}
         <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center justify-between">
@@ -29,7 +29,7 @@ export default function RootLayout({
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-6 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+          <nav className="hidden lg:flex items-center gap-6 text-[11px] font-bold text-slate-600 uppercase tracking-wider relative z-50">
             <Link href="/" className="hover:text-teal-600 transition">Main Hub</Link>
             <Link href="/executive-report" className="hover:text-teal-600 transition">KPI Dashboard</Link>
             <Link href="#" className="hover:text-teal-600 transition">Management & ISO ▾</Link>
@@ -37,20 +37,20 @@ export default function RootLayout({
             <Link href="#" className="hover:text-teal-600 transition">HSE & Operations ▾</Link>
           </nav>
 
-          <div>
+          <div className="relative z-50">
             <Link href="/ai-assistant" className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span> AI Copilot
             </Link>
           </div>
         </header>
 
-        {/* MAIN CONTAINER: flex-1 akan mengambil seluruh sisa ruang tengah yang kosong */}
-        <main className="flex-1 flex flex-col justify-center w-full max-w-[1400px] mx-auto p-4 sm:p-6">
+        {/* MAIN CONTAINER */}
+        <main className="relative z-10 w-full max-w-[1400px] mx-auto p-4 sm:p-6 flex-grow">
           {children}
         </main>
 
         {/* FOOTER */}
-        <footer className="w-full bg-white border-t border-slate-200 py-4 text-center">
+        <footer className="relative z-50 w-full bg-white border-t border-slate-200 py-4 text-center mt-auto">
           <p className="text-[11px] font-semibold text-slate-500">
             © 2026 Syspex — Integrated HSE Management System (ISO 9001 / 14001 / 45001 & SMK3)
           </p>
