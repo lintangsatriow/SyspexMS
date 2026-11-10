@@ -4,12 +4,12 @@ import Link from 'next/link'
 
 export default function HomePage() {
   const safetyRules = [
-    { id: 1, title: 'Energy Isolation', icon: '🔌', desc: 'Verify zero-energy state (LOTO)' },
-    { id: 2, title: 'Work at Height', icon: '🪜', desc: '100% tie-off & scaffolding check' },
-    { id: 3, title: 'Safe Lifting', icon: '🏗️', desc: 'Never walk under suspended loads' },
-    { id: 4, title: 'Mobile Equipment', icon: '🚜', desc: 'Keep distance from moving MHE' },
-    { id: 5, title: 'Permit to Work', icon: '📋', desc: 'Valid JSA for high-risk tasks' },
-    { id: 6, title: 'Fit to Work', icon: '⚕️', desc: 'Zero tolerance for drugs/fatigue' },
+    { id: 1, title: 'Energy Isolation', desc: 'Verify zero-energy state (LOTO)' },
+    { id: 2, title: 'Work at Height', desc: '100% tie-off & scaffolding check' },
+    { id: 3, title: 'Safe Lifting', desc: 'Never walk under suspended loads' },
+    { id: 4, title: 'Mobile Equipment', desc: 'Keep distance from moving MHE' },
+    { id: 5, title: 'Permit to Work', desc: 'Valid JSA for high-risk tasks' },
+    { id: 6, title: 'Fit to Work', desc: 'Zero tolerance for drugs/fatigue' },
   ]
 
   const infiniteRules = [...safetyRules, ...safetyRules, ...safetyRules]
@@ -44,8 +44,6 @@ export default function HomePage() {
       {/* TOP CONTENT: Hero Section */}
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center my-auto">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-950/60 border border-teal-800/60 text-teal-400 text-[10px] font-black uppercase tracking-widest mb-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-          Industrial HSE Intelligence
         </div>
 
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.08]">
