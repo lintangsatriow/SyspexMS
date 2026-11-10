@@ -15,8 +15,7 @@ export default function HomePage() {
   const infiniteRules = [...safetyRules, ...safetyRules, ...safetyRules]
 
   return (
-    // Penyesuaian minHeight agar pas dengan ruang kosong di layout Anda
-    <div className="w-full flex flex-col justify-center items-center text-center px-4 py-6 bg-slate-950 rounded-3xl overflow-hidden relative shadow-2xl border border-slate-900" style={{ minHeight: 'calc(100vh - 190px)' }}>
+    <div className="w-full flex flex-col justify-between items-center text-center px-4 py-6 bg-slate-950 rounded-3xl relative shadow-2xl border border-slate-900">
       
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes scroll {
@@ -37,25 +36,27 @@ export default function HomePage() {
         }
       `}} />
 
-      {/* Efek cahaya dibuat pointer-events-none agar tidak menutupi klik tombol */}
+      {/* Background Accents */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-teal-500/50 to-transparent pointer-events-none"></div>
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-teal-900/20 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="relative z-10 w-full max-w-5xl flex flex-col items-center animate-in fade-in duration-700 zoom-in-95 pointer-events-auto">
         
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05] max-w-4xl">
+        {/* Headline */}
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.08] max-w-4xl">
           Engineering Precision. <br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-cyan-500">
             Zero-Harm Governance.
           </span>
         </h1>
 
-        <p className="text-xs sm:text-sm text-slate-400 font-medium max-w-2xl mt-4 leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-400 font-medium max-w-2xl mt-3 leading-relaxed">
           An integrated workplace governance platform bridging statutory safety compliance, structural calculation integrity, and real-time executive visibility.
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-6 relative z-30">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-5 relative z-30">
           <Link
             href="/executive-report"
             className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2 cursor-pointer"
@@ -70,8 +71,9 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="mt-10 w-full relative z-30">
-          <div className="text-center mb-3">
+        {/* Syspex Safety Rules Section */}
+        <div className="mt-8 w-full relative z-30">
+          <div className="text-center mb-2">
             <h2 className="text-xs font-black text-slate-300 uppercase tracking-widest">Syspex Safety Rules</h2>
             <p className="text-[10px] text-slate-500 mt-0.5">Our non-negotiable standards for a safe workplace</p>
           </div>
@@ -82,17 +84,17 @@ export default function HomePage() {
                 <Link
                   key={`${rule.id}-${idx}`}
                   href="/life-saving-rules" 
-                  className="group relative w-56 flex-shrink-0 bg-slate-900/50 hover:bg-slate-800/80 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-3.5 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2 cursor-pointer"
+                  className="group relative w-56 flex-shrink-0 bg-slate-900/80 hover:bg-slate-800 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-3 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-xl grayscale group-hover:grayscale-0 transition-all duration-300">{rule.icon}</span>
-                    <span className="text-[9px] font-black text-slate-600 group-hover:text-teal-500 transition-colors uppercase tracking-wider border border-slate-700 group-hover:border-teal-500/30 px-1.5 py-0.5 rounded">
+                    <span className="text-xl">{rule.icon}</span>
+                    <span className="text-[9px] font-black text-slate-500 group-hover:text-teal-400 transition-colors uppercase tracking-wider border border-slate-700 group-hover:border-teal-500/30 px-1.5 py-0.5 rounded">
                       Rule 0{rule.id}
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">{rule.title}</h3>
-                    <p className="text-[10px] text-slate-500 mt-0.5 font-medium group-hover:text-slate-400 line-clamp-2">{rule.desc}</p>
+                    <h3 className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">{rule.title}</h3>
+                    <p className="text-[10px] text-slate-400 mt-0.5 font-medium line-clamp-2">{rule.desc}</p>
                   </div>
                 </Link>
               ))}
