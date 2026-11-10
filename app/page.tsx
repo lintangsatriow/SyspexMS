@@ -15,8 +15,8 @@ export default function HomePage() {
   const infiniteRules = [...safetyRules, ...safetyRules, ...safetyRules]
 
   return (
-    // Penambahan w-full dan flex-1 agar kotak hitam merenggang penuh di sisa layar tengah
-    <div className="w-full flex-1 flex flex-col justify-center items-center text-center px-4 py-8 bg-slate-950 rounded-3xl overflow-hidden relative shadow-2xl border border-slate-900 min-h-[450px]">
+    // Menggunakan calc(100vh - 140px) untuk tinggi yang pas 1 layar tanpa scroll
+    <div className="w-full flex flex-col justify-center items-center text-center px-4 py-6 bg-slate-950 rounded-3xl overflow-hidden relative shadow-2xl border border-slate-900" style={{ minHeight: 'calc(100vh - 140px)' }}>
       
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes scroll {
@@ -37,11 +37,13 @@ export default function HomePage() {
         }
       `}} />
 
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-teal-500/50 to-transparent"></div>
+      {/* Memastikan efek background tidak menghalangi klik dengan pointer-events-none */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-teal-500/50 to-transparent pointer-events-none"></div>
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-teal-900/20 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none"></div>
 
-      <div className="relative z-10 w-full max-w-5xl flex flex-col items-center animate-in fade-in duration-700 zoom-in-95">
+      {/* Kontainer Utama */}
+      <div className="relative z-20 w-full max-w-5xl flex flex-col items-center animate-in fade-in duration-700 zoom-in-95 pointer-events-auto">
         
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05] max-w-4xl">
           Engineering Precision. <br />
@@ -54,22 +56,24 @@ export default function HomePage() {
           An integrated workplace governance platform bridging statutory safety compliance, structural calculation integrity, and real-time executive visibility.
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+        {/* Tombol Utama */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-6 relative z-30">
           <Link
             href="/executive-report"
-            className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2"
+            className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2 cursor-pointer"
           >
             Launch KPI Dashboard
           </Link>
           <Link
             href="/ai-assistant"
-            className="px-6 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition border border-slate-700 backdrop-blur-md flex items-center gap-2"
+            className="px-6 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition border border-slate-700 backdrop-blur-md flex items-center gap-2 cursor-pointer"
           >
             <span className="w-2 h-2 rounded-full bg-teal-500"></span> Consult AI Copilot
           </Link>
         </div>
 
-        <div className="mt-10 w-full">
+        {/* Marquee Rules */}
+        <div className="mt-10 w-full relative z-30">
           <div className="text-center mb-3">
             <h2 className="text-xs font-black text-slate-300 uppercase tracking-widest">Syspex Safety Rules</h2>
             <p className="text-[10px] text-slate-500 mt-0.5">Our non-negotiable standards for a safe workplace</p>
@@ -81,7 +85,7 @@ export default function HomePage() {
                 <Link
                   key={`${rule.id}-${idx}`}
                   href="/life-saving-rules" 
-                  className="group relative w-56 flex-shrink-0 bg-slate-900/50 hover:bg-slate-800/80 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-3.5 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2"
+                  className="group relative w-56 flex-shrink-0 bg-slate-900/50 hover:bg-slate-800/80 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-3.5 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
                     <span className="text-xl grayscale group-hover:grayscale-0 transition-all duration-300">{rule.icon}</span>
