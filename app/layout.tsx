@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>Syspex HSE Management System</title>
+        <title>Syspex Management System</title>
         <meta name="description" content="Industrial HSE Management System for Syspex" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
         <link rel="icon" type="image/png" href="/favicon-syspex.png" />
