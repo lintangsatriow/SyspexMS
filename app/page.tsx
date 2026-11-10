@@ -13,13 +13,13 @@ export default function HomePage() {
     { id: 6, title: 'Fit to Work', icon: '⚕️', desc: 'Zero tolerance for drugs/fatigue' },
   ]
 
-  // Duplikasi array untuk menciptakan efek scroll yang tidak pernah putus (seamless loop)
+  // Seamless loop untuk marquee
   const infiniteRules = [...safetyRules, ...safetyRules, ...safetyRules]
 
   return (
-    <div className="min-h-[85vh] flex flex-col justify-center items-center text-center px-4 pt-12 pb-20 bg-slate-950 rounded-3xl overflow-hidden relative">
+    <div className="h-[85vh] flex flex-col justify-center items-center text-center px-4 bg-slate-950 rounded-3xl overflow-hidden relative">
       
-      {/* CSS Animasi Khusus untuk Infinite Marquee */}
+      {/* CSS Animasi Infinite Marquee */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes scroll {
           0% { transform: translateX(0); }
@@ -46,12 +46,6 @@ export default function HomePage() {
 
       <div className="relative z-10 w-full max-w-5xl flex flex-col items-center animate-in fade-in duration-700 zoom-in-95">
         
-        {/* Brand & Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 text-teal-400 text-[10px] font-bold uppercase tracking-widest border border-teal-500/20 shadow-sm mb-8 backdrop-blur-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-          SYSPEX HSE PORTAL • ACTIVE
-        </div>
-
         {/* Main Headline */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.10] max-w-4xl">
           Engineering Precision. <br />
@@ -60,13 +54,13 @@ export default function HomePage() {
           </span>
         </h1>
 
-        {/* Subtitle */}
-        <p className="text-sm sm:text-base text-slate-400 font-medium max-w-2xl mt-6 leading-relaxed">
+        {/* Subtitle - margin diperkecil */}
+        <p className="text-sm sm:text-base text-slate-400 font-medium max-w-2xl mt-4 leading-relaxed">
           An integrated workplace governance platform bridging statutory safety compliance, structural calculation integrity, and real-time executive visibility.
         </p>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
+        {/* Action Buttons - margin diperkecil */}
+        <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
           <Link
             href="/executive-report"
             className="px-7 py-3.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2"
@@ -81,24 +75,21 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* --------------------------------------------------------- */}
-        {/* ANIMATED SYSPEX SAFETY RULES SECTION */}
-        {/* --------------------------------------------------------- */}
-        <div className="mt-20 w-full">
-          <div className="text-center mb-6">
-            {/* Nama baru yang disepakati */}
+        {/* ANIMATED SYSPEX SAFETY RULES SECTION - margin atas diperkecil agar pas 1 layar */}
+        <div className="mt-12 w-full">
+          <div className="text-center mb-4">
             <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Syspex Safety Rules</h2>
             <p className="text-[10px] text-slate-500 mt-1">Our non-negotiable standards for a safe workplace</p>
           </div>
 
           {/* Marquee Container */}
-          <div className="w-full overflow-hidden mask-edges py-4">
+          <div className="w-full overflow-hidden mask-edges py-2">
             <div className="animate-scroll flex gap-4 items-center">
               {infiniteRules.map((rule, idx) => (
                 <Link
                   key={`${rule.id}-${idx}`}
-                  href="/life-saving-rules" // Link ke modul terpisah yang akan dibuat nanti
-                  className="group relative w-64 flex-shrink-0 bg-slate-900/50 hover:bg-slate-800/80 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-5 rounded-2xl transition-all duration-300 text-left flex flex-col gap-3"
+                  href="/life-saving-rules" 
+                  className="group relative w-64 flex-shrink-0 bg-slate-900/50 hover:bg-slate-800/80 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-4 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2.5"
                 >
                   <div className="flex justify-between items-start">
                     <span className="text-2xl grayscale group-hover:grayscale-0 transition-all duration-300">{rule.icon}</span>
@@ -108,13 +99,14 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">{rule.title}</h3>
-                    <p className="text-[11px] text-slate-500 mt-1 font-medium group-hover:text-slate-400 line-clamp-2">{rule.desc}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-medium group-hover:text-slate-400 line-clamp-2">{rule.desc}</p>
                   </div>
                 </Link>
               ))}
             </div>
           </div>
         </div>
+
       </div>
     </div>
   )
