@@ -15,8 +15,8 @@ export default function HomePage() {
   const infiniteRules = [...safetyRules, ...safetyRules, ...safetyRules]
 
   return (
-    // PERUBAHAN UTAMA: h-[85vh] diganti menjadi w-full py-12 lg:py-16
-    <div className="w-full flex flex-col justify-center items-center text-center px-4 py-12 lg:py-14 bg-slate-950 rounded-3xl overflow-hidden relative shadow-2xl border border-slate-900">
+    // Penambahan w-full dan flex-1 agar kotak hitam merenggang penuh di sisa layar tengah
+    <div className="w-full flex-1 flex flex-col justify-center items-center text-center px-4 py-8 bg-slate-950 rounded-3xl overflow-hidden relative shadow-2xl border border-slate-900 min-h-[450px]">
       
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes scroll {
@@ -32,8 +32,8 @@ export default function HomePage() {
           animation-play-state: paused;
         }
         .mask-edges {
-          -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
-          mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+          -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+          mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
       `}} />
 
@@ -43,56 +43,55 @@ export default function HomePage() {
 
       <div className="relative z-10 w-full max-w-5xl flex flex-col items-center animate-in fade-in duration-700 zoom-in-95">
         
-        <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[1.10] max-w-4xl">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05] max-w-4xl">
           Engineering Precision. <br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-cyan-500">
             Zero-Harm Governance.
           </span>
         </h1>
 
-        <p className="text-sm sm:text-base text-slate-400 font-medium max-w-2xl mt-4 leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-400 font-medium max-w-2xl mt-4 leading-relaxed">
           An integrated workplace governance platform bridging statutory safety compliance, structural calculation integrity, and real-time executive visibility.
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-4 mt-7">
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
           <Link
             href="/executive-report"
-            className="px-7 py-3.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2"
+            className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2"
           >
             Launch KPI Dashboard
           </Link>
           <Link
             href="/ai-assistant"
-            className="px-7 py-3.5 bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition border border-slate-700 backdrop-blur-md flex items-center gap-2"
+            className="px-6 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition border border-slate-700 backdrop-blur-md flex items-center gap-2"
           >
             <span className="w-2 h-2 rounded-full bg-teal-500"></span> Consult AI Copilot
           </Link>
         </div>
 
-        {/* Jarak (mt) diperpendek agar proporsional di layar normal */}
-        <div className="mt-12 w-full">
-          <div className="text-center mb-4">
-            <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Syspex Safety Rules</h2>
-            <p className="text-[10px] text-slate-500 mt-1">Our non-negotiable standards for a safe workplace</p>
+        <div className="mt-10 w-full">
+          <div className="text-center mb-3">
+            <h2 className="text-xs font-black text-slate-300 uppercase tracking-widest">Syspex Safety Rules</h2>
+            <p className="text-[10px] text-slate-500 mt-0.5">Our non-negotiable standards for a safe workplace</p>
           </div>
 
           <div className="w-full overflow-hidden mask-edges py-2">
-            <div className="animate-scroll flex gap-4 items-center">
+            <div className="animate-scroll flex gap-3 items-center">
               {infiniteRules.map((rule, idx) => (
                 <Link
                   key={`${rule.id}-${idx}`}
                   href="/life-saving-rules" 
-                  className="group relative w-64 flex-shrink-0 bg-slate-900/50 hover:bg-slate-800/80 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-4 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2.5"
+                  className="group relative w-56 flex-shrink-0 bg-slate-900/50 hover:bg-slate-800/80 backdrop-blur-md border border-slate-800 hover:border-teal-500/50 p-3.5 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-2xl grayscale group-hover:grayscale-0 transition-all duration-300">{rule.icon}</span>
+                    <span className="text-xl grayscale group-hover:grayscale-0 transition-all duration-300">{rule.icon}</span>
                     <span className="text-[9px] font-black text-slate-600 group-hover:text-teal-500 transition-colors uppercase tracking-wider border border-slate-700 group-hover:border-teal-500/30 px-1.5 py-0.5 rounded">
                       Rule 0{rule.id}
                     </span>
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">{rule.title}</h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5 font-medium group-hover:text-slate-400 line-clamp-2">{rule.desc}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 font-medium group-hover:text-slate-400 line-clamp-2">{rule.desc}</p>
                   </div>
                 </Link>
               ))}
