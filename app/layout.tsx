@@ -139,6 +139,9 @@ export default function RootLayout({
                     onClick={() => setOpsOpen(false)}
                     className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
                   >
+                    <Link href="/syspex-safety-rules" className="block px-4 py-2 text-xs font-black text-teal-700 hover:bg-teal-50">
+                      🛡️ Syspex Safety Rules
+                    </Link>
                     <Link href="/forklift-inspection" className="block px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       🚜 Forklift Pre-Op & LOTO
                     </Link>
@@ -203,7 +206,7 @@ export default function RootLayout({
 
           </div>
 
-          {/* Mobile Vertical Drawer */}
+          {/* Mobile Drawer */}
           {mobileMenuOpen && (
             <div className="md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-4 max-h-[85vh] overflow-y-auto shadow-xl animate-in slide-in-from-top-2 duration-200">
               <div className="grid grid-cols-2 gap-2 pt-2">
@@ -223,45 +226,13 @@ export default function RootLayout({
                 </Link>
               </div>
 
-              {/* Group 1: Management & ISO */}
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">Management & ISO</p>
-                <div className="bg-slate-50 rounded-xl p-1.5 space-y-1 border border-slate-100">
-                  <Link href="/document-control" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    📑 Document Control (ISO 9001)
-                  </Link>
-                  <Link href="/env-log" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    ♻️ Hazardous Waste Log (ISO 14001)
-                  </Link>
-                  <Link href="/sio-silo" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    📜 License Tracker (SIO / SILO / SKP)
-                  </Link>
-                </div>
-              </div>
-
-              {/* Group 2: Technical & Calculators */}
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">Technical & Calculators</p>
-                <div className="bg-slate-50 rounded-xl p-1.5 space-y-1 border border-slate-100">
-                  <Link href="/scaffolding" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    🏗️ Scaffolding BoQ & Erection
-                  </Link>
-                  <Link href="/racking-swl" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    📦 Racking SWL Calculator
-                  </Link>
-                  <Link href="/lifting-plan" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    🪝 Rigging & Lifting Plan
-                  </Link>
-                  <Link href="/jsa" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
-                    🛡️ Job Safety Analysis (JSA)
-                  </Link>
-                </div>
-              </div>
-
-              {/* Group 3: HSE & Operations */}
+              {/* Group: HSE & Operations (Mobile) */}
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-2">Field HSE Operations</p>
                 <div className="bg-slate-50 rounded-xl p-1.5 space-y-1 border border-slate-100">
+                  <Link href="/syspex-safety-rules" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-black text-teal-700 bg-white rounded-lg shadow-xs">
+                    🛡️ Syspex Safety Rules
+                  </Link>
                   <Link href="/forklift-inspection" onClick={closeAllMenus} className="block px-3 py-2 text-xs font-bold text-slate-700 hover:bg-white rounded-lg">
                     🚜 Forklift Pre-Op Checklist
                   </Link>
