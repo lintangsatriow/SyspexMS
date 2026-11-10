@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 
-export default function LifeSavingRulesPage() {
+export default function LifeSafetyRulesPage() {
   const rules = [
     {
       id: 1,
