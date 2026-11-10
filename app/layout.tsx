@@ -48,9 +48,6 @@ export default function RootLayout({
                   <span className="block text-[11px] font-black uppercase tracking-wider text-slate-800 leading-none">
                     MANAGEMENT SYSTEM
                   </span>
-                  <span className="block text-[8px] font-bold uppercase tracking-widest text-teal-600 mt-0.5">
-                    HSE & Compliance Portal
-                  </span>
                 </div>
               </Link>
             </div>
