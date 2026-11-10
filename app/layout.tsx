@@ -262,7 +262,7 @@ export default function RootLayout({
         {/* Footer */}
         <footer className="bg-white border-t border-slate-200 py-6 print:hidden">
           <div className="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 font-medium">
-            <p>© 2026 Syspex — Integrated HSE Management System (ISO 9001 / 14001 / 45001 & SMK3)</p>
+            <p>© 2026 Syspex — Integrated Management System</p>
           </div>
         </footer>
 
