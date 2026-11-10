@@ -41,42 +41,39 @@ export default function HomePage() {
       <div className="absolute top-1/4 -left-32 w-80 h-80 bg-teal-900/15 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-cyan-900/15 rounded-full blur-[100px] pointer-events-none"></div>
 
-      {/* TOP CONTENT: Hero Section */}
-      <div className="relative z-10 w-full max-w-4xl flex flex-col items-center my-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-950/60 border border-teal-800/60 text-teal-400 text-[10px] font-black uppercase tracking-widest mb-4">
-        </div>
-
-        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.08]">
+      {/* TOP CONTENT: Hero Section (Bersih tanpa badge) */}
+      <div className="relative z-10 w-full max-w-4xl flex flex-col items-center my-auto pt-6">
+        <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[1.08]">
           Engineering Precision. <br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-400 via-cyan-400 to-sky-500">
             Zero-Harm Governance.
           </span>
         </h1>
 
-        <p className="text-xs sm:text-sm text-slate-400 font-medium max-w-xl mt-3 leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-400 font-medium max-w-xl mt-4 leading-relaxed">
           An integrated workplace governance platform bridging statutory safety compliance, structural calculation integrity, and real-time executive visibility.
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-6 relative z-30">
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-8 relative z-30">
           <Link
             href="/executive-report"
-            className="px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2 cursor-pointer"
+            className="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-teal-500/20 flex items-center gap-2 cursor-pointer"
           >
             Launch KPI Dashboard
           </Link>
           <Link
             href="/ai-assistant"
-            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition border border-slate-700 flex items-center gap-2 cursor-pointer"
+            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition border border-slate-700 flex items-center gap-2 cursor-pointer"
           >
             <span className="w-2 h-2 rounded-full bg-teal-400"></span> Consult AI Copilot
           </Link>
         </div>
       </div>
 
-      {/* BOTTOM CONTENT: Marquee Section */}
-      <div className="w-full relative z-30 mt-auto pt-4">
-        <div className="text-center mb-3">
+      {/* BOTTOM CONTENT: Marquee Section (Bersih tanpa Emoji) */}
+      <div className="w-full relative z-30 mt-auto pt-6">
+        <div className="text-center mb-4">
           <h2 className="text-xs font-black text-slate-300 uppercase tracking-widest">Syspex Safety Rules</h2>
           <p className="text-[10px] text-slate-500 mt-0.5">Our non-negotiable standards for a safe workplace</p>
         </div>
@@ -87,17 +84,16 @@ export default function HomePage() {
               <Link
                 key={`${rule.id}-${idx}`}
                 href="/syspex-safety-rules" 
-                className="group relative w-60 flex-shrink-0 bg-slate-950/80 hover:bg-slate-900 border border-slate-800 hover:border-teal-500/40 p-3.5 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2 cursor-pointer"
+                className="group relative w-60 flex-shrink-0 bg-slate-950/80 hover:bg-slate-900 border border-slate-800 hover:border-teal-500/40 p-4 rounded-2xl transition-all duration-300 text-left flex flex-col gap-2 cursor-pointer"
               >
-                <div className="flex justify-between items-start">
-                  <span className="text-xl">{rule.icon}</span>
+                <div className="flex justify-start mb-1">
                   <span className="text-[9px] font-black text-slate-500 group-hover:text-teal-400 transition-colors uppercase tracking-wider border border-slate-800 group-hover:border-teal-500/30 px-1.5 py-0.5 rounded">
                     Rule 0{rule.id}
                   </span>
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">{rule.title}</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5 font-medium line-clamp-2">{rule.desc}</p>
+                  <p className="text-[10px] text-slate-400 mt-1 font-medium line-clamp-2">{rule.desc}</p>
                 </div>
               </Link>
             ))}
