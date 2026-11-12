@@ -56,37 +56,37 @@ export default function HomePage() {
   const safetyRules = t.rules.map((rule, idx) => ({ ...rule, icon: icons[idx] }))
 
   return (
-    <div className="w-full min-h-[calc(100vh-2rem)] flex flex-col justify-between px-6 py-10 bg-slate-950 border border-slate-800 rounded-sm">
+    <div className="w-full min-h-[calc(100vh-2rem)] flex flex-col justify-between px-6 py-10 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-sm transition-colors">
       
       {/* HERO SECTION */}
       <div className="w-full max-w-5xl pt-10">
-        <div className="inline-block px-2.5 py-1 mb-6 border border-slate-700 bg-slate-900 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-sm">
+        <div className="inline-block px-2.5 py-1 mb-6 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-sm transition-colors">
           System Core v1.0
         </div>
         
-        <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white tracking-tighter leading-[1.05]">
+        <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[1.05] transition-colors">
           {t.headline_1} <br />
-          <span className="text-slate-500">
+          <span className="text-slate-400 dark:text-slate-500">
             {t.headline_2}
           </span>
         </h1>
 
-        <p className="text-xs sm:text-sm text-slate-400 font-bold max-w-xl mt-6 leading-relaxed uppercase tracking-wider">
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-bold max-w-xl mt-6 leading-relaxed uppercase tracking-wider transition-colors">
           {t.desc}
         </p>
 
         <div className="flex flex-wrap items-center gap-4 mt-10">
-          <Link href="/executive-report" className="px-8 py-3 bg-teal-600 hover:bg-teal-500 text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-colors flex items-center gap-2">
+          <Link href="/executive-report" className="px-8 py-3 bg-teal-600 hover:bg-teal-500 text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-colors flex items-center gap-2 shadow-sm">
             {t.btn_kpi}
           </Link>
-          <Link href="/ai-assistant" className="px-8 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-colors flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-cyan-500"></span> {t.btn_ai}
+          <Link href="/ai-assistant" className="px-8 py-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-colors flex items-center gap-2 shadow-sm">
+            <span className="w-1.5 h-1.5 bg-cyan-600 dark:bg-cyan-500"></span> {t.btn_ai}
           </Link>
         </div>
       </div>
 
       {/* SAFETY RULES GRID */}
-      <div className="w-full max-w-5xl mt-20 pt-10 border-t border-slate-800/80">
+      <div className="w-full max-w-5xl mt-20 pt-10 border-t border-slate-300 dark:border-slate-800/80 transition-colors">
         <div className="mb-6">
           <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.rules_title}</h2>
         </div>
@@ -96,18 +96,18 @@ export default function HomePage() {
             <Link
               key={rule.id} 
               href="/syspex-safety-rules" 
-              className="group bg-[#0b0f19] hover:bg-slate-900 border border-slate-800 hover:border-teal-500/50 p-5 rounded-[4px] transition-colors flex flex-col gap-4 cursor-pointer"
+              className="group bg-white dark:bg-[#0b0f19] hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 dark:hover:border-teal-500/50 p-5 rounded-[4px] transition-colors flex flex-col gap-4 cursor-pointer shadow-sm"
             >
               <div className="flex justify-between items-start">
-                <div className="text-slate-500 group-hover:text-teal-400 transition-colors">
+                <div className="text-slate-400 dark:text-slate-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">{rule.icon}</svg>
                 </div>
-                <span className="text-[9px] font-black text-slate-600 group-hover:text-teal-400 transition-colors uppercase tracking-widest">
+                <span className="text-[9px] font-black text-slate-400 dark:text-slate-600 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors uppercase tracking-widest">
                   0{rule.id}
                 </span>
               </div>
               <div>
-                <h3 className="text-xs font-black text-slate-300 group-hover:text-white transition-colors tracking-widest">{rule.title}</h3>
+                <h3 className="text-xs font-black text-slate-800 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors tracking-widest">{rule.title}</h3>
                 <p className="text-[10px] font-bold text-slate-500 mt-1.5 uppercase tracking-wider">{rule.desc}</p>
               </div>
             </Link>
