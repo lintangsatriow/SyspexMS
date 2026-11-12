@@ -14,6 +14,8 @@ interface JsaStep {
   pic: string
 }
 
+type TemplateKey = 'Instalasi Racking' | 'Maintenance Mesin Packaging'
+
 export default function JsaPage() {
   const { lang } = useLanguage()
   const formId = useId()
@@ -66,34 +68,34 @@ export default function JsaPage() {
       sign_pm: "Disetujui Oleh (Project Manager):",
       sign_name: "Tanda Tangan & Nama",
       
-templates: {
+      templates: {
         'Instalasi Racking': [
           {
-            id: '1', stepDescription: 'Unload upright frames and beams from container',
-            hazards: 'Racking material tipping, pinching during unstrapping', consequences: 'Bone fractures, severe contusions',
-            riskLevel: 'Tinggi', controlMeasures: 'Use rated forklift, install 5m barricade, impact gloves mandatory', pic: 'Logistics Spv'
+            id: '1', stepDescription: 'Bongkar muat komponen upright frame dan beam dari kontainer',
+            hazards: 'Material racking terguling, jepitan saat unstrapping bundle', consequences: 'Fraktur kaki/tangan, memar berat',
+            riskLevel: 'Tinggi', controlMeasures: 'Gunakan forklift kapasitas sesuai, pasang barikade 5m, wajib sarung tangan impact', pic: 'Spv Logistik'
           },
           {
-            id: '2', stepDescription: 'Install upright frames & diagonal bracing',
-            hazards: 'Unsecured frame collapse, hammer impacts', consequences: 'Crushed by heavy steel structure',
-            riskLevel: 'Ekstrem', controlMeasures: 'Brace frame with temporary supports, ensure bolts are locked before releasing support', pic: 'Lead Rigger'
+            id: '2', stepDescription: 'Pemasangan upright frame & bracing diagonal',
+            hazards: 'Tiang roboh mendadak, hantaman palu', consequences: 'Tertimpa rangka baja berat',
+            riskLevel: 'Ekstrem', controlMeasures: 'Tahan frame dengan support sementara, pastikan baut terkunci sebelum melepas penopang', pic: 'Lead Rigger'
           },
           {
-            id: '3', stepDescription: 'Floor drilling & anchor installation',
-            hazards: 'Silica dust inhalation, electric shock, vibration', consequences: 'Respiratory issues, fatal electrocution',
-            riskLevel: 'Sedang', controlMeasures: 'Inspect drill grounding, N95 respirator & safety goggles mandatory', pic: 'Technician'
+            id: '3', stepDescription: 'Pengeboran lantai & pemasangan angkur',
+            hazards: 'Debu silika terhirup, sengatan listrik, getaran', consequences: 'Gangguan pernapasan, cedera fatal',
+            riskLevel: 'Sedang', controlMeasures: 'Inspeksi grounding alat bor, wajib masker N95 & safety goggle', pic: 'Teknisi'
           }
         ] as JsaStep[],
         'Maintenance Mesin Packaging': [
           {
-            id: '1', stepDescription: 'Clear strapping debris from turn-table',
-            hazards: 'Unexpected machine rotation, pinch-points', consequences: 'Finger/hand amputation',
-            riskLevel: 'Ekstrem', controlMeasures: 'Apply LOTO procedure (energy isolation & padlock), zero energy verification test', pic: 'Electrician'
+            id: '1', stepDescription: 'Pembersihan sisa strapping pada turn-table',
+            hazards: 'Mesin berputar tiba-tiba, terjepit pinch-point', consequences: 'Amputasi jari/tangan',
+            riskLevel: 'Ekstrem', controlMeasures: 'Terapkan prosedur LOTO (isolasi energi & gembok), uji zero energy', pic: 'Teknisi Listrik'
           },
           {
-            id: '2', stepDescription: 'Conveyor belt removal & lubrication',
-            hazards: 'Oil spills, tensioner spring release', consequences: 'Slips/falls, mechanical impacts',
-            riskLevel: 'Sedang', controlMeasures: 'Deploy spill kit in work area, wear chemical-resistant nitrile gloves', pic: 'Mechanic'
+            id: '2', stepDescription: 'Pelepasan belt konveyor & pelumasan',
+            hazards: 'Tumpahan oli, pegas tensioner lepas', consequences: 'Tergelincir, hantaman benda keras',
+            riskLevel: 'Sedang', controlMeasures: 'Sediakan spill kit, gunakan sarung tangan nitrile tahan kimia', pic: 'Mekanik'
           }
         ] as JsaStep[]
       }
@@ -154,7 +156,7 @@ templates: {
             hazards: 'Silica dust inhalation, electric shock, vibration', consequences: 'Respiratory issues, fatal electrocution',
             riskLevel: 'Sedang', controlMeasures: 'Inspect drill grounding, N95 respirator & safety goggles mandatory', pic: 'Technician'
           }
-        ],
+        ] as JsaStep[],
         'Maintenance Mesin Packaging': [
           {
             id: '1', stepDescription: 'Clear strapping debris from turn-table',
@@ -166,7 +168,7 @@ templates: {
             hazards: 'Oil spills, tensioner spring release', consequences: 'Slips/falls, mechanical impacts',
             riskLevel: 'Sedang', controlMeasures: 'Deploy spill kit in work area, wear chemical-resistant nitrile gloves', pic: 'Mechanic'
           }
-        ]
+        ] as JsaStep[]
       }
     }
   }
@@ -207,7 +209,7 @@ templates: {
     setSteps(steps.filter(s => s.id !== id))
   }
 
-  const handleLoadTemplate = (templateKey: 'Instalasi Racking' | 'Maintenance Mesin Packaging') => {
+  const handleLoadTemplate = (templateKey: TemplateKey) => {
     setSteps(t.templates[templateKey])
     setJobTitle(templateKey === 'Instalasi Racking' 
       ? (lang === 'ID' ? 'Pemasangan Selective Pallet Racking' : 'Selective Pallet Racking Installation') 
