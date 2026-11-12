@@ -1,556 +1,314 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useId, useEffect } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '../LanguageContext'
 
-interface LicenseItem {
+type LicenseType = 'SIO' | 'SILO' | 'SKP'
+type LicenseStatus = 'VALID' | 'EXPIRING' | 'EXPIRED'
+
+interface LicenseRecord {
   id: string
-  category: 'KOMPETENSI' | 'SIO' | 'SILO'
+  type: LicenseType
   holderName: string
-  spec: string
-  regNo: string
+  licenseNo: string
   issueDate: string
   expiryDate: string
 }
 
-const INITIAL_FALLBACK: LicenseItem[] = [
-  {
-    id: 'lic-1',
-    category: 'KOMPETENSI',
-    holderName: 'Budi Santoso',
-    spec: 'Ahli K3 Umum',
-    regNo: 'SKP',
-    issueDate: '2024-05-10',
-    expiryDate: '2027-05-10'
-  },
-  {
-    id: 'lic-2',
-    category: 'SIO',
-    holderName: 'Adi Dwi Sandi',
-    spec: 'Operator Forklift',
-    regNo: 'KEMENAKER',
-    issueDate: '2021-05-15',
-    expiryDate: '2026-05-15'
-  }
-]
-
 export default function SioSiloTrackerPage() {
-  const [items, setItems] = useState<LicenseItem[]>([])
-  const [filterCategory, setFilterCategory] = useState<string>('ALL')
-  const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED'>('ALL')
-  const [searchTerm, setSearchTerm] = useState('')
+  const { lang } = useLanguage()
+  const formId = useId()
+  const [todayDate, setTodayDate] = useState<string>('')
   
-  // State Modal & Edit
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  // Dummy Initial Data
+  const [licenses, setLicenses] = useState<LicenseRecord[]>([
+    {
+      id: 'lic-1', type: 'SIO', holderName: 'Budi Prakoso (Forklift Kelas II)', 
+      licenseNo: '5/123/AS/SIO/2022', issueDate: '2022-01-10', expiryDate: '2027-01-10'
+    },
+    {
+      id: 'lic-2', type: 'SILO', holderName: 'Forklift Toyota 3-Ton (FL-01)', 
+      licenseNo: '5/882/AS/SILO/2025', issueDate: '2025-12-05', expiryDate: '2026-12-05' // Expiring soon
+    },
+    {
+      id: 'lic-3', type: 'SKP', holderName: 'Ahli K3 Umum (Agus Santoso)', 
+      licenseNo: 'Kep.112/BINWASK3/2023', issueDate: '2023-05-20', expiryDate: '2026-05-20' // Expired
+    }
+  ])
 
-  // Form State
-  const [formCategory, setFormCategory] = useState<'KOMPETENSI' | 'SIO' | 'SILO'>('KOMPETENSI')
-  const [formHolder, setFormHolder] = useState('')
-  const [formSpec, setFormSpec] = useState('')
-  const [formRegType, setFormRegType] = useState('SKP')
-  const [formIssueDate, setFormIssueDate] = useState('')
-  const [formExpiryDate, setFormExpiryDate] = useState('')
+  // Form States
+  const [newType, setNewType] = useState<LicenseType>('SIO')
+  const [newHolder, setNewHolder] = useState('')
+  const [newNo, setNewNo] = useState('')
+  const [newIssue, setNewIssue] = useState('')
+  const [newExpiry, setNewExpiry] = useState('')
 
-  // AUTO-RECOVERY & LOAD DATA DARI LOCALSTORAGE
   useEffect(() => {
-    const candidateKeys = [
-      'syspex_license_data',
-      'syspex_licenses',
-      'licenses',
-      'sio_silo_data',
-      'syspex_sio_data',
-      'syspex_sio_silo'
-    ]
-
-    let foundData: LicenseItem[] | null = null
-
-    for (const key of candidateKeys) {
-      const raw = localStorage.getItem(key)
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            foundData = parsed.map((item: any, idx: number) => ({
-              id: item.id || `lic-recov-${idx}`,
-              category: item.category || item.type || 'KOMPETENSI',
-              holderName: item.holderName || item.name || item.holder || 'Tanpa Nama',
-              spec: item.spec || item.specification || item.bidang || '-',
-              regNo: item.regNo || item.jenis || item.noReg || item.regNumber || 'KEMENAKER',
-              issueDate: item.issueDate || item.tglTerbit || '2024-01-01',
-              expiryDate: item.expiryDate || item.tglExpired || item.expiredDate || '2026-12-31'
-            }))
-            localStorage.setItem('syspex_license_data', JSON.stringify(foundData))
-            break
-          }
-        } catch (e) {
-          console.error('Failed reading key:', key, e)
-        }
-      }
-    }
-
-    if (foundData && foundData.length > 0) {
-      setItems(foundData)
-    } else {
-      setItems(INITIAL_FALLBACK)
-    }
+    setTodayDate(new Date().toISOString().split('T')[0])
   }, [])
 
-  // Buka Modal Mode Tambah Baru
-  const handleOpenAddModal = () => {
-    setEditingId(null)
-    setFormCategory('KOMPETENSI')
-    setFormHolder('')
-    setFormSpec('')
-    setFormRegType('SKP')
-    setFormIssueDate('')
-    setFormExpiryDate('')
-    setIsModalOpen(true)
+  // Fungsi Kalkulasi Status Otomatis
+  const getStatus = (expiryDate: string): LicenseStatus => {
+    if (!todayDate) return 'VALID'
+    const today = new Date(todayDate).getTime()
+    const exp = new Date(expiryDate).getTime()
+    const diffDays = (exp - today) / (1000 * 3600 * 24)
+
+    if (diffDays < 0) return 'EXPIRED'
+    if (diffDays <= 60) return 'EXPIRING'
+    return 'VALID'
   }
 
-  // Buka Modal Mode Edit Data Lama
-  const handleOpenEditModal = (item: LicenseItem) => {
-    setEditingId(item.id)
-    setFormCategory(item.category)
-    setFormHolder(item.holderName)
-    setFormSpec(item.spec)
-    setFormRegType(['SKP', 'KEMENAKER', 'BNSP'].includes(item.regNo) ? item.regNo : 'KEMENAKER')
-    setFormIssueDate(item.issueDate)
-    setFormExpiryDate(item.expiryDate)
-    setIsModalOpen(true)
-  }
-
-  // Simpan Data (Support Tambah Baru & Edit)
-  const handleSaveItem = (e: React.FormEvent) => {
+  const handleAddLicense = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formHolder || !formExpiryDate) {
-      alert('Nama pemegang izin dan Tanggal Berakhir wajib diisi.')
-      return
+    if (!newHolder.trim() || !newNo.trim() || !newExpiry) return
+
+    const newLic: LicenseRecord = {
+      id: `lic-${Math.random().toString(36).substring(2, 7)}`,
+      type: newType,
+      holderName: newHolder,
+      licenseNo: newNo.toUpperCase(),
+      issueDate: newIssue || '-',
+      expiryDate: newExpiry
     }
 
-    if (editingId) {
-      // Mode Edit
-      const updated = items.map(it => {
-        if (it.id === editingId) {
-          return {
-            ...it,
-            category: formCategory,
-            holderName: formHolder,
-            spec: formSpec || it.spec,
-            regNo: formRegType,
-            issueDate: formIssueDate || it.issueDate,
-            expiryDate: formExpiryDate
-          }
-        }
-        return it
-      })
-      setItems(updated)
-      localStorage.setItem('syspex_license_data', JSON.stringify(updated))
-    } else {
-      // Mode Tambah Baru
-      const newItem: LicenseItem = {
-        id: `lic-${Date.now()}`,
-        category: formCategory,
-        holderName: formHolder,
-        spec: formSpec || (formCategory === 'KOMPETENSI' ? 'Ahli K3' : formCategory === 'SIO' ? 'Operator MHE' : 'Unit Riksa Uji'),
-        regNo: formRegType,
-        issueDate: formIssueDate || new Date().toISOString().split('T')[0],
-        expiryDate: formExpiryDate
-      }
-      const updated = [newItem, ...items]
-      setItems(updated)
-      localStorage.setItem('syspex_license_data', JSON.stringify(updated))
-    }
-
-    setIsModalOpen(false)
-    setEditingId(null)
+    setLicenses([newLic, ...licenses])
+    setNewHolder(''); setNewNo(''); setNewIssue(''); setNewExpiry('')
   }
 
-  // Hapus Data
-  const handleDeleteItem = (id: string) => {
-    if (confirm('Hapus sertifikasi ini dari daftar tracker?')) {
-      const updated = items.filter(it => it.id !== id)
-      setItems(updated)
-      localStorage.setItem('syspex_license_data', JSON.stringify(updated))
+  const handleDelete = (id: string) => {
+    setLicenses(licenses.filter(d => d.id !== id))
+  }
+
+  const dict = {
+    ID: {
+      breadcrumb: "Manajemen & ISO",
+      title: "SIO & SILO Tracker",
+      subtitle: "Database pemantauan masa berlaku Surat Izin Operasi (Operator) dan Kelayakan (Alat Berat) regulasi Kemenaker.",
+      btn_print: "Cetak Laporan Validitas",
+      
+      p1_title: "1. Registrasi Lisensi Baru",
+      p1_type: "Kategori Izin",
+      p1_holder: "Nama Operator / ID Unit",
+      p1_no: "Nomor Registrasi / Lisensi",
+      p1_issue: "Tanggal Terbit",
+      p1_exp: "Tanggal Kedaluwarsa",
+      btn_add: "Simpan Data",
+      
+      p2_title: "2. Database Validitas Lisensi",
+      th_type: "Kategori",
+      th_holder: "Nama Pemegang / ID Unit Alat",
+      th_no: "Nomor Lisensi",
+      th_dates: "Periode Validitas",
+      th_status: "Status Kepatuhan",
+      th_manage: "Aksi",
+      
+      btn_delete: "Hapus",
+      
+      stat_valid: "AKTIF",
+      stat_expiring: "HAMPIR HABIS",
+      stat_expired: "KEDALUWARSA",
+
+      print_doc_type: "DOKUMEN RESMI KEPATUHAN KEMENAKER • SYSPEX MS",
+      print_reg: "Nomor Registrasi:",
+      sign_hr: "Disusun Oleh (HR/GA Dept):",
+      sign_hse: "Ditinjau & Disetujui (HSE Officer):"
+    },
+    EN: {
+      breadcrumb: "Management & ISO",
+      title: "SIO & SILO Tracker",
+      subtitle: "Monitoring database for statutory Operation Licenses (Operators) and Eligibility (Heavy Equipment).",
+      btn_print: "Print Validity Report",
+      
+      p1_title: "1. New License Registration",
+      p1_type: "License Category",
+      p1_holder: "Operator Name / Unit ID",
+      p1_no: "Registration / License No.",
+      p1_issue: "Issue Date",
+      p1_exp: "Expiry Date",
+      btn_add: "Save Record",
+      
+      p2_title: "2. License Validity Database",
+      th_type: "Category",
+      th_holder: "Holder Name / Unit ID",
+      th_no: "License No.",
+      th_dates: "Validity Period",
+      th_status: "Compliance Status",
+      th_manage: "Manage",
+      
+      btn_delete: "Del",
+      
+      stat_valid: "VALID",
+      stat_expiring: "EXPIRING SOON",
+      stat_expired: "EXPIRED",
+
+      print_doc_type: "OFFICIAL STATUTORY COMPLIANCE RECORD • SYSPEX MS",
+      print_reg: "Registration No:",
+      sign_hr: "Prepared By (HR/GA Dept):",
+      sign_hse: "Reviewed & Approved (HSE Officer):"
     }
   }
 
-  // Kalkulasi Status Batas 60 Hari
-  const getStatus = (expiryDateStr: string) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const exp = new Date(expiryDateStr)
-    exp.setHours(0, 0, 0, 0)
-
-    const diffTime = exp.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays < 0) {
-      return { 
-        code: 'EXPIRED' as const, 
-        color: 'bg-rose-100 text-rose-800 border-rose-300', 
-        text: `EXPIRED (${Math.abs(diffDays)} HARI LEWAT)` 
-      }
-    } else if (diffDays <= 60) {
-      return { 
-        code: 'EXPIRING_SOON' as const, 
-        color: 'bg-amber-100 text-amber-800 border-amber-300', 
-        text: `PERLU PERPANJANGAN (${diffDays} HARI LAGI)` 
-      }
-    } else {
-      return { 
-        code: 'ACTIVE' as const, 
-        color: 'bg-emerald-100 text-emerald-800 border-emerald-300', 
-        text: 'AMAN (> 60 HARI)' 
-      }
-    }
-  }
-
-  const totalCount = items.length
-  const expiredCount = items.filter(it => getStatus(it.expiryDate).code === 'EXPIRED').length
-  const expiringSoonCount = items.filter(it => getStatus(it.expiryDate).code === 'EXPIRING_SOON').length
-  const activeCount = items.filter(it => getStatus(it.expiryDate).code === 'ACTIVE').length
-
-  const filteredItems = items.filter(it => {
-    const itemStatus = getStatus(it.expiryDate).code
-    const matchStatus = filterStatus === 'ALL' || itemStatus === filterStatus
-    const matchCat = filterCategory === 'ALL' || it.category === filterCategory
-    const matchSearch = it.holderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        it.spec.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        it.regNo.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchStatus && matchCat && matchSearch
-  })
+  const t = dict[lang]
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
       
-      {/* Header */}
-      <div className="border-b border-slate-200 pb-5 print:hidden">
-        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-          <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Kepatuhan & Audit Legal</span>
+      {/* HEADER WEB */}
+      <div className="border-b border-slate-200 pb-4 print:hidden">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+          <Link href="/" className="hover:text-slate-900 transition">HUB</Link>
+          <span>/</span>
+          <span className="text-slate-900">{t.breadcrumb}</span>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Competency & License Tracker</h1>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              Database Manajemen Lisensi Alat & Kompetensi Karyawan Syspex.
-            </p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase">{t.title}</h1>
+            <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest leading-relaxed max-w-2xl">{t.subtitle}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleOpenAddModal}
-              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-1.5 uppercase tracking-wider"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
-              + Tambah Data
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2 uppercase tracking-wider"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-              Cetak Renewal
-            </button>
+          <button
+            onClick={() => window.print()}
+            disabled={licenses.length === 0}
+            className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm disabled:opacity-50"
+          >
+            {t.btn_print}
+          </button>
+        </div>
+      </div>
+
+      {/* HEADER CETAK DOKUMEN (PRINT) */}
+      <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-black text-black uppercase tracking-tight">Statutory License Log</h1>
+            <p className="text-[10px] text-black font-black uppercase tracking-widest mt-1">{t.print_doc_type}</p>
+          </div>
+          <div className="text-right border-2 border-black p-2">
+            <span className="text-[9px] font-black text-black uppercase tracking-widest block">{t.print_reg}</span>
+            <span className="text-sm font-black text-black uppercase">LOG-LIC-{todayDate.replace(/-/g, '')}</span>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards Interaktif */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
-        <div 
-          onClick={() => setFilterStatus('ALL')}
-          className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
-            filterStatus === 'ALL' 
-              ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900 ring-offset-2' 
-              : 'bg-white border-slate-200 text-slate-900 hover:bg-slate-50'
-          }`}
-        >
-          <p className={`text-[10px] font-black uppercase tracking-wider ${filterStatus === 'ALL' ? 'text-slate-300' : 'text-slate-500'}`}>
-            Total Lisensi & SKP
-          </p>
-          <p className="text-3xl font-black mt-2">{totalCount}</p>
-          <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'ALL' ? 'text-teal-400' : 'text-slate-400'}`}>
-            {filterStatus === 'ALL' ? '● Menampilkan Semua' : 'Klik untuk tampilkan semua'}
-          </span>
-        </div>
-
-        <div 
-          onClick={() => setFilterStatus(filterStatus === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
-          className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
-            filterStatus === 'ACTIVE' 
-              ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500 ring-offset-2' 
-              : 'bg-emerald-50/60 border-emerald-200 text-emerald-950 hover:bg-emerald-100/70'
-          }`}
-        >
-          <p className={`text-[10px] font-black uppercase tracking-wider ${filterStatus === 'ACTIVE' ? 'text-emerald-100' : 'text-emerald-700'}`}>
-            Aman (&gt; 60 Hari)
-          </p>
-          <p className={`text-3xl font-black mt-2 ${filterStatus === 'ACTIVE' ? 'text-white' : 'text-emerald-600'}`}>{activeCount}</p>
-          <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'ACTIVE' ? 'text-emerald-100' : 'text-emerald-600'}`}>
-            {filterStatus === 'ACTIVE' ? '● Filter Aktif (Klik Reset)' : 'Klik untuk filter data ini'}
-          </span>
-        </div>
-
-        <div 
-          onClick={() => setFilterStatus(filterStatus === 'EXPIRING_SOON' ? 'ALL' : 'EXPIRING_SOON')}
-          className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
-            filterStatus === 'EXPIRING_SOON' 
-              ? 'bg-amber-500 text-white border-amber-500 shadow-md ring-2 ring-amber-400 ring-offset-2' 
-              : 'bg-amber-50/60 border-amber-200 text-amber-950 hover:bg-amber-100/70'
-          }`}
-        >
-          <p className={`text-[10px] font-black uppercase tracking-wider ${filterStatus === 'EXPIRING_SOON' ? 'text-amber-100' : 'text-amber-700'}`}>
-            Perlu Perpanjangan (≤ 60 Hari)
-          </p>
-          <p className={`text-3xl font-black mt-2 ${filterStatus === 'EXPIRING_SOON' ? 'text-white' : 'text-amber-600'}`}>{expiringSoonCount}</p>
-          <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'EXPIRING_SOON' ? 'text-amber-100' : 'text-amber-600'}`}>
-            {filterStatus === 'EXPIRING_SOON' ? '● Filter Aktif (Klik Reset)' : '👉 Klik untuk lihat data'}
-          </span>
-        </div>
-
-        <div 
-          onClick={() => setFilterStatus(filterStatus === 'EXPIRED' ? 'ALL' : 'EXPIRED')}
-          className={`p-5 rounded-2xl border transition-all cursor-pointer relative shadow-sm hover:scale-[1.02] ${
-            filterStatus === 'EXPIRED' 
-              ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-500 ring-offset-2' 
-              : 'bg-rose-50/60 border-rose-200 text-rose-950 hover:bg-rose-100/70'
-          }`}
-        >
-          <p className={`text-[10px] font-black uppercase tracking-wider ${filterStatus === 'EXPIRED' ? 'text-rose-100' : 'text-rose-700'}`}>
-            Kadaluarsa (Expired)
-          </p>
-          <p className={`text-3xl font-black mt-2 ${filterStatus === 'EXPIRED' ? 'text-white' : 'text-rose-600'}`}>{expiredCount}</p>
-          <span className={`text-[10px] font-bold mt-1 block ${filterStatus === 'EXPIRED' ? 'text-rose-100' : 'text-rose-600'}`}>
-            {filterStatus === 'EXPIRED' ? '● Filter Aktif (Klik Reset)' : '👉 Klik untuk lihat data'}
-          </span>
-        </div>
-      </div>
-
-      {/* Tabs Filter Kategori & Search */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="flex bg-slate-200 p-1 rounded-xl w-full sm:w-auto">
-            {['ALL', 'KOMPETENSI', 'SIO', 'SILO'].map(cat => (
-              <button
-                key={cat}
-                onClick={() => setFilterCategory(cat)}
-                className={`flex-1 sm:flex-none px-3.5 py-1.5 text-xs font-black rounded-lg transition ${
-                  filterCategory === cat ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {cat === 'ALL' ? 'Semua Data' : cat}
-              </button>
-            ))}
+      {/* 1. FORMULIR INPUT LISENSI (HIDE ON PRINT) */}
+      <div className="bg-slate-900 rounded-md p-6 border border-slate-800 space-y-4 print:hidden">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-teal-400 border-b border-slate-800 pb-2">
+          {t.p1_title}
+        </h2>
+        <form onSubmit={handleAddLicense} className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="md:col-span-1">
+            <label htmlFor={`${formId}-type`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.p1_type}</label>
+            <select id={`${formId}-type`} value={newType} onChange={(e) => setNewType(e.target.value as LicenseType)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-[4px] text-xs font-bold text-white focus:outline-none focus:border-teal-500">
+              <option value="SIO">SIO (Personel)</option>
+              <option value="SILO">SILO (Unit/Alat)</option>
+              <option value="SKP">SKP (Ahli K3)</option>
+            </select>
           </div>
-
-          {filterStatus !== 'ALL' && (
-            <button
-              onClick={() => setFilterStatus('ALL')}
-              className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-black rounded-xl transition flex items-center gap-1 shrink-0"
-            >
-              <span>✕</span> Reset Filter Kartu
+          <div className="md:col-span-2">
+            <label htmlFor={`${formId}-holder`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.p1_holder}</label>
+            <input id={`${formId}-holder`} type="text" value={newHolder} onChange={(e) => setNewHolder(e.target.value)} placeholder="..." className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-[4px] text-xs font-bold text-white focus:outline-none focus:border-teal-500" />
+          </div>
+          <div className="md:col-span-1">
+            <label htmlFor={`${formId}-no`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.p1_no}</label>
+            <input id={`${formId}-no`} type="text" value={newNo} onChange={(e) => setNewNo(e.target.value)} placeholder="e.g. 5/123/..." className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-[4px] text-xs font-bold text-white uppercase focus:outline-none focus:border-teal-500" />
+          </div>
+          <div className="md:col-span-1">
+            <label htmlFor={`${formId}-issue`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.p1_issue}</label>
+            <input id={`${formId}-issue`} type="date" value={newIssue} onChange={(e) => setNewIssue(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-[4px] text-xs font-bold text-white focus:outline-none focus:border-teal-500" />
+          </div>
+          <div className="md:col-span-1">
+            <label htmlFor={`${formId}-exp`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.p1_exp}</label>
+            <input id={`${formId}-exp`} type="date" value={newExpiry} onChange={(e) => setNewExpiry(e.target.value)} required className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-[4px] text-xs font-bold text-white focus:outline-none focus:border-teal-500" />
+          </div>
+          
+          <div className="md:col-span-6 flex items-end justify-end border-t border-slate-800 pt-4 mt-2">
+            <button type="submit" disabled={!newHolder.trim() || !newNo.trim() || !newExpiry} className="px-8 py-2 bg-teal-600 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-teal-500 disabled:opacity-40 transition">
+              {t.btn_add}
             </button>
-          )}
-        </div>
-
-        <div className="w-full sm:w-72">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Cari nama karyawan / alat..."
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold shadow-sm focus:outline-none focus:border-teal-500"
-          />
-        </div>
+          </div>
+        </form>
       </div>
 
-      {/* Tabel Data Lisensi */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+      {/* 2. TABEL DATABASE LISENSI */}
+      <div className="bg-white rounded-md p-6 border border-slate-200 print:border-none print:p-0 space-y-4">
+        <div className="flex justify-between items-end border-b border-slate-200 pb-2 print:border-black">
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 print:text-black">
+            {t.p2_title}
+          </h2>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest print:hidden">
+            TOTAL: {licenses.length} DATA
+          </span>
+        </div>
+
+        <div className="overflow-x-auto border-2 border-slate-200 print:border-black rounded-[4px] print:rounded-none">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-100 border-b-2 border-slate-200 text-[9px] font-black uppercase tracking-widest text-slate-600 print:bg-white print:border-black print:text-black">
               <tr>
-                <th className="py-3 px-4">Tipe Dokumen</th>
-                <th className="py-3 px-4">Nama Holder / ID Alat</th>
-                <th className="py-3 px-4">Kategori / Jenis Sertifikasi</th>
-                <th className="py-3 px-4">Masa Berlaku (Expired)</th>
-                <th className="py-3 px-4 text-center">Status Kepatuhan</th>
-                <th className="py-3 px-4 text-center print:hidden">Aksi</th>
+                <th className="py-3 px-3 w-16 text-center">{t.th_type}</th>
+                <th className="py-3 px-3 w-1/4 border-l-2 border-slate-200 print:border-black">{t.th_holder}</th>
+                <th className="py-3 px-3 w-1/4 border-l-2 border-slate-200 print:border-black">{t.th_no}</th>
+                <th className="py-3 px-3 w-32 border-l-2 border-slate-200 print:border-black">{t.th_dates}</th>
+                <th className="py-3 px-3 w-28 text-center border-l-2 border-slate-200 print:border-black">{t.th_status}</th>
+                <th className="py-3 px-3 text-center w-16 border-l-2 border-slate-200 print:hidden">{t.th_manage}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredItems.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">
-                    Tidak ada data lisensi yang sesuai dengan filter.
-                  </td>
-                </tr>
-              ) : (
-                filteredItems.map(item => {
-                  const status = getStatus(item.expiryDate)
-                  return (
-                    <tr key={item.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3.5 px-4 font-black">
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-800 border border-teal-200">
-                          {item.category}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-black text-slate-900 text-sm">{item.holderName}</td>
-                      <td className="py-3.5 px-4">
-                        <p className="font-bold text-slate-800">{item.spec}</p>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          {item.regNo}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <p className="font-mono font-bold text-slate-900">{item.expiryDate}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">Terbit: {item.issueDate}</p>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${status.color}`}>
-                          {status.text}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-center print:hidden">
-                        <div className="flex items-center justify-center gap-1">
-                          {/* Tombol Edit */}
-                          <button
-                            onClick={() => handleOpenEditModal(item)}
-                            className="text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition p-1.5 rounded-lg font-bold"
-                            title="Edit data sertifikasi"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                          </button>
-
-                          {/* Tombol Hapus */}
-                          <button
-                            onClick={() => handleDeleteItem(item.id)}
-                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition p-1.5 rounded-lg font-bold"
-                            title="Hapus lisensi ini"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
+            <tbody className="divide-y-2 divide-slate-100 text-slate-900 print:divide-black">
+              {licenses.map((lic) => {
+                const stat = getStatus(lic.expiryDate)
+                return (
+                  <tr key={lic.id} className="hover:bg-slate-50 print:hover:bg-white">
+                    <td className="py-3 px-3 text-center border-l-2 border-slate-100 print:border-black">
+                      <span className="text-[10px] font-black uppercase bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded-[2px] print:border print:border-black print:bg-transparent print:text-black">
+                        {lic.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 font-bold leading-relaxed border-l-2 border-slate-100 print:border-black print:text-[10px]">
+                      {lic.holderName}
+                    </td>
+                    <td className="py-3 px-3 font-mono font-bold text-[10px] text-slate-700 border-l-2 border-slate-100 print:border-black print:text-black">
+                      {lic.licenseNo}
+                    </td>
+                    <td className="py-3 px-3 font-mono font-bold text-[9px] border-l-2 border-slate-100 print:border-black print:text-[9px]">
+                      <p className="text-slate-500 print:text-black">IN: {lic.issueDate}</p>
+                      <p className="text-slate-900 print:text-black border-t border-slate-200 mt-1 pt-1">EX: {lic.expiryDate}</p>
+                    </td>
+                    <td className="py-3 px-3 text-center border-l-2 border-slate-100 print:border-black">
+                      <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-widest inline-block print:border print:border-black print:bg-transparent print:text-black ${
+                        stat === 'VALID' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        stat === 'EXPIRING' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                        'bg-rose-900 text-rose-100 border border-rose-900'
+                      }`}>
+                        {stat === 'VALID' ? t.stat_valid : stat === 'EXPIRING' ? t.stat_expiring : t.stat_expired}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-center border-l-2 border-slate-100 print:hidden">
+                      <button onClick={() => handleDelete(lic.id)} className="text-slate-400 hover:text-rose-600 font-black px-1.5 py-0.5 text-[9px] uppercase tracking-widest border border-transparent hover:border-rose-200 rounded transition">
+                        {t.btn_delete}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* MODAL (UNTUK TAMBAH MAUPUN EDIT DATA) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">
-                {editingId ? 'Edit Data Lisensi / Sertifikasi' : 'Tambah Data Lisensi'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-black text-sm">
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveItem} className="space-y-4 mt-4 text-xs font-bold">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-500 mb-1">Kategori Sertifikasi</label>
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 font-bold"
-                  >
-                    <option value="KOMPETENSI">KOMPETENSI (Ahli K3, P3K, Damkar)</option>
-                    <option value="SIO">SIO (Operator Forklift / Alat Berat)</option>
-                    <option value="SILO">SILO (Riksa Uji Unit / Pesawat Angkat)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-500 mb-1">Spesifikasi / Bidang</label>
-                  <input
-                    type="text"
-                    value={formSpec}
-                    onChange={(e) => setFormSpec(e.target.value)}
-                    placeholder="Contoh: Operator Forklift / Ahli K3"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase text-slate-500 mb-1">Nama Lengkap Karyawan / Pemegang Izin</label>
-                <input
-                  type="text"
-                  required
-                  value={formHolder}
-                  onChange={(e) => setFormHolder(e.target.value)}
-                  placeholder="Nama karyawan atau ID unit alat"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase text-slate-500 mb-1">Jenis Sertifikasi</label>
-                <select
-                  value={formRegType}
-                  onChange={(e) => setFormRegType(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500 font-black text-slate-800"
-                >
-                  <option value="SKP">SKP (Surat Keputusan Penunjukan)</option>
-                  <option value="KEMENAKER">KEMENAKER (Lisensi Resmi K3 Kemenaker)</option>
-                  <option value="BNSP">BNSP (Badan Nasional Sertifikasi Profesi)</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-500 mb-1">Tanggal Terbit / Pembinaan</label>
-                  <input
-                    type="date"
-                    value={formIssueDate}
-                    onChange={(e) => setFormIssueDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-500 mb-1">Tanggal Berakhir (Expired)</label>
-                  <input
-                    type="date"
-                    required
-                    value={formExpiryDate}
-                    onChange={(e) => setFormExpiryDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase rounded-lg transition shadow-sm"
-                >
-                  {editingId ? 'Simpan Perubahan' : 'Simpan Data'}
-                </button>
-              </div>
-            </form>
+        {/* TANDA TANGAN DOKUMEN CETAK */}
+        <div className="hidden print:grid grid-cols-2 gap-12 pt-12 mt-12 border-t-4 border-black">
+          <div className="text-center border-2 border-black p-4">
+            <p className="text-[9px] font-black text-black uppercase tracking-widest mb-20">{t.sign_hr}</p>
+            <div className="w-3/4 mx-auto border-b-2 border-black"></div>
+            <p className="text-[10px] font-black mt-2 uppercase">HR / General Affairs</p>
+          </div>
+          <div className="text-center border-2 border-black p-4 bg-slate-100">
+            <p className="text-[9px] font-black text-black uppercase tracking-widest mb-20">{t.sign_hse}</p>
+            <div className="w-3/4 mx-auto border-b-2 border-black"></div>
+            <p className="text-[10px] font-black mt-2 uppercase">Syspex HSE Dept.</p>
           </div>
         </div>
-      )}
 
+      </div>
     </div>
   )
 }
