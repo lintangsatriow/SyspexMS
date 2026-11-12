@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '../LanguageContext'
 
 interface Message {
   id: string
@@ -11,37 +12,69 @@ interface Message {
 }
 
 export default function HSECopilotPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      sender: 'assistant',
-      text: 'Halo! Saya HSE Copilot Syspex Kemasindo. Saya siap membantu Anda menganalisis bahaya kerja (HIRADC), menyusun draf JSA, atau mencari rujukan standar Kemenaker & ISO 45001/14001/9001. Apa yang ingin Anda diskusikan hari ini?',
-      timestamp: '08:00'
-    }
-  ])
+  const { lang } = useLanguage()
 
+  const dict = {
+    ID: {
+      breadcrumb: "Smart Assistant",
+      title: "HSE AI Copilot",
+      subtitle: "Konsultasi regulasi Kemenaker, analisis mitigasi bahaya, dan pembuatan draf JSA otomatis.",
+      prompt_title: "Prompt Cepat",
+      prompt_desc: "Klik salah satu skenario untuk rekomendasi instan:",
+      ref_title: "Rujukan Terintegrasi",
+      ai_name: "Syspex HSE Assistant",
+      ai_status: "Active & Ready",
+      btn_reset: "Reset Chat",
+      input_placeholder: "Ketik regulasi, bahaya, atau mitigasi...",
+      btn_send: "Kirim",
+      intro_msg: "HSE Copilot siap. Ketik skenario bahaya, JSA, atau rujukan regulasi (ISO/Kemenaker) yang ingin dianalisis hari ini.",
+      quick_prompts: [
+        { title: 'Draf JSA Racking', prompt: 'Buatkan langkah kerja dan mitigasi pemasangan balok racking ASRS di ketinggian 6 meter.' },
+        { title: 'Regulasi Forklift', prompt: 'Sebutkan syarat operasi (SILO) dan lisensi (SIO) Forklift (Permenaker No. 8/2020).' },
+        { title: 'Investigasi 5-Why', prompt: 'Lakukan analisis 5-Why: palet karton hampir menimpa checker di loading dock.' },
+        { title: 'Prosedur LOTO', prompt: 'Jelaskan prosedur baku LOTO sebelum penggantian gearbox mesin.' }
+      ]
+    },
+    EN: {
+      breadcrumb: "Smart Assistant",
+      title: "HSE AI Copilot",
+      subtitle: "Consult statutory regulations, analyze hazard mitigations, and auto-generate JSA drafts.",
+      prompt_title: "Quick Prompts",
+      prompt_desc: "Select a scenario below for instant technical recommendations:",
+      ref_title: "Integrated References",
+      ai_name: "Syspex HSE Assistant",
+      ai_status: "Active & Ready",
+      btn_reset: "Reset Chat",
+      input_placeholder: "Type hazard, regulation, or mitigation...",
+      btn_send: "Send",
+      intro_msg: "HSE Copilot is online. Type a hazard scenario, JSA requirement, or regulation (ISO/Statutory) to analyze today.",
+      quick_prompts: [
+        { title: 'Racking JSA Draft', prompt: 'Provide work steps and mitigation for ASRS racking beam installation at 6m height.' },
+        { title: 'Forklift Regulation', prompt: 'List operation (SILO) and license (SIO) requirements for Forklift.' },
+        { title: '5-Why Investigation', prompt: 'Perform a 5-Why analysis: carton pallet almost hit a checker at the loading dock.' },
+        { title: 'LOTO Procedure', prompt: 'Explain the standard LOTO procedure before a gearbox replacement.' }
+      ]
+    }
+  }
+
+  const t = dict[lang]
+
+  const [messages, setMessages] = useState<Message[]>([])
   const [inputPrompt, setInputPrompt] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const quickPrompts = [
-    {
-      title: 'Draf JSA Instalasi Racking',
-      prompt: 'Buatkan urutan langkah kerja, potensi bahaya, dan mitigasi risiko untuk pemasangan balok racking ASRS di ketinggian 6 meter.'
-    },
-    {
-      title: 'Rujukan Permenaker Forklift',
-      prompt: 'Sebutkan persyaratan kelaikan operasi (SILO) dan lisensi operator (SIO) Forklift sesuai Permenaker No. 8 Tahun 2020.'
-    },
-    {
-      title: 'Investigasi Insiden (5-Why)',
-      prompt: 'Bantu lakukan analisis 5-Why untuk kejadian palet karton miring dan hampir menimpa checker di loading dock.'
-    },
-    {
-      title: 'Prosedur LOTO Mesin Wrapping',
-      prompt: 'Jelaskan 6 langkah baku penguncian energi (LOTO) sebelum teknisi melakukan penggantian gearbox mesin stretch wrapper.'
-    }
-  ]
+  // Initialize intro message based on current language
+  useEffect(() => {
+    setMessages([
+      {
+        id: 'intro',
+        sender: 'assistant',
+        text: t.intro_msg,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ])
+  }, [lang, t.intro_msg])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -55,9 +88,7 @@ export default function HSECopilotPage() {
     const query = textToSend || inputPrompt
     if (!query.trim()) return
 
-    const now = new Date()
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const userMsg: Message = {
       id: Math.random().toString(36).substr(2, 9),
       sender: 'user',
@@ -69,18 +100,29 @@ export default function HSECopilotPage() {
     setInputPrompt('')
     setIsTyping(true)
 
-    // Simulasi respons AI cerdas K3 Syspex
     setTimeout(() => {
-      let aiReply = 'Permintaan Anda telah dianalisis berdasarkan regulasi SMK3 dan ISO 45001 Syspex Kemasindo.'
+      let aiReply = lang === 'ID' 
+        ? 'Analisis berdasar SMK3 & ISO 45001:\nPastikan Job Safety Analysis (JSA) disetujui. Gunakan APD standar Syspex.'
+        : 'Analysis based on ISO 45001:\nEnsure JSA is approved. Enforce standard Syspex PPE.'
 
-      if (query.toLowerCase().includes('racking') || query.toLowerCase().includes('ketinggian')) {
-        aiReply = `Berikut rekomendasi mitigasi pekerjaan Racking di Ketinggian:\n\n1. Eliminasi / Substitusi: Pastikan area bawah lorong (drop zone) dikosongkan dan dipasang safety line barikade radius 3 meter.\n2. Rekayasa Teknis: Gunakan Scaffolding ber-tag HIJAU yang telah diinspeksi atau Scissor Lift resmi.\n3. Administrasi: Wajib verifikasi Tensi/Tekanan Darah & surat Fit-to-Work bebas vertigo sebelum bekerja.\n4. APD Wajib: Full Body Harness dengan Double Lanyard (100% tie-off) terkait di atas bahu, Safety Helmet dengan chinstrap.`
-      } else if (query.toLowerCase().includes('forklift') || query.toLowerCase().includes('silo') || query.toLowerCase().includes('permenaker')) {
-        aiReply = `Rujukan Regulasi Forklift (Permenaker No. 8 Tahun 2020 tentang K3 Pesawat Angkat dan Angkut):\n\n1. SIO Operator: Operator wajib memiliki lisensi K3 Kemenaker yang masih berlaku (perpanjangan tiap 5 tahun).\n2. SILO Unit: Forklift wajib dilakukan riksa uji berkala oleh PJK3 setiap 1 tahun sekali untuk penerbitan surat keterangan layak K3.\n3. Kecepatan Operasi: Maksimum 10 km/jam di dalam warehouse dan 5 km/jam di tikungan lorong sempit.`
-      } else if (query.toLowerCase().includes('loto') || query.toLowerCase().includes('wrapping')) {
-        aiReply = `6 Langkah Baku Prosedur LOTO Mesin Syspex:\n\n1. Pemberitahuan: Informasikan kepada seluruh operator shift bahwa mesin akan diisolasi.\n2. Pemadaman: Matikan mesin melalui sakelar kontrol normal.\n3. Isolasi Sumber Energi: Putuskan circuit breaker utama dan lepaskan suplai angin pneumatik.\n4. Pemasangan Gembok (Lockout) & Tag (Tagout): Pasang personal padlock dan Danger Tag bertuliskan nama teknisi.\n5. Pelepasan Sisa Energi: Kuras tekanan kompresor dan pastikan rantai tidak dalam posisi tegang.\n6. Verifikasi Nol Energi: Coba hidupkan mesin untuk memastikan daya benar-benar nol sebelum perbaikan dimulai.`
-      } else {
-        aiReply = `Analisis Keselamatan Kerja:\nUntuk pekerjaan tersebut, pastikan Job Safety Analysis (JSA) telah ditandatangani sebelum pekerjaan dimulai. Pastikan seluruh pekerja menggunakan APD standar industri Syspex (Helm Chinstrap, Sepatu Safety Steel Toe, Rompi Reflektif) dan area kerja bebas dari ceceran oli bekas (ISO 14001).`
+      const queryLower = query.toLowerCase()
+
+      if (queryLower.includes('racking') || queryLower.includes('ketinggian') || queryLower.includes('height')) {
+        aiReply = lang === 'ID'
+          ? "Mitigasi Pekerjaan Ketinggian:\n1. Barikade: Kosongkan drop zone (radius 3m).\n2. Akses: Scaffolding Tag Hijau / Scissor Lift.\n3. Medis: Cek Tensi & bebas vertigo.\n4. APD: Full Body Harness 100% tie-off, Helm Chinstrap."
+          : "Work at Height Mitigation:\n1. Barricade: Clear drop zone (3m radius).\n2. Access: Green Tagged Scaffolding / Scissor Lift.\n3. Medical: BP Check & vertigo-free.\n4. PPE: Full Body Harness 100% tie-off, Helm with Chinstrap."
+      } else if (queryLower.includes('forklift') || queryLower.includes('silo') || queryLower.includes('regulation')) {
+        aiReply = lang === 'ID'
+          ? "Regulasi Forklift (Permenaker 8/2020):\n1. SIO: Lisensi K3 operator valid (5 tahun).\n2. SILO: Riksa uji unit oleh PJK3 tahunan.\n3. Operasi: Maks 10 km/jam di warehouse."
+          : "Forklift Regulation:\n1. License: Valid operator statutory license.\n2. Unit: Annual safety inspection certification.\n3. Speed: Max 10 km/h in warehouse."
+      } else if (queryLower.includes('loto') || queryLower.includes('wrapping')) {
+        aiReply = lang === 'ID'
+          ? "Prosedur LOTO:\n1. Matikan mesin via kontrol.\n2. Putus circuit breaker & pneumatik.\n3. Pasang Personal Padlock & Danger Tag.\n4. Kuras sisa energi (angin/tekanan).\n5. Verifikasi: Tes hidupkan mesin."
+          : "LOTO Procedure:\n1. Shut down via controls.\n2. Isolate breaker & pneumatic lines.\n3. Apply Personal Padlock & Danger Tag.\n4. Bleed residual energy/pressure.\n5. Verify: Attempt to start machine."
+      } else if (queryLower.includes('why') || queryLower.includes('investigasi')) {
+        aiReply = lang === 'ID'
+          ? "5-Why Palet Miring:\n1. Mengapa miring? Wrapping plastik longgar.\n2. Mengapa longgar? Tensioner mesin kendor.\n3. Mengapa kendor? Belum dikalibrasi bulan ini.\n\nTindakan: Jadwalkan kalibrasi rutin tensioner."
+          : "5-Why Tilted Pallet:\n1. Why tilted? Loose plastic wrapping.\n2. Why loose? Machine tensioner is slack.\n3. Why slack? Missed monthly calibration.\n\nAction: Schedule routine tensioner calibration."
       }
 
       const assistantMsg: Message = {
@@ -92,48 +134,45 @@ export default function HSECopilotPage() {
 
       setMessages(prev => [...prev, assistantMsg])
       setIsTyping(false)
-    }, 900)
+    }, 800)
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-12 max-w-7xl mx-auto">
       
       {/* Header Web */}
-      <div className="border-b border-slate-300 pb-5">
-        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-          <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Smart Assistant</span>
-        </div>
-        <div className="flex justify-between items-end">
+      <div className="border-b border-slate-200 pb-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              HSE AI Copilot
-              <span className="text-[10px] bg-slate-900 text-white font-black px-2 py-0.5 rounded-full uppercase">ISO & K3 AI</span>
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">Konsultasi regulasi Kemenaker, analisis mitigasi bahaya, dan pembuatan draf JSA otomatis.</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase">{t.title}</h1>
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-900 text-white uppercase tracking-widest">
+                ISO & K3 AI
+              </span>
+            </div>
+            <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">{t.subtitle}</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Kolom Kiri: Quick Prompts & Knowledge Base Info */}
+        {/* Kolom Kiri: Quick Prompts & Knowledge Base */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <h2 className="text-xs font-black uppercase text-slate-800 tracking-wider">Prompt Cepat Lapangan</h2>
-            <p className="text-[11px] text-slate-500">Klik salah satu skenario untuk langsung meminta rekomendasi teknis:</p>
+          <div className="bg-white p-5 rounded-xl border border-slate-200">
+            <h2 className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t.prompt_title}</h2>
             
-            <div className="space-y-2 pt-1">
-              {quickPrompts.map((item, idx) => (
+            <div className="space-y-2 mt-4">
+              {t.quick_prompts.map((item, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSend(item.prompt)}
-                  className="w-full text-left p-3 rounded-xl border border-slate-100 hover:border-slate-900 hover:bg-slate-50 transition group"
+                  className="w-full text-left p-4 rounded-lg border border-slate-200 hover:border-slate-900 bg-slate-50 hover:bg-slate-100 transition group"
                 >
-                  <p className="text-xs font-black text-slate-900 group-hover:text-black flex items-center justify-between">
-                    <span>{item.title}</span>
-                    <span className="text-slate-400 group-hover:translate-x-0.5 transition">→</span>
+                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-wider mb-1 flex justify-between">
+                    {item.title} <span className="text-slate-400 group-hover:text-slate-900 transition">→</span>
                   </p>
-                  <p className="text-[10px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                  <p className="text-[10px] font-medium text-slate-600 line-clamp-2 leading-relaxed">
                     {item.prompt}
                   </p>
                 </button>
@@ -141,102 +180,91 @@ export default function HSECopilotPage() {
             </div>
           </div>
 
-          <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-800 space-y-3">
-            <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Rujukan Standar Terintegrasi</p>
-            <div className="space-y-1.5 text-xs text-slate-300">
-              <p>✓ Permenaker No. 8/2020 (MHE & Forklift)</p>
-              <p>✓ Permenaker No. 9/2016 (Bekerja di Ketinggian)</p>
-              <p>✓ ISO 45001:2018 (Sistem Manajemen K3)</p>
-              <p>✓ ISO 14001:2015 (Pengelolaan Limbah B3)</p>
-              <p>✓ SMK3 PP No. 50 Tahun 2012</p>
+          <div className="bg-slate-900 text-white p-5 rounded-xl border border-slate-800 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-teal-400">{t.ref_title}</p>
+            <div className="space-y-2 text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+              <p>• Permenaker No. 8/2020 (MHE)</p>
+              <p>• Permenaker No. 9/2016 (WAH)</p>
+              <p>• ISO 45001:2018 (Safety)</p>
+              <p>• ISO 14001:2015 (Environment)</p>
             </div>
           </div>
         </div>
 
         {/* Kolom Kanan: Chat Interface */}
-        <div className="lg:col-span-8 flex flex-col h-[650px] bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="lg:col-span-8 flex flex-col h-[650px] bg-white rounded-xl border border-slate-200 overflow-hidden">
           
           {/* Chat Header */}
-          <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-xs">
+          <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded bg-slate-900 text-white flex items-center justify-center font-black text-[10px]">
                 AI
               </div>
               <div>
-                <p className="text-xs font-black text-slate-900">Syspex HSE Assistant</p>
-                <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Active & Ready
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-900">{t.ai_name}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-teal-600 flex items-center gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                  {t.ai_status}
                 </p>
               </div>
             </div>
             <button
-              onClick={() => setMessages([messages[0]])}
-              className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition uppercase"
+              onClick={() => setMessages([{ id: 'reset', sender: 'assistant', text: t.intro_msg, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }])}
+              className="text-[9px] font-black text-slate-400 hover:text-slate-900 transition uppercase tracking-widest border border-slate-200 hover:border-slate-400 px-2 py-1 rounded"
             >
-              Reset Chat
+              {t.btn_reset}
             </button>
           </div>
 
-          {/* Chat Messages Body */}
+          {/* Chat Body */}
           <div className="flex-1 p-5 overflow-y-auto space-y-4">
             {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
-              >
+              <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
                 <div
-                  className={`max-w-[85%] p-4 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
+                  className={`max-w-[85%] p-4 text-[11px] font-medium leading-relaxed whitespace-pre-wrap ${
                     msg.sender === 'user'
-                      ? 'bg-slate-900 text-white rounded-br-none'
-                      : 'bg-slate-100 text-slate-800 rounded-bl-none border border-slate-200/60'
+                      ? 'bg-slate-900 text-white rounded-xl rounded-tr-sm'
+                      : 'bg-slate-100 text-slate-800 rounded-xl rounded-tl-sm border border-slate-200'
                   }`}
                 >
                   {msg.text}
                 </div>
-                <span className="text-[9px] text-slate-400 mt-1 px-1">
-                  {msg.timestamp}
+                <span className="text-[9px] font-bold text-slate-400 mt-1.5 px-1 tracking-wider uppercase">
+                  {msg.sender === 'user' ? 'You' : 'AI'} • {msg.timestamp}
                 </span>
               </div>
             ))}
 
             {isTyping && (
-              <div className="flex items-center gap-1.5 p-3 bg-slate-100 rounded-xl w-24 text-slate-500">
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"></span>
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></span>
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></span>
+              <div className="flex items-center gap-1.5 p-4 bg-slate-100 rounded-xl w-16 text-slate-500 border border-slate-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse delay-75"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse delay-150"></span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Chat Input Bar */}
-          <div className="p-4 border-t border-slate-100 bg-white">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                handleSend()
-              }}
-              className="flex gap-2"
-            >
+          {/* Chat Input */}
+          <div className="p-4 border-t border-slate-200 bg-slate-50">
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
               <input
                 type="text"
                 value={inputPrompt}
                 onChange={(e) => setInputPrompt(e.target.value)}
-                placeholder="Tanyakan analisis bahaya, pasal regulasi, atau draf mitigasi..."
-                className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-slate-900"
+                placeholder={t.input_placeholder}
+                className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900"
               />
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider rounded-xl transition shadow-sm"
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded transition"
               >
-                Kirim
+                {t.btn_send}
               </button>
             </form>
           </div>
 
         </div>
-
       </div>
     </div>
   )
