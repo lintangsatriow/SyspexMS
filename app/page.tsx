@@ -61,7 +61,7 @@ export default function HomePage() {
       {/* HERO SECTION */}
       <div className="w-full max-w-5xl pt-10">
         <div className="inline-block px-2.5 py-1 mb-6 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-sm transition-colors">
-          System Core v1.0
+          
         </div>
         
         <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[1.05] transition-colors">
