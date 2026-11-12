@@ -15,7 +15,7 @@ export default function SyspexSafetyRulesPage() {
   const dict = {
     ID: {
       breadcrumb: "K3L & Operasional",
-      title: "Syspex Core Safety Rules",
+      title: "Syspex Safety Rules",
       subtitle: "6 Aturan Keselamatan Tak Boleh Dilanggar (Golden Rules). Pelanggaran terhadap aturan ini berakibat pada pemutusan hubungan kerja atau pengusiran dari area.",
       btn_print: "Cetak Lembar Kepatuhan",
       
@@ -54,7 +54,7 @@ export default function SyspexSafetyRulesPage() {
 
       print_doc_type: "SURAT PERNYATAAN KEPATUHAN K3L • SYSPEX HSE",
       print_reg: "Nomor Registrasi:",
-      print_statement: "Saya yang bertanda tangan di bawah ini menyatakan telah membaca, memahami, dan siap mematuhi 6 Aturan Keselamatan Inti (Core Safety Rules) PT. Syspex Kemasindo. Saya memahami bahwa pelanggaran terhadap aturan ini dapat mengakibatkan sanksi tegas hingga pemutusan hubungan kerja.",
+      print_statement: "Saya yang bertanda tangan di bawah ini menyatakan telah membaca, memahami, dan siap mematuhi 6 Aturan Keselamatan (Safety Rules) Syspex. Saya memahami bahwa pelanggaran terhadap aturan ini dapat mengakibatkan sanksi tegas hingga pemutusan hubungan kerja.",
       
       form_name: "Nama Lengkap:",
       form_company: "Perusahaan / Dept:",
@@ -64,7 +64,7 @@ export default function SyspexSafetyRulesPage() {
     },
     EN: {
       breadcrumb: "HSE & Operations",
-      title: "Syspex Core Safety Rules",
+      title: "Syspex Safety Rules",
       subtitle: "6 Non-Negotiable Golden Rules. Violation of these rules will result in immediate termination or site expulsion.",
       btn_print: "Print Compliance Agreement",
       
@@ -103,7 +103,7 @@ export default function SyspexSafetyRulesPage() {
 
       print_doc_type: "HSE COMPLIANCE AGREEMENT • SYSPEX HSE",
       print_reg: "Registration No:",
-      print_statement: "I, the undersigned, declare that I have read, understood, and am ready to comply with the 6 Core Safety Rules of PT. Syspex Kemasindo. I understand that violating these rules may result in severe disciplinary action, including termination.",
+      print_statement: "I, the undersigned, declare that I have read, understood, and am ready to comply with the 6 Safety Rules of PT. Syspex Kemasindo. I understand that violating these rules may result in severe disciplinary action, including termination.",
       
       form_name: "Full Name:",
       form_company: "Company / Dept:",
