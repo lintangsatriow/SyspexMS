@@ -1,200 +1,248 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useId, useEffect } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '../LanguageContext'
+
+interface InductionTopic {
+  id: string
+  titleEn: string
+  titleId: string
+  descEn: string
+  descId: string
+  isChecked: boolean
+}
 
 export default function SafetyInductionPage() {
-  const [visitorName, setVisitorName] = useState('')
-  const [company, setCompany] = useState('')
-  const [purpose, setPurpose] = useState('Meeting / Office')
-  const [hostName, setHostName] = useState('')
+  const { lang } = useLanguage()
+  const formId = useId()
+  const [todayDate, setTodayDate] = useState<string>('')
   
-  // Status Video
-  const [isVideoWatched, setIsVideoWatched] = useState(false)
+  // Inductee Details
+  const [inducteeName, setInducteeName] = useState('')
+  const [inducteeId, setInducteeId] = useState('')
+  const [company, setCompany] = useState('')
+  const [role, setRole] = useState('')
 
-  // Persetujuan Golden Rules Universal (Office & Warehouse)
-  const [agreements, setAgreements] = useState({
-    access: false,
-    emergency: false,
-    escort: false,
-  })
+  // Induction Topics Checklist
+  const [topics, setTopics] = useState<InductionTopic[]>([
+    {
+      id: 'top-1',
+      titleId: 'Kebijakan K3L & Aturan Emas', titleEn: 'HSE Policy & Golden Rules',
+      descId: 'Memahami kebijakan K3L perusahaan dan 6 aturan keselamatan inti yang tidak boleh dilanggar.', descEn: 'Understands company HSE policy and the 6 non-negotiable core safety rules.',
+      isChecked: false
+    },
+    {
+      id: 'top-2',
+      titleId: 'Prosedur Evakuasi Darurat', titleEn: 'Emergency Evacuation Procedure',
+      descId: 'Mengetahui rute evakuasi, lokasi titik kumpul (assembly point), dan alarm tanda bahaya.', descEn: 'Knows evacuation routes, assembly point locations, and emergency alarm signals.',
+      isChecked: false
+    },
+    {
+      id: 'top-3',
+      titleId: 'Alat Pelindung Diri (APD)', titleEn: 'Personal Protective Equipment (PPE)',
+      descId: 'Memahami persyaratan APD wajib (Helm, Sepatu Safety, Rompi) dan area penggunaannya.', descEn: 'Understands mandatory PPE requirements (Helmet, Safety Shoes, Vest) and designated areas.',
+      isChecked: false
+    },
+    {
+      id: 'top-4',
+      titleId: 'Pelaporan Insiden & Bahaya', titleEn: 'Incident & Hazard Reporting',
+      descId: 'Prosedur melaporkan kondisi tidak aman, nyaris celaka (near-miss), dan kecelakaan kerja.', descEn: 'Procedures for reporting unsafe conditions, near-misses, and workplace accidents.',
+      isChecked: false
+    },
+    {
+      id: 'top-5',
+      titleId: 'Izin Kerja (Permit to Work)', titleEn: 'Permit to Work (PTW)',
+      descId: 'Memahami bahwa pekerjaan risiko tinggi wajib memiliki dokumen PTW dan JSA yang disetujui.', descEn: 'Understands that high-risk tasks require approved PTW and JSA documents.',
+      isChecked: false
+    }
+  ])
 
-  const toggleAgreement = (key: keyof typeof agreements) => {
-    setAgreements(prev => ({ ...prev, [key]: !prev[key] }))
+  useEffect(() => {
+    setTodayDate(new Date().toISOString().split('T')[0])
+  }, [])
+
+  const toggleTopic = (id: string) => {
+    setTopics(topics.map(t => t.id === id ? { ...t, isChecked: !t.isChecked } : t))
   }
 
-  const isFormComplete = visitorName !== '' && company !== '' && hostName !== '' && 
-    isVideoWatched && agreements.access && agreements.emergency && agreements.escort
+  const isAllChecked = topics.every(t => t.isChecked)
+  const isFormValid = inducteeName.trim() && inducteeId.trim() && company.trim() && role.trim() && isAllChecked
+
+  const dict = {
+    ID: {
+      breadcrumb: "K3L & Operasional",
+      title: "Safety Induction",
+      subtitle: "Checklist orientasi dan induksi K3L wajib bagi karyawan baru, tamu, dan kontraktor sebelum memasuki area operasional.",
+      btn_print: "Cetak Berita Acara",
+      
+      p1_title: "1. Data Peserta Induksi",
+      p1_name: "Nama Lengkap",
+      p1_id: "No. Identitas (KTP/ID Badge)",
+      p1_company: "Perusahaan / Instansi",
+      p1_role: "Posisi / Peran (Role)",
+      
+      p2_title: "2. Checklist Materi Induksi",
+      
+      print_doc_type: "BERITA ACARA INDUKSI KESELAMATAN • SYSPEX HSE",
+      print_reg: "Nomor Registrasi:",
+      print_statement: "Saya menyatakan bahwa saya telah menerima, memahami, dan menyetujui seluruh materi orientasi keselamatan (Safety Induction) yang disampaikan. Saya bersedia mematuhi semua peraturan K3L yang berlaku di area PT. Syspex Kemasindo.",
+      
+      sign_inductee: "Tanda Tangan Peserta",
+      sign_hse: "Instruktur (HSE Dept)"
+    },
+    EN: {
+      breadcrumb: "HSE & Operations",
+      title: "Safety Induction",
+      subtitle: "Mandatory HSE orientation checklist for new employees, visitors, and contractors prior to site entry.",
+      btn_print: "Print Induction Record",
+      
+      p1_title: "1. Inductee Information",
+      p1_name: "Full Name",
+      p1_id: "Identity No. (ID Card/Passport)",
+      p1_company: "Company / Organization",
+      p1_role: "Position / Role",
+      
+      p2_title: "2. Induction Topics Checklist",
+      
+      print_doc_type: "OFFICIAL SAFETY INDUCTION RECORD • SYSPEX HSE",
+      print_reg: "Registration No:",
+      print_statement: "I declare that I have received, understood, and agreed to all safety orientation (Safety Induction) materials provided. I am willing to comply with all HSE regulations applicable within the PT. Syspex Kemasindo area.",
+      
+      sign_inductee: "Inductee Signature",
+      sign_hse: "Instructor (HSE Dept)"
+    }
+  }
+
+  const t = dict[lang]
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 pb-16 max-w-[1400px] mx-auto">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-5xl mx-auto">
       
-      <div className="border-b border-slate-300 pb-5 print:hidden">
-        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-          <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Security & Access</span>
+      {/* HEADER WEB */}
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
+          <Link href="/" className="hover:text-slate-900 dark:hover:text-white transition">HUB</Link>
+          <span>/</span>
+          <span className="text-slate-900 dark:text-slate-100">{t.breadcrumb}</span>
         </div>
-        <div className="flex justify-between items-end">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Digital Safety Induction</h1>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">Video K3 Interaktif, registrasi tamu terpusat, & penerbitan ID Card akses.</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase transition-colors">{t.title}</h1>
+            <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest leading-relaxed max-w-2xl">{t.subtitle}</p>
           </div>
-          <button 
-            onClick={() => window.print()} 
-            disabled={!isFormComplete}
-            className={`px-5 py-2.5 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2 ${isFormComplete ? 'bg-slate-900 hover:bg-slate-800' : 'bg-slate-400 cursor-not-allowed'}`}
+          <button
+            onClick={() => window.print()}
+            disabled={!isFormValid}
+            className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm disabled:opacity-50 shrink-0"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-            CETAK VISITOR PASS
+            {t.btn_print}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Panel Kiri: Video & Golden Rules - Sembunyikan saat cetak */}
-        <div className="lg:col-span-7 space-y-6 print:hidden">
-          
-          {/* Modul Video Induksi */}
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-              <h2 className="text-sm font-black text-white uppercase flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                Video Induksi Syspex (Wajib Tonton)
-              </h2>
-              <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded">Durasi: 03:45</span>
-            </div>
-            
-            {/* Placeholder Video Player */}
-            <div className="w-full aspect-video bg-black relative flex items-center justify-center border-b border-slate-800 group">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay"></div>
-              
-              <div className="relative z-10 text-center space-y-4">
-                <button className="w-16 h-16 bg-white/20 hover:bg-red-600 backdrop-blur-md rounded-full flex items-center justify-center mx-auto transition-all duration-300 transform group-hover:scale-110">
-                  <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                </button>
-                <div>
-                  <p className="text-white font-bold tracking-widest uppercase text-sm">Syspex Corporate Safety Video</p>
-                  <p className="text-slate-400 text-xs mt-1">[ Ruang Untuk Embed YouTube / File MP4 ]</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 bg-slate-800/50">
-              <label className="flex items-center gap-4 cursor-pointer group">
-                <input type="checkbox" checked={isVideoWatched} onChange={(e) => setIsVideoWatched(e.target.checked)} className="w-6 h-6 accent-emerald-500 rounded cursor-pointer" />
-                <div>
-                  <p className="text-sm font-black text-white group-hover:text-emerald-400 transition uppercase tracking-wide">Saya telah menonton dan memahami materi video</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Saya memahami prosedur evakuasi, titik kumpul, dan bahaya umum di Syspex.</p>
-                </div>
-              </label>
-            </div>
+      {/* HEADER CETAK DOKUMEN (PRINT) */}
+      <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-black text-black uppercase tracking-tight">Safety Induction Record</h1>
+            <p className="text-[10px] text-black font-black uppercase tracking-widest mt-1">{t.print_doc_type}</p>
           </div>
-
-          {/* Golden Rules Universal */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-            <h2 className="text-sm font-black text-slate-900 uppercase border-b border-slate-100 pb-3">Syarat & Ketentuan Akses Fasilitas</h2>
-            
-            <div className="space-y-4">
-              <label className="flex items-start gap-4 cursor-pointer group p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
-                <input type="checkbox" checked={agreements.access} onChange={() => toggleAgreement('access')} className="mt-1 w-5 h-5 accent-slate-900 rounded" />
-                <div>
-                  <p className="text-sm font-bold text-slate-800 group-hover:text-slate-900 transition">1. Kepatuhan Area Terbatas (Zoning)</p>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">Saya mengerti bahwa Badge Akses saya menentukan area mana yang boleh saya masuki. Memasuki area Gudang MHE / Produksi tanpa APD dan izin khusus adalah pelanggaran berat.</p>
-                </div>
-              </label>
-              
-              <label className="flex items-start gap-4 cursor-pointer group p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
-                <input type="checkbox" checked={agreements.escort} onChange={() => toggleAgreement('escort')} className="mt-1 w-5 h-5 accent-slate-900 rounded" />
-                <div>
-                  <p className="text-sm font-bold text-slate-800 group-hover:text-slate-900 transition">2. Aturan Pendampingan (Escort Rule)</p>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">Sebagai tamu, saya tidak diizinkan berkeliaran sendiri (unattended). Saya harus selalu didampingi oleh Karyawan Syspex (Host) selama berada di dalam fasilitas.</p>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-4 cursor-pointer group p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
-                <input type="checkbox" checked={agreements.emergency} onChange={() => toggleAgreement('emergency')} className="mt-1 w-5 h-5 accent-slate-900 rounded" />
-                <div>
-                  <p className="text-sm font-bold text-slate-800 group-hover:text-slate-900 transition">3. Kedaruratan & Pelaporan Insiden</p>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">Jika mendengar alarm, saya akan meninggalkan gedung melalui jalur evakuasi menuju Assembly Point. Saya juga wajib melaporkan cedera sekecil apa pun kepada Host saya.</p>
-                </div>
-              </label>
-            </div>
+          <div className="text-right border-2 border-black p-2">
+            <span className="text-[9px] font-black text-black uppercase tracking-widest block">{t.print_reg}</span>
+            <span className="text-sm font-black text-black uppercase">IND-{todayDate.replace(/-/g, '')}</span>
           </div>
         </div>
-
-        {/* Panel Kanan: Data Pengunjung & Output - Sembunyikan saat cetak */}
-        <div className="lg:col-span-5 space-y-6 print:hidden">
-          
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 sticky top-6">
-            <h2 className="text-sm font-black text-slate-900 uppercase border-b border-slate-100 pb-3 mb-1">Data Pengunjung (KTP)</h2>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
-              <input type="text" value={visitorName} onChange={(e) => setVisitorName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" placeholder="Sesuai ID/KTP..." />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Perusahaan / Instansi</label>
-              <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tujuan Area (Zoning)</label>
-              <select value={purpose} onChange={(e) => setPurpose(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold">
-                <option value="Meeting / Office">🏢 Zona Biru: Office & Meeting</option>
-                <option value="Warehouse / MHE Area">🚜 Zona Kuning: Gudang & MHE (Butuh Rompi)</option>
-                <option value="Machine Installation">🛠️ Zona Merah: Servis/Instalasi Mesin (Kontraktor)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nama Karyawan yang Dituju (Host)</label>
-              <input type="text" value={hostName} onChange={(e) => setHostName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" placeholder="Siapa yang ditemui?" />
-            </div>
-
-            <div className={`mt-6 p-4 rounded-xl border-2 text-center transition-all duration-300 ${isFormComplete ? 'bg-emerald-50 border-emerald-400' : 'bg-slate-50 border-slate-200'}`}>
-              <p className={`text-[11px] font-black uppercase tracking-widest ${isFormComplete ? 'text-emerald-700' : 'text-slate-500'}`}>
-                {isFormComplete ? '✓ DATA LENGKAP - SIAP CETAK' : '⚠ TAMPILKAN VIDEO & LENGKAPI DATA'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* DOKUMEN CETAK UTAMA (ID Card CR80 Format) - Hanya tampil saat window.print() */}
-        <div className="hidden print:flex w-full justify-center items-center pt-8">
-          
-          <div className="w-[212px] h-[338px] border-2 border-black rounded-xl flex flex-col bg-white overflow-hidden relative text-black">
-            
-            <div className={`h-16 pt-3 px-3 text-center flex flex-col items-center justify-center border-b-2 border-black ${purpose.includes('Office') ? 'bg-blue-600 text-white' : purpose.includes('Warehouse') ? 'bg-amber-400 text-black' : 'bg-red-600 text-white'}`}>
-              <div className="w-8 h-1.5 bg-black/20 rounded-full mb-1"></div>
-              <h1 className="text-sm font-black uppercase tracking-widest leading-none">VISITOR</h1>
-              <p className="text-[7px] font-bold uppercase tracking-widest mt-1">Syspex Kemasindo</p>
-            </div>
-
-            <div className="flex-1 p-3 flex flex-col items-center text-center">
-              <div className="w-full mt-2 mb-4">
-                <p className="text-[8px] font-bold uppercase text-gray-500 mb-0.5">Name / Nama:</p>
-                <p className="text-sm font-black uppercase leading-tight">{visitorName || 'GUEST NAME'}</p>
-              </div>
-
-              <div className="w-full mb-4">
-                <p className="text-[8px] font-bold uppercase text-gray-500 mb-0.5">Company / Asal:</p>
-                <p className="text-[11px] font-bold uppercase leading-tight">{company || 'COMPANY NAME'}</p>
-              </div>
-
-              <div className="w-full border-t border-dashed border-gray-400 pt-3">
-                <p className="text-[8px] font-bold uppercase text-gray-500 mb-0.5">Host / Pendamping:</p>
-                <p className="text-[10px] font-bold uppercase leading-tight">{hostName || 'HOST NAME'}</p>
-              </div>
-            </div>
-
-            <div className={`h-10 px-2 flex items-center justify-center text-center border-t-2 border-black ${purpose.includes('Office') ? 'bg-blue-100' : purpose.includes('Warehouse') ? 'bg-amber-100' : 'bg-red-100'}`}>
-              <p className="text-[8px] font-black uppercase tracking-wider">
-                {purpose === 'Meeting / Office' ? 'RESTRICTED TO OFFICE ONLY' : 'MUST WEAR HI-VIS VEST'}
-              </p>
-            </div>
-            
-          </div>
-          
-        </div>
-
       </div>
+
+      {/* 1. DATA PESERTA */}
+      <div className="bg-white dark:bg-slate-900 rounded-md p-6 border border-slate-200 dark:border-slate-800 space-y-4 print:border-none print:p-0 transition-colors">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2 print:border-black print:text-black">
+          {t.p1_title}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor={`${formId}-name`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_name}</label>
+            <input id={`${formId}-name`} type="text" value={inducteeName} onChange={(e) => setInducteeName(e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-id`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_id}</label>
+            <input id={`${formId}-id`} type="text" value={inducteeId} onChange={(e) => setInducteeId(e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white uppercase focus:outline-none focus:border-teal-500 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-company`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_company}</label>
+            <input id={`${formId}-company`} type="text" value={company} onChange={(e) => setCompany(e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-role`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_role}</label>
+            <input id={`${formId}-role`} type="text" value={role} onChange={(e) => setRole(e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* 2. CHECKLIST MATERI */}
+      <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-6 border border-slate-200 dark:border-slate-800 space-y-4 print:border-none print:p-0 transition-colors">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2 print:border-black print:text-black">
+          {t.p2_title}
+        </h2>
+        
+        <div className="space-y-2 print:space-y-0">
+          {topics.map(topic => (
+            <div 
+              key={topic.id} 
+              onClick={() => toggleTopic(topic.id)}
+              className={`flex items-start gap-4 p-4 rounded-[4px] border-2 cursor-pointer transition-colors print:border-b-2 print:border-t-0 print:border-l-0 print:border-r-0 print:border-black print:rounded-none print:py-3 print:px-0 ${
+                topic.isChecked 
+                  ? 'bg-teal-50 dark:bg-teal-950/30 border-teal-500 dark:border-teal-500' 
+                  : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
+              }`}
+            >
+              <div className="mt-0.5 print:hidden">
+                <div className={`w-5 h-5 rounded-[2px] border-2 flex items-center justify-center transition-colors ${
+                  topic.isChecked ? 'bg-teal-500 border-teal-500' : 'bg-transparent border-slate-300 dark:border-slate-600'
+                }`}>
+                  {topic.isChecked && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+                </div>
+              </div>
+              <div className="hidden print:block mt-0.5">
+                <div className="w-4 h-4 border-2 border-black flex items-center justify-center">
+                  {topic.isChecked && <span className="font-black text-[10px]">X</span>}
+                </div>
+              </div>
+
+              <div className="flex-1">
+                <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest print:text-black">
+                  {lang === 'ID' ? topic.titleId : topic.titleEn}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider leading-relaxed print:text-black">
+                  {lang === 'ID' ? topic.descId : topic.descEn}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* DOKUMEN CETAK (PRINT) - FORM PERNYATAAN */}
+      <div className="hidden print:block w-full mt-6 pt-6">
+        <p className="text-[11px] font-bold text-black text-justify leading-relaxed mb-10 border-2 border-black p-4">
+          {t.print_statement}
+        </p>
+        
+        <div className="grid grid-cols-2 gap-12 text-center text-[10px] font-black uppercase tracking-widest text-black">
+          <div className="border-2 border-black p-4 flex flex-col justify-between min-h-[140px]">
+            <p>{t.sign_inductee}</p>
+            <div className="w-full border-b-2 border-black mt-16"></div>
+            <p className="mt-2">{inducteeName || '....................'}</p>
+          </div>
+          <div className="border-2 border-black p-4 flex flex-col justify-between min-h-[140px] bg-gray-100">
+            <p>{t.sign_hse}</p>
+            <div className="w-full border-b-2 border-black mt-16"></div>
+            <p className="mt-2">Syspex HSE Instructor</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   )
 }
