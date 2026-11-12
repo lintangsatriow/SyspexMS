@@ -1,326 +1,285 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useId, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '../LanguageContext'
 
-type ScaffoldType = 'FRAME' | 'TUBULAR'
-type TagStatus = 'GREEN' | 'RED'
-type LoadCapacity = 'Light (75 kg/m²)' | 'Medium (150 kg/m²)' | 'Heavy (200 kg/m²)'
+interface BoQItem {
+  id: string
+  code: string
+  name: string
+  qty: number
+  unit: string
+  remarks: string
+}
 
-export default function ScaffoldingPage() {
-  const [scaffoldType, setScaffoldType] = useState<ScaffoldType>('FRAME')
-  const [length, setLength] = useState<number>(10)
-  const [width, setWidth] = useState<number>(1.2)
-  const [height, setHeight] = useState<number>(5)
-  const [loadCapacity, setLoadCapacity] = useState<LoadCapacity>('Medium (150 kg/m²)')
+export default function ScaffoldingBoqPage() {
+  const { lang } = useLanguage()
+  const formId = useId()
+  const [todayDate, setTodayDate] = useState<string>('')
+
+  // Project Parameters
+  const [jobLocation, setJobLocation] = useState('Area Produksi Line 3')
+  const [requestor, setRequestor] = useState('Budi Prakoso')
   
-  const [tagStatus, setTagStatus] = useState<TagStatus>('RED')
-  const [inspectorName, setInspectorName] = useState('')
-  const [buildDate, setBuildDate] = useState(new Date().toISOString().split('T')[0])
-  const [location, setLocation] = useState('Area Instalasi ASRS - Line 1')
+  // Dimensions (Meters)
+  const [length, setLength] = useState<number>(6)
+  const [width, setWidth] = useState<number>(2)
+  const [height, setHeight] = useState<number>(4)
 
-  // Konfirmasi Safety & Kesehatan (Wajib sebelum cetak)
-  const [safetyChecked, setSafetyChecked] = useState(false)
-  const [healthChecked, setHealthChecked] = useState(false)
+  // Standard Scaffolding Constraints (Tubular BS 1139)
+  const BAY_LENGTH = 2.0 // Jarak antar tiang memanjang (m)
+  const TRANSOM_WIDTH = 1.2 // Lebar standar (m)
+  const LIFT_HEIGHT = 2.0 // Jarak tinggi antar level (m)
+  const BOARD_AREA = 0.8 // Perkiraan area per papan scaffold (m2)
 
-  // Kalkulasi Komponen Desain
-  const components = useMemo(() => {
-    const bayLength = 1.8 
-    const tierHeight = 1.7 
+  useEffect(() => {
+    setTodayDate(new Date().toISOString().split('T')[0])
+  }, [])
 
-    const bays = Math.ceil(length / bayLength)
-    const tiers = Math.ceil(height / tierHeight)
+  // Kalkulasi Algoritma Scaffolding (BoQ Generator)
+  const boqData = useMemo(() => {
+    const l = Number(length) || 0
+    const w = Number(width) || 0
+    const h = Number(height) || 0
 
-    if (scaffoldType === 'FRAME') {
-      return [
-        { item: 'Main Frame T-170', qty: (bays + 1) * tiers * 2, unit: 'Pcs' },
-        { item: 'Cross Brace 220', qty: bays * tiers * 2, unit: 'Pcs' },
-        { item: 'Joint Pin', qty: (bays + 1) * (tiers > 0 ? tiers - 1 : 0) * 4, unit: 'Pcs' },
-        { item: 'Jack Base / Adjustable Base', qty: (bays + 1) * 2, unit: 'Pcs' },
-        { item: 'U-Head Jack', qty: (bays + 1) * 2, unit: 'Pcs' },
-        { item: 'Catwalk / Steel Plank (Platform)', qty: bays * 2, unit: 'Pcs' },
-        { item: 'Aluminum Stairs / Tangga', qty: tiers, unit: 'Set' },
-        { item: 'Safety Net / Jaring', qty: Math.ceil((length * height) / 10), unit: 'Roll' }
-      ]
-    } else {
-      const verticalPipes = (bays + 1) * 2
-      const horizontalLedgers = (bays + 1) * tiers * 2
-      const totalPipes = verticalPipes + horizontalLedgers * 2
-      return [
-        { item: 'Galvanized Pipe (6m) - Vertikal', qty: Math.ceil(totalPipes / 2), unit: 'Btg' },
-        { item: 'Galvanized Pipe (3m) - Horizontal', qty: Math.ceil(totalPipes / 2), unit: 'Btg' },
-        { item: 'Swivel Clamp', qty: totalPipes * 2, unit: 'Pcs' },
-        { item: 'Fixed Clamp (Right Angle)', qty: totalPipes * 3, unit: 'Pcs' },
-        { item: 'Base Plate', qty: (bays + 1) * 2, unit: 'Pcs' },
-        { item: 'Steel Plank / Papan Kerja', qty: bays * 2, unit: 'Pcs' },
-      ]
+    if (l === 0 || w === 0 || h === 0) return []
+
+    // Estimasi Kebutuhan Tiang (Standards)
+    const standardBays = Math.ceil(l / BAY_LENGTH)
+    const widthBays = Math.ceil(w / TRANSOM_WIDTH)
+    const standardsCount = (standardBays + 1) * (widthBays + 1)
+
+    // Estimasi Ledger (Memanjang) & Transom (Melintang)
+    const liftCount = Math.ceil(h / LIFT_HEIGHT)
+    const ledgersCount = standardBays * (liftCount + 1) * (widthBays + 1)
+    const transomsCount = widthBays * (liftCount + 1) * (standardBays + 1)
+
+    // Komponen Lainnya
+    const basePlates = standardsCount
+    const swivelCouplers = standardsCount * liftCount * 2 // Estimasi bracing
+    const rightAngleCouplers = (ledgersCount + transomsCount) * 2
+    const boardsCount = Math.ceil((l * w) / BOARD_AREA) * liftCount // Full boarded semua level
+    const toeBoards = (standardBays * 2 + widthBays * 2) * liftCount
+
+    const items: BoQItem[] = [
+      { id: '1', code: 'ST-01', name: lang === 'ID' ? 'Pipa Standard (Tiang Vertikal) 4m' : 'Standard Tube (Vertical) 4m', qty: standardsCount, unit: 'Pcs', remarks: 'BS 1139 / EN 74' },
+      { id: '2', code: 'LD-01', name: lang === 'ID' ? 'Pipa Ledger (Memanjang) 6m' : 'Ledger Tube (Horizontal) 6m', qty: ledgersCount, unit: 'Pcs', remarks: 'BS 1139 / EN 74' },
+      { id: '3', code: 'TR-01', name: lang === 'ID' ? 'Pipa Transom (Melintang) 2m' : 'Transom Tube (Cross) 2m', qty: transomsCount, unit: 'Pcs', remarks: 'BS 1139 / EN 74' },
+      { id: '4', code: 'BP-01', name: lang === 'ID' ? 'Base Plate & Sole Board' : 'Base Plate & Sole Board', qty: basePlates, unit: 'Set', remarks: 'Menopang tiang di tanah' },
+      { id: '5', code: 'RC-01', name: lang === 'ID' ? 'Klem Sudut Siku (Right Angle Coupler)' : 'Right Angle (Double) Coupler', qty: rightAngleCouplers, unit: 'Pcs', remarks: 'Sambungan 90 Derajat' },
+      { id: '6', code: 'SC-01', name: lang === 'ID' ? 'Klem Putar (Swivel Coupler)' : 'Swivel Coupler', qty: swivelCouplers, unit: 'Pcs', remarks: 'Sambungan Bracing Diagonal' },
+      { id: '7', code: 'SB-01', name: lang === 'ID' ? 'Papan Scaffold (Metal Plank)' : 'Metal Scaffold Plank', qty: boardsCount, unit: 'Pcs', remarks: 'Min. Lebar 200mm' },
+      { id: '8', code: 'TB-01', name: lang === 'ID' ? 'Toe Board (Papan Kaki)' : 'Toe Board', qty: toeBoards, unit: 'Pcs', remarks: 'Pelindung material jatuh' },
+    ]
+
+    return items
+  }, [length, width, height, lang])
+
+  const dict = {
+    ID: {
+      breadcrumb: "Kalkulator Teknis",
+      title: "Scaffolding BoQ",
+      subtitle: "Kalkulasi otomatis material scaffolding (Bill of Quantities) berbasis standar BS-1139 untuk struktur tubular independent.",
+      btn_print: "Cetak Dokumen BoQ",
+      
+      p1_title: "1. Parameter Dimensi Struktur (Meter)",
+      p1_loc: "Lokasi Pemasangan",
+      p1_req: "Nama Peminta (Requestor)",
+      p1_l: "Panjang Struktur (L)",
+      p1_w: "Lebar Struktur (W)",
+      p1_h: "Tinggi Maksimal (H)",
+      
+      p2_title: "2. Bill of Quantities (Kebutuhan Material)",
+      th_no: "No",
+      th_code: "Kode",
+      th_item: "Komponen / Item",
+      th_qty: "Qty",
+      th_unit: "Unit",
+      th_remark: "Spesifikasi / Remarks",
+
+      print_doc_type: "DOKUMEN MATERIAL ESTIMASI (SCAFFOLDING) • SYSPEX ENG",
+      print_reg: "Nomor Registrasi:",
+      sign_req: "Diminta Oleh (Requestor):",
+      sign_eng: "Dihitung Oleh (Scaffolding Inspector):",
+      sign_mgr: "Disetujui Oleh (HSE / Project Mgr):",
+    },
+    EN: {
+      breadcrumb: "Technical Calculators",
+      title: "Scaffolding BoQ",
+      subtitle: "Automated material takeoff (Bill of Quantities) based on BS-1139 standards for independent tied tubular scaffolding.",
+      btn_print: "Print BoQ Document",
+      
+      p1_title: "1. Structure Dimension Parameters (Meters)",
+      p1_loc: "Installation Location",
+      p1_req: "Requestor Name",
+      p1_l: "Structure Length (L)",
+      p1_w: "Structure Width (W)",
+      p1_h: "Maximum Height (H)",
+      
+      p2_title: "2. Bill of Quantities",
+      th_no: "No",
+      th_code: "Code",
+      th_item: "Component / Item",
+      th_qty: "Qty",
+      th_unit: "Unit",
+      th_remark: "Specification / Remarks",
+
+      print_doc_type: "OFFICIAL MATERIAL ESTIMATION (SCAFFOLDING) • SYSPEX ENG",
+      print_reg: "Registration No:",
+      sign_req: "Requested By:",
+      sign_eng: "Calculated By (Scaffolding Inspector):",
+      sign_mgr: "Approved By (HSE / Project Mgr):",
     }
-  }, [length, height, width, scaffoldType])
+  }
 
-  const isFormComplete = inspectorName !== '' && safetyChecked && healthChecked
+  const t = dict[lang]
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-6xl mx-auto">
       
-      {/* Header */}
-      <div className="border-b border-slate-300 pb-5 print:hidden">
-        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-          <Link href="/" className="hover:text-slate-900 transition">Hub</Link><span>/</span><span className="text-slate-800 font-bold">Structure & Access</span>
+      {/* HEADER WEB */}
+      <div className="border-b border-slate-200 pb-4 print:hidden">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+          <Link href="/" className="hover:text-slate-900 transition">HUB</Link>
+          <span>/</span>
+          <span className="text-slate-900">{t.breadcrumb}</span>
         </div>
-        <div className="flex justify-between items-end">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Scaffold Design & Erection Plan</h1>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">Panduan perakitan perancah, Scafftag, dan izin kerja di ketinggian (WAH).</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase">{t.title}</h1>
+            <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest leading-relaxed max-w-2xl">{t.subtitle}</p>
           </div>
-          <button 
-            onClick={() => window.print()} 
-            disabled={!isFormComplete}
-            className={`px-5 py-2.5 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2 ${isFormComplete ? 'bg-slate-900 hover:bg-slate-800' : 'bg-slate-400 cursor-not-allowed'}`}
+          <button
+            onClick={() => window.print()}
+            disabled={boqData.length === 0}
+            className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm disabled:opacity-50 shrink-0"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-            CETAK ERECTION PLAN & TAG
+            {t.btn_print}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Kolom Kiri: Input Desain & Inspeksi */}
-        <div className="lg:col-span-5 space-y-6 print:hidden">
+      {/* HEADER CETAK DOKUMEN (PRINT) */}
+      <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-black text-black uppercase tracking-tight">Scaffolding BoQ</h1>
+            <p className="text-[10px] text-black font-black uppercase tracking-widest mt-1">{t.print_doc_type}</p>
+          </div>
+          <div className="text-right border-2 border-black p-2">
+            <span className="text-[9px] font-black text-black uppercase tracking-widest block">{t.print_reg}</span>
+            <span className="text-sm font-black text-black uppercase">BOQ-SCF-{todayDate.replace(/-/g, '')}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 1. PARAMETER DIMENSI */}
+      <div className="bg-white rounded-md p-6 border border-slate-200 print:border-none print:p-0 space-y-4">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 border-b border-slate-200 pb-2 print:border-black print:text-black">
+          {t.p1_title}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="md:col-span-2">
+            <label htmlFor={`${formId}-loc`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_loc}</label>
+            <input id={`${formId}-loc`} type="text" value={jobLocation} onChange={(e) => setJobLocation(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-[4px] text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+          </div>
+          <div className="md:col-span-3">
+            <label htmlFor={`${formId}-req`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_req}</label>
+            <input id={`${formId}-req`} type="text" value={requestor} onChange={(e) => setRequestor(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-[4px] text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-900 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+          </div>
           
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-sm font-black text-slate-900 uppercase border-b border-slate-100 pb-3">1. Desain Struktur Racking / ASRS</h2>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tipe Scaffolding</label>
-                <select value={scaffoldType} onChange={(e) => setScaffoldType(e.target.value as ScaffoldType)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold">
-                  <option value="FRAME">Main Frame (Standar Racking)</option>
-                  <option value="TUBULAR">Tubular (Pipa BS1139 & Clamp)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Panjang (m)</label>
-                <input type="number" value={length} onChange={(e) => setLength(Number(e.target.value))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tinggi Target (m)</label>
-                <input type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Kapasitas Beban Kerja (SWL)</label>
-                <select value={loadCapacity} onChange={(e) => setLoadCapacity(e.target.value as LoadCapacity)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold">
-                  <option value="Light (75 kg/m²)">Light Duty - Hanya Orang & Alat Ringan</option>
-                  <option value="Medium (150 kg/m²)">Medium Duty - Orang & Komponen Mesin</option>
-                </select>
-              </div>
+          {/* Inputs Angka */}
+          <div className="md:col-span-1 border-t border-slate-100 pt-4 print:border-none print:pt-2">
+            <label htmlFor={`${formId}-l`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_l}</label>
+            <div className="relative">
+              <input id={`${formId}-l`} type="number" min="0" value={length} onChange={(e) => setLength(parseFloat(e.target.value))} className="w-full px-3 py-2 pr-8 bg-slate-50 border border-slate-200 rounded-[4px] text-xs font-black text-slate-900 focus:outline-none focus:border-slate-900 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+              <span className="absolute right-3 top-2 text-xs font-black text-slate-400 print:hidden">m</span>
             </div>
           </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-sm font-black text-slate-900 uppercase border-b border-slate-100 pb-3">2. Status & Scafftag</h2>
-            
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <button onClick={() => setTagStatus('RED')} className={`p-3 rounded-lg border-2 text-xs font-black uppercase tracking-wider transition ${tagStatus === 'RED' ? 'bg-red-600 text-white border-red-700' : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'}`}>
-                UNSAFE (MERAH)
-              </button>
-              <button onClick={() => setTagStatus('GREEN')} className={`p-3 rounded-lg border-2 text-xs font-black uppercase tracking-wider transition ${tagStatus === 'GREEN' ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}`}>
-                SAFE (HIJAU)
-              </button>
+          <div className="md:col-span-1 border-t border-slate-100 pt-4 print:border-none print:pt-2">
+            <label htmlFor={`${formId}-w`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_w}</label>
+            <div className="relative">
+              <input id={`${formId}-w`} type="number" min="0" value={width} onChange={(e) => setWidth(parseFloat(e.target.value))} className="w-full px-3 py-2 pr-8 bg-slate-50 border border-slate-200 rounded-[4px] text-xs font-black text-slate-900 focus:outline-none focus:border-slate-900 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+              <span className="absolute right-3 top-2 text-xs font-black text-slate-400 print:hidden">m</span>
             </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nama Inspector / Supervisor</label>
-              <input type="text" value={inspectorName} onChange={(e) => setInspectorName(e.target.value)} placeholder="Nama yang bertanggung jawab..." className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tgl Perakitan</label>
-                <input type="date" value={buildDate} onChange={(e) => setBuildDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Area Instalasi</label>
-                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold" />
-              </div>
+          </div>
+          <div className="md:col-span-1 border-t border-slate-100 pt-4 print:border-none print:pt-2">
+            <label htmlFor={`${formId}-h`} className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 print:text-black">{t.p1_h}</label>
+            <div className="relative">
+              <input id={`${formId}-h`} type="number" min="0" value={height} onChange={(e) => setHeight(parseFloat(e.target.value))} className="w-full px-3 py-2 pr-8 bg-slate-50 border border-slate-200 rounded-[4px] text-xs font-black text-slate-900 focus:outline-none focus:border-slate-900 print:border-b-2 print:border-black print:bg-transparent print:p-0 print:rounded-none" />
+              <span className="absolute right-3 top-2 text-xs font-black text-slate-400 print:hidden">m</span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Kolom Kanan: Panduan Perakitan & Warning K3 */}
-        <div className="lg:col-span-7 space-y-6 print:hidden">
-          
-          {/* Komponen Desain */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-              <h2 className="text-sm font-black text-slate-900 uppercase">3. Total Komponen Perakitan</h2>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-200 px-2 py-1 rounded">Dimensi: L:{length}m x H:{height}m</span>
-            </div>
-            <div className="p-4 overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <tbody className="divide-y divide-slate-100">
-                  {components.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition">
-                      <td className="py-2 text-xs font-bold text-slate-700">{item.item}</td>
-                      <td className="py-2 text-sm font-black text-slate-900 text-right">{item.qty} {item.unit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* 2. MATRIKS BoQ */}
+      <div className="bg-white rounded-md p-6 border border-slate-200 print:border-none print:p-0 space-y-4">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 border-b border-slate-200 pb-2 print:border-black print:text-black">
+          {t.p2_title}
+        </h2>
+
+        {boqData.length === 0 ? (
+          <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded print:hidden">
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Masukkan dimensi (L, W, H) untuk memuat kalkulasi.</p>
           </div>
-
-          {/* WARNING K3 & KESEHATAN (Sangat Tegas) */}
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden p-5 text-white">
-            <div className="flex items-center gap-3 border-b border-slate-700 pb-3 mb-4">
-              <span className="text-2xl">🚨</span>
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-wider text-red-400">Mandatory Rules: Working at Height</h2>
-                <p className="text-[11px] text-slate-400">Pekerjaan di atas 1.8 meter memiliki risiko jatuh fatal.</p>
-              </div>
-            </div>
-
-            <div className="space-y-5">
-              {/* APD Check */}
-              <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Peralatan Pelindung Diri (APD) Wajib:</p>
-                <div className="grid grid-cols-2 gap-3 text-xs font-bold text-slate-300">
-                  <div className="flex items-center gap-2">✓ Full Body Harness (Double Lanyard)</div>
-                  <div className="flex items-center gap-2">✓ Helm Safety dengan Chinstrap</div>
-                  <div className="flex items-center gap-2">✓ Sepatu Safety (Anti-Slip)</div>
-                  <div className="flex items-center gap-2">✓ Sarung Tangan Kerja</div>
-                </div>
-              </div>
-
-              {/* Health Check */}
-              <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-3">Deklarasi Fit to Work (Kesehatan Kesehatan):</p>
-                <div className="space-y-3">
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input type="checkbox" checked={safetyChecked} onChange={(e) => setSafetyChecked(e.target.checked)} className="mt-0.5 w-4 h-4 accent-emerald-500 rounded" />
-                    <span className="text-xs font-medium group-hover:text-emerald-400 transition">Teknisi telah dicek tekanan darahnya (Tensi Normal) dan menyatakan diri TIDAK memiliki riwayat Acrophobia (takut ketinggian) atau Vertigo.</span>
-                  </label>
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input type="checkbox" checked={healthChecked} onChange={(e) => setHealthChecked(e.target.checked)} className="mt-0.5 w-4 h-4 accent-emerald-500 rounded" />
-                    <span className="text-xs font-medium group-hover:text-emerald-400 transition">Teknisi sedang dalam kondisi prima (unfit / mengantuk / dalam pengaruh obat dilarang keras memanjat perancah).</span>
-                  </label>
-                </div>
-              </div>
-            </div>
+        ) : (
+          <div className="overflow-x-auto border-2 border-slate-200 print:border-black rounded-[4px] print:rounded-none">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100 border-b-2 border-slate-200 text-[9px] font-black uppercase tracking-widest text-slate-600 print:bg-white print:border-black print:text-black">
+                <tr>
+                  <th className="py-3 px-3 w-10 text-center">{t.th_no}</th>
+                  <th className="py-3 px-3 w-24 border-l-2 border-slate-200 print:border-black">{t.th_code}</th>
+                  <th className="py-3 px-3 w-1/3 border-l-2 border-slate-200 print:border-black">{t.th_item}</th>
+                  <th className="py-3 px-3 w-20 text-center border-l-2 border-slate-200 print:border-black">{t.th_qty}</th>
+                  <th className="py-3 px-3 w-20 text-center border-l-2 border-slate-200 print:border-black">{t.th_unit}</th>
+                  <th className="py-3 px-3 border-l-2 border-slate-200 print:border-black">{t.th_remark}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y-2 divide-slate-100 text-slate-900 print:divide-black">
+                {boqData.map((item, idx) => (
+                  <tr key={item.id} className="hover:bg-slate-50 print:hover:bg-white">
+                    <td className="py-3 px-3 text-center font-black text-slate-400 print:text-black">{idx + 1}</td>
+                    <td className="py-3 px-3 font-mono font-bold text-slate-500 border-l-2 border-slate-100 print:border-black print:text-black print:text-[10px]">
+                      {item.code}
+                    </td>
+                    <td className="py-3 px-3 font-black uppercase tracking-wider border-l-2 border-slate-100 print:border-black print:text-[10px]">
+                      {item.name}
+                    </td>
+                    <td className="py-3 px-3 text-center text-sm font-black text-teal-700 bg-teal-50 border-l-2 border-slate-100 print:border-black print:bg-transparent print:text-black">
+                      {item.qty}
+                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-[10px] uppercase border-l-2 border-slate-100 print:border-black">
+                      {item.unit}
+                    </td>
+                    <td className="py-3 px-3 font-medium text-[10px] leading-relaxed border-l-2 border-slate-100 print:border-black">
+                      {item.remarks}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        )}
 
-        </div>
-
-        {/* ================================================== */}
-        {/* DOKUMEN CETAK UTAMA (Panduan Teknisi Lapangan) */}
-        {/* ================================================== */}
-        <div className="hidden print:flex print:flex-row print:justify-between w-full text-black gap-8">
-          
-          {/* SISI KIRI: SCAFFTAG (Potong dan Gantung di Tangga Naik) */}
-          <div className={`w-[250px] shrink-0 border-4 border-black h-[550px] flex flex-col relative overflow-hidden bg-white`}>
-            
-            <div className={`text-center py-4 border-b-4 border-black ${tagStatus === 'GREEN' ? 'bg-emerald-500' : 'bg-red-600'} text-white !print:text-black`}>
-              <div className="w-5 h-5 bg-white rounded-full mx-auto mb-3 border-2 border-black"></div>
-              <h1 className="text-4xl font-black uppercase tracking-tighter mb-1">
-                {tagStatus === 'GREEN' ? 'SAFE' : 'DANGER'}
-              </h1>
-              <h2 className="text-sm font-bold uppercase tracking-widest">
-                {tagStatus === 'GREEN' ? 'FOR USE' : 'DO NOT USE'}
-              </h2>
-            </div>
-
-            {tagStatus === 'GREEN' ? (
-              <div className="flex-1 p-4 flex flex-col text-xs font-bold">
-                <p className="text-center text-[10px] uppercase mb-4 border-b-2 border-black pb-2">This scaffold is safe for use</p>
-                <div className="space-y-4 flex-1">
-                  <div><p className="text-[9px] uppercase text-gray-500">Location:</p><p className="border-b-2 border-black pb-1 uppercase">{location}</p></div>
-                  <div><p className="text-[9px] uppercase text-gray-500">Built Date:</p><p className="border-b-2 border-black pb-1">{buildDate}</p></div>
-                  <div><p className="text-[9px] uppercase text-gray-500">Duty / SWL:</p><p className="border-b-2 border-black pb-1 uppercase">{loadCapacity}</p></div>
-                  <div><p className="text-[9px] uppercase text-gray-500">Inspected By:</p><p className="border-b-2 border-black h-8 pt-2 uppercase">{inspectorName}</p></div>
-                </div>
-                <div className="border-2 border-black p-2 text-center mt-auto">
-                  <p className="text-[11px] font-black uppercase">Syspex Kemasindo</p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-6xl font-black mb-4">!</span>
-                <p className="text-lg font-black uppercase tracking-widest border-b-2 border-t-2 border-black py-2 mb-4">
-                  SCAFFOLD INCOMPLETE<br/>OR DEFECTIVE
-                </p>
-                <div className="mt-auto w-full text-left text-xs font-bold space-y-4">
-                  <div><p className="text-[9px] uppercase text-gray-500">Location:</p><p className="border-b-2 border-black pb-1 uppercase">{location}</p></div>
-                  <div><p className="text-[9px] uppercase text-gray-500">Tagged By:</p><p className="border-b-2 border-black h-6 uppercase">{inspectorName}</p></div>
-                </div>
-              </div>
-            )}
+        {/* TANDA TANGAN DOKUMEN CETAK */}
+        <div className="hidden print:grid grid-cols-3 gap-6 pt-12 mt-12 border-t-4 border-black">
+          <div className="text-center border-2 border-black p-4">
+            <p className="text-[9px] font-black text-black uppercase tracking-widest mb-16">{t.sign_req}</p>
+            <div className="w-3/4 mx-auto border-b-2 border-black"></div>
+            <p className="text-[10px] font-black mt-2 uppercase">{requestor}</p>
           </div>
-
-          {/* SISI KANAN: ERECTION PLAN & SAFETY CHECKLIST (Panduan Teknisi Lapangan) */}
-          <div className="flex-1 border-2 border-black p-6 flex flex-col h-[550px]">
-            <div className="border-b-2 border-black pb-4 mb-4">
-              <h1 className="text-2xl font-black uppercase tracking-widest">Erection Plan & Safety Checklist</h1>
-              <p className="text-[10px] font-bold uppercase text-gray-600">PT. Syspex Kemasindo - ASRS/Racking Installation</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-[10px] font-bold mb-4 bg-gray-100 p-2 border border-black">
-              <div>
-                <p><span className="text-gray-600 uppercase">Structure Type:</span> {scaffoldType}</p>
-                <p><span className="text-gray-600 uppercase">Dimension target:</span> {length}m (L) x {width}m (W) x {height}m (H)</p>
-              </div>
-              <div>
-                <p><span className="text-gray-600 uppercase">Location:</span> {location}</p>
-              </div>
-            </div>
-
-            <h3 className="text-xs font-black uppercase border-b-2 border-black mb-2 pb-1">Assembly Components Required</h3>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-6">
-              {components.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-[10px] font-bold border-b border-dashed border-gray-400 pb-1">
-                  <span>{item.item}</span>
-                  <span className="font-black">{item.qty} {item.unit}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Bagian Peringatan Safety (Dicetak Besar) */}
-            <h3 className="text-xs font-black uppercase border-b-2 border-black mb-2 pb-1 mt-auto">Working at Height (WAH) Clearance</h3>
-            
-            <div className="grid grid-cols-2 gap-4 text-[10px] mb-4">
-              <div className="border border-black p-2">
-                <p className="font-black uppercase mb-1 underline">Mandatory PPE:</p>
-                <ul className="list-disc pl-3 space-y-0.5">
-                  <li>Full Body Harness + Double Lanyard</li>
-                  <li>Safety Helmet with Chinstrap (Tali Dagu)</li>
-                  <li>Safety Shoes (Anti-Slip) & Gloves</li>
-                  <li className="font-black">Lanyard MUST BE HOOKED to strong structure above shoulder!</li>
-                </ul>
-              </div>
-              <div className="border border-black p-2 bg-gray-100">
-                <p className="font-black uppercase mb-1 underline">Health / Fit to Work:</p>
-                <ul className="list-disc pl-3 space-y-0.5 font-bold">
-                  <li>Normal Blood Pressure (Tensi Normal).</li>
-                  <li>No Acrophobia (Takut ketinggian).</li>
-                  <li>No Vertigo / Dizziness (Sakit kepala).</li>
-                  <li className="font-black text-red-600 !print:text-black uppercase">Unfit workers are strictly prohibited from climbing!</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-8 text-center text-[10px] font-bold border-t-2 border-black pt-4">
-              <div>
-                <p className="uppercase mb-8">Lead Technician / Scaffolder</p>
-                <div className="border-b border-black w-3/4 mx-auto mb-1"></div>
-                <p>Sign & Name</p>
-              </div>
-              <div>
-                <p className="uppercase mb-8">Cleared By (HSE/Supervisor)</p>
-                <div className="border-b border-black w-3/4 mx-auto mb-1"></div>
-                <p className="uppercase">{inspectorName}</p>
-              </div>
-            </div>
+          <div className="text-center border-2 border-black p-4 bg-slate-100">
+            <p className="text-[9px] font-black text-black uppercase tracking-widest mb-16">{t.sign_eng}</p>
+            <div className="w-3/4 mx-auto border-b-2 border-black"></div>
+            <p className="text-[10px] font-black mt-2 uppercase">Syspex Engineering Dept.</p>
           </div>
-
+          <div className="text-center border-2 border-black p-4">
+            <p className="text-[9px] font-black text-black uppercase tracking-widest mb-16">{t.sign_mgr}</p>
+            <div className="w-3/4 mx-auto border-b-2 border-black"></div>
+            <p className="text-[10px] font-black mt-2 uppercase">Project Manager</p>
+          </div>
         </div>
 
       </div>
