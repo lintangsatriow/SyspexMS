@@ -13,7 +13,7 @@ export default function HomePage() {
       desc: "Integrated workplace governance. Bridging statutory compliance, structural integrity, and executive visibility.",
       btn_kpi: "KPI Dashboard",
       btn_ai: "AI Copilot",
-      rules_title: "SYSPEX CORE SAFETY RULES",
+      rules_title: "SYSPEX SAFETY RULES",
       rules: [
         { id: 1, title: 'ENERGY ISOLATION', desc: 'Verify zero-energy state (LOTO)' },
         { id: 2, title: 'WORK AT HEIGHT', desc: '100% tie-off & scaffolding check' },
