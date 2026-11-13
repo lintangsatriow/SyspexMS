@@ -31,6 +31,7 @@ interface TargetConfig {
 type PeriodFilter = 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
 type YearFilter = number | 'ALL'
 type InfoModalType = 'HOURS' | 'DAYS' | null
+type EditableField = 'headcount' | 'manDays' | 'manHours' | 'lti' | 'spills' | 'recordableIncidents' | 'hazardReports'
 
 interface HoverTooltip {
   x: number
@@ -55,16 +56,18 @@ const TrendLineChart = ({
   maxTargets, 
   labels, 
   unit,
+  showBounds = false,
   isMultiYear,
   onOpenInfo,
   lang
 }: { 
   title: string
   data: number[]
-  minTargets: number[]
-  maxTargets: number[]
+  minTargets?: number[]
+  maxTargets?: number[]
   labels: string[]
   unit: string
+  showBounds?: boolean
   isMultiYear?: boolean
   onOpenInfo: () => void
   lang: 'ID' | 'EN'
@@ -89,6 +92,8 @@ const TrendLineChart = ({
     )
   }
 
+  const hasBounds = showBounds && minTargets && maxTargets && minTargets.length === data.length && maxTargets.length === data.length
+
   const padX = 48
   const padY = 40
   const width = 1000
@@ -96,17 +101,19 @@ const TrendLineChart = ({
   const plotWidth = width - padX * 2
   const plotHeight = height - padY * 2
 
-  const maxValue = Math.max(...data, ...maxTargets) * 1.15 
+  const maxValue = hasBounds 
+    ? Math.max(...data, ...maxTargets) * 1.15 
+    : Math.max(...data) * 1.15
+
   const mapY = (val: number) => padY + plotHeight - (val / (maxValue || 1)) * plotHeight
   const stepX = data.length > 1 ? plotWidth / (data.length - 1) : plotWidth / 2
   const getX = (i: number) => (data.length > 1 ? padX + i * stepX : padX + stepX)
 
   const points = data.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ')
-  const upperPoints = maxTargets.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ')
-  const lowerPoints = minTargets.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ')
+  const upperPoints = hasBounds ? maxTargets.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ') : ''
+  const lowerPoints = hasBounds ? minTargets.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ') : ''
 
-  // Polygon dinamis untuk Safe Zone mengikuti perubahan Headcount tiap bulan
-  const safeZonePolygon = data.length > 1
+  const safeZonePolygon = hasBounds && data.length > 1
     ? [
         ...maxTargets.map((val, i) => `${getX(i)},${mapY(val)}`),
         ...[...minTargets].reverse().map((val, revI) => {
@@ -116,12 +123,13 @@ const TrendLineChart = ({
       ].join(' ')
     : ''
 
-  const avgMin = minTargets.reduce((a, b) => a + b, 0) / minTargets.length
-  const avgMax = maxTargets.reduce((a, b) => a + b, 0) / maxTargets.length
+  const avgMin = hasBounds ? minTargets.reduce((a, b) => a + b, 0) / minTargets.length : 0
+  const avgMax = hasBounds ? maxTargets.reduce((a, b) => a + b, 0) / maxTargets.length : 0
+  const avgActual = data.reduce((a, b) => a + b, 0) / data.length
 
-  const upperLimitText = lang === 'ID' ? 'BATAS ATAS (OVERTIME +10%)' : 'UPPER LIMIT (OVERTIME +10%)'
-  const lowerLimitText = lang === 'ID' ? 'BATAS BAWAH (DOWNTIME -10%)' : 'LOWER LIMIT (DOWNTIME -10%)'
-  const safeZoneText = lang === 'ID' ? 'ZONA AMAN BERDASARKAN HEADCOUNT' : 'HEADCOUNT SAFE ZONE (±10%)'
+  const upperLimitText = lang === 'ID' ? 'BATAS ATAS: FATIGUE & OVERTIME (+10%)' : 'UPPER LIMIT: FATIGUE RISK (+10%)'
+  const lowerLimitText = lang === 'ID' ? 'BATAS BAWAH: LOW EXPOSURE / DOWNTIME (-10%)' : 'LOWER LIMIT: LOW EXPOSURE (-10%)'
+  const safeZoneText = lang === 'ID' ? 'ZONA NORMAL EKSPLORASI KERJA (±10%)' : 'NORMAL EXPOSURE ZONE (±10%)'
 
   return (
     <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-6 rounded-[4px] print:border-black print:bg-transparent transition-colors">
@@ -133,114 +141,170 @@ const TrendLineChart = ({
           </button>
         </div>
         <div className="text-right">
-          <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">AVG SAFE RANGE / MO</span>
-          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 font-mono">
-            {formatExact(avgMin)} - {formatExact(avgMax)} {unit}
-          </span>
+          {hasBounds ? (
+            <>
+              <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">NORMAL RANGE / MO</span>
+              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 font-mono">
+                {formatExact(avgMin)} - {formatExact(avgMax)} {unit}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">MONTHLY AVERAGE</span>
+              <span className="text-[10px] font-black text-teal-700 dark:text-teal-400 font-mono">
+                {formatExact(avgActual)} {unit} / MO
+              </span>
+            </>
+          )}
         </div>
       </div>
 
+      {/* LEGENDA KONTEKSTUAL */}
       <div className="flex flex-wrap gap-4 mb-3 text-[8px] font-black uppercase tracking-widest">
-        <div className="flex items-center gap-1.5">
-          <span className="w-4 border-t-2 border-dashed border-orange-500"></span>
-          <span className="text-orange-600 dark:text-orange-400">UPPER LIMIT (+10% HC)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-4 border-t-2 border-dashed border-rose-600"></span>
-          <span className="text-rose-600 dark:text-rose-400">LOWER LIMIT (-10% HC)</span>
-        </div>
+        {hasBounds ? (
+          <>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 border-t-2 border-dashed border-rose-600"></span>
+              <span className="text-rose-600 dark:text-rose-400">FATIGUE LIMIT (+10% HC)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 border-t-2 border-dashed border-orange-500"></span>
+              <span className="text-orange-600 dark:text-orange-400">LOW EXPOSURE (-10% HC)</span>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <span className="w-4 border-t-2 border-teal-600"></span>
+            <span className="text-slate-500 dark:text-slate-400">WORKFORCE PRESENCE BASELINE (NO LIMIT)</span>
+          </div>
+        )}
       </div>
       
       <div className="w-full overflow-hidden relative" onMouseLeave={() => setTooltip(null)}>
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
-          {/* Safe Zone Dinamis */}
-          {data.length > 1 ? (
-            <polygon
-              points={safeZonePolygon}
-              className="fill-emerald-50 dark:fill-emerald-950/30 print:fill-gray-100 cursor-crosshair transition-opacity hover:opacity-80"
-              onMouseEnter={() => setTooltip({
-                x: width / 2,
-                y: (mapY(avgMax) + mapY(avgMin)) / 2,
-                title: safeZoneText,
-                value: `AVG ${formatExact(avgMin)} - ${formatExact(avgMax)} ${unit}`,
-                statusColor: 'text-emerald-600 dark:text-emerald-400'
-              })}
-            />
-          ) : (
-            <rect
-              x={padX}
-              y={mapY(maxTargets[0])}
-              width={plotWidth}
-              height={Math.max(0, mapY(minTargets[0]) - mapY(maxTargets[0]))}
-              className="fill-emerald-50 dark:fill-emerald-950/30 print:fill-gray-100"
-            />
-          )}
-          
-          {/* Garis Batas Atas (Orange) */}
-          {data.length > 1 ? (
-            <g
-              className="cursor-pointer"
-              onMouseEnter={() => setTooltip({
-                x: width / 2,
-                y: mapY(avgMax),
-                title: upperLimitText,
-                value: `AVG MAX ${formatExact(avgMax)} ${unit}`,
-                statusColor: 'text-orange-600 dark:text-orange-400'
-              })}
-            >
-              <polyline points={upperPoints} fill="none" stroke="transparent" strokeWidth="14" />
-              <polyline points={upperPoints} fill="none" className="stroke-orange-500 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
-            </g>
-          ) : (
-            <line x1={padX} y1={mapY(maxTargets[0])} x2={width-padX} y2={mapY(maxTargets[0])} className="stroke-orange-500 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
-          )}
+          {hasBounds && (
+            <>
+              {/* Zona Normal */}
+              {data.length > 1 ? (
+                <polygon
+                  points={safeZonePolygon}
+                  className="fill-emerald-50 dark:fill-emerald-950/30 print:fill-gray-100 cursor-crosshair transition-opacity hover:opacity-80"
+                  onMouseEnter={() => setTooltip({
+                    x: width / 2,
+                    y: (mapY(avgMax) + mapY(avgMin)) / 2,
+                    title: safeZoneText,
+                    value: `AVG ${formatExact(avgMin)} - ${formatExact(avgMax)} ${unit}`,
+                    statusColor: 'text-emerald-600 dark:text-emerald-400'
+                  })}
+                />
+              ) : (
+                <rect
+                  x={padX}
+                  y={mapY(maxTargets[0])}
+                  width={plotWidth}
+                  height={Math.max(0, mapY(minTargets[0]) - mapY(maxTargets[0]))}
+                  className="fill-emerald-50 dark:fill-emerald-950/30 print:fill-gray-100"
+                />
+              )}
+              
+              {/* Garis Batas Atas (MERAH - Fatigue Risk) */}
+              {data.length > 1 ? (
+                <g
+                  className="cursor-pointer"
+                  onMouseEnter={() => setTooltip({
+                    x: width / 2,
+                    y: mapY(avgMax),
+                    title: upperLimitText,
+                    value: `AVG MAX ${formatExact(avgMax)} ${unit}`,
+                    statusColor: 'text-rose-600 dark:text-rose-400'
+                  })}
+                >
+                  <polyline points={upperPoints} fill="none" stroke="transparent" strokeWidth="14" />
+                  <polyline points={upperPoints} fill="none" className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+                </g>
+              ) : (
+                <line x1={padX} y1={mapY(maxTargets[0])} x2={width-padX} y2={mapY(maxTargets[0])} className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+              )}
 
-          {/* Garis Batas Bawah (Merah) */}
-          {data.length > 1 ? (
-            <g
-              className="cursor-pointer"
-              onMouseEnter={() => setTooltip({
-                x: width / 2,
-                y: mapY(avgMin),
-                title: lowerLimitText,
-                value: `AVG MIN ${formatExact(avgMin)} ${unit}`,
-                statusColor: 'text-rose-600 dark:text-rose-400'
-              })}
-            >
-              <polyline points={lowerPoints} fill="none" stroke="transparent" strokeWidth="14" />
-              <polyline points={lowerPoints} fill="none" className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
-            </g>
-          ) : (
-            <line x1={padX} y1={mapY(minTargets[0])} x2={width-padX} y2={mapY(minTargets[0])} className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+              {/* Garis Batas Bawah (ORANYE - Low Exposure / Downtime) */}
+              {data.length > 1 ? (
+                <g
+                  className="cursor-pointer"
+                  onMouseEnter={() => setTooltip({
+                    x: width / 2,
+                    y: mapY(avgMin),
+                    title: lowerLimitText,
+                    value: `AVG MIN ${formatExact(avgMin)} ${unit}`,
+                    statusColor: 'text-orange-600 dark:text-orange-400'
+                  })}
+                >
+                  <polyline points={lowerPoints} fill="none" stroke="transparent" strokeWidth="14" />
+                  <polyline points={lowerPoints} fill="none" className="stroke-orange-500 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+                </g>
+              ) : (
+                <line x1={padX} y1={mapY(minTargets[0])} x2={width-padX} y2={mapY(minTargets[0])} className="stroke-orange-500 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+              )}
+            </>
           )}
 
           {/* Garis Tren Aktual */}
           {data.length > 1 && (
-            <polyline points={points} fill="none" className="stroke-slate-800 dark:stroke-slate-200 print:stroke-black pointer-events-none" strokeWidth="2.5" />
+            <polyline 
+              points={points} 
+              fill="none" 
+              className={`${hasBounds ? 'stroke-slate-800 dark:stroke-slate-200' : 'stroke-teal-700 dark:stroke-teal-400'} print:stroke-black pointer-events-none`} 
+              strokeWidth="2.5" 
+            />
           )}
 
           {/* Titik Data Bulanan */}
           {data.map((val, i) => {
             const cx = getX(i)
             const cy = mapY(val)
+
+            if (!hasBounds) {
+              return (
+                <g 
+                  key={i} 
+                  className="cursor-pointer"
+                  onMouseEnter={() => setTooltip({
+                    x: cx,
+                    y: cy,
+                    title: labels[i],
+                    value: `${formatExact(val)} ${unit}`,
+                    statusColor: 'text-teal-700 dark:text-teal-400'
+                  })}
+                >
+                  <circle cx={cx} cy={cy} r="14" fill="transparent" />
+                  <circle 
+                    cx={cx} 
+                    cy={cy} 
+                    r={isMultiYear ? "4.5" : "6"} 
+                    className="fill-teal-700 dark:fill-teal-400 stroke-white dark:stroke-[#0b0f19] print:fill-black print:stroke-white transition-transform duration-150 hover:scale-150" 
+                    strokeWidth="2" 
+                  />
+                </g>
+              )
+            }
+
             const curMin = minTargets[i]
             const curMax = maxTargets[i]
             const isOver = val > curMax
             const isUnder = val < curMin
             
             const pointClass = isOver 
-              ? "fill-orange-500 print:fill-gray-600" 
+              ? "fill-rose-600 print:fill-gray-600" 
               : isUnder 
-              ? "fill-rose-600 print:fill-gray-400" 
+              ? "fill-orange-500 print:fill-gray-400" 
               : "fill-emerald-500 print:fill-black"
 
             const statusColor = isOver 
-              ? "text-orange-600 dark:text-orange-400" 
-              : isUnder 
               ? "text-rose-600 dark:text-rose-400" 
+              : isUnder 
+              ? "text-orange-600 dark:text-orange-400" 
               : "text-emerald-600 dark:text-emerald-400"
 
-            const statusTag = isOver ? ' (OVER LIMIT)' : isUnder ? ' (BELOW LIMIT)' : ' (IN SAFE ZONE)'
+            const statusTag = isOver ? ' (FATIGUE RISK)' : isUnder ? ' (LOW EXPOSURE)' : ' (NORMAL)'
 
             return (
               <g 
@@ -250,7 +314,7 @@ const TrendLineChart = ({
                   x: cx,
                   y: cy,
                   title: `${labels[i]}${statusTag}`,
-                  value: `${formatExact(val)} ${unit} [SAFE: ${formatExact(curMin)}-${formatExact(curMax)}]`,
+                  value: `${formatExact(val)} ${unit} [NORMAL: ${formatExact(curMin)}-${formatExact(curMax)}]`,
                   statusColor
                 })}
               >
@@ -312,7 +376,6 @@ export default function KpiDashboardPage() {
   const [targets, setTargets] = useState<TargetConfig>(DEFAULT_TARGETS)
   const [showTargetConfig, setShowTargetConfig] = useState(false)
 
-  // State Tab Tahun di Tabel Histori (maksimal 12 baris per tahun)
   const [tableYearTab, setTableYearTab] = useState<number>(currentYear)
   
   // State Form Tambah Baru
@@ -326,25 +389,9 @@ export default function KpiDashboardPage() {
   const [inputIncidents, setInputIncidents] = useState<number | ''>(0)
   const [inputHazards, setInputHazards] = useState<number | ''>(0)
 
-  // State Inline Edit (langsung di baris tabel)
-  const [inlineEditId, setInlineEditId] = useState<string | null>(null)
-  const [editRowData, setEditRowData] = useState<{
-    headcount: number
-    manDays: number
-    manHours: number
-    lti: number
-    spills: number
-    recordableIncidents: number
-    hazardReports: number
-  }>({
-    headcount: 0,
-    manDays: 0,
-    manHours: 0,
-    lti: 0,
-    spills: 0,
-    recordableIncidents: 0,
-    hazardReports: 0
-  })
+  // State Click-to-Edit Sel Langsung
+  const [editingCell, setEditingCell] = useState<{ id: string; field: EditableField } | null>(null)
+  const [cellDraftValue, setCellDraftValue] = useState<string>('')
 
   const [activeInfoModal, setActiveInfoModal] = useState<InfoModalType>(null)
 
@@ -365,7 +412,7 @@ export default function KpiDashboardPage() {
       if (e.key === 'Escape') {
         setActiveInfoModal(null)
         setShowTargetConfig(false)
-        setInlineEditId(null)
+        setEditingCell(null)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -383,7 +430,12 @@ export default function KpiDashboardPage() {
     localStorage.setItem('syspex_hse_targets', JSON.stringify(updated))
   }
 
-  // Simpan entri bulan baru
+  const getMonthFullName = (monthNum: number) => {
+    return new Date(2000, monthNum - 1)
+      .toLocaleString(lang === 'ID' ? 'id-ID' : 'en-US', { month: 'long' })
+      .toUpperCase()
+  }
+
   const handleAddNewRecord = (e: React.FormEvent) => {
     e.preventDefault()
     if (inputManHours === '' || inputManDays === '' || inputHeadcount === '') return
@@ -422,44 +474,34 @@ export default function KpiDashboardPage() {
     setInputHazards(0)
   }
 
-  // Mulai Inline Edit di baris tabel
-  const startInlineEdit = (record: HseRecord) => {
-    setInlineEditId(record.id)
-    setEditRowData({
-      headcount: record.headcount ?? targets.defaultHeadcount,
-      manDays: record.manDays || 0,
-      manHours: record.manHours,
-      lti: record.lti,
-      spills: record.spills,
-      recordableIncidents: record.recordableIncidents,
-      hazardReports: record.hazardReports
-    })
+  // Mulai edit sel langsung saat diklik
+  const startCellEdit = (record: HseRecord, field: EditableField) => {
+    const currentVal = field === 'headcount'
+      ? (record.headcount ?? targets.defaultHeadcount)
+      : (record[field] ?? 0)
+    setEditingCell({ id: record.id, field })
+    setCellDraftValue(String(currentVal))
   }
 
-  // Simpan hasil Inline Edit
-  const saveInlineEdit = (id: string) => {
+  // Auto-save saat selesai mengetik (onBlur atau Enter)
+  const commitCellEdit = () => {
+    if (!editingCell) return
+    const parsed = Number(cellDraftValue)
+    const cleanValue = isNaN(parsed) || parsed < 0 ? 0 : parsed
+
     const updatedRecords = records.map(r => {
-      if (r.id === id) {
-        return {
-          ...r,
-          headcount: Number(editRowData.headcount) || 0,
-          manDays: Number(editRowData.manDays) || 0,
-          manHours: Number(editRowData.manHours) || 0,
-          lti: Number(editRowData.lti) || 0,
-          spills: Number(editRowData.spills) || 0,
-          recordableIncidents: Number(editRowData.recordableIncidents) || 0,
-          hazardReports: Number(editRowData.hazardReports) || 0
-        }
+      if (r.id === editingCell.id) {
+        return { ...r, [editingCell.field]: cleanValue }
       }
       return r
     })
     saveRecords(updatedRecords)
-    setInlineEditId(null)
+    setEditingCell(null)
   }
 
   const handleDeleteRecord = (id: string) => {
     saveRecords(records.filter(r => r.id !== id))
-    if (inlineEditId === id) setInlineEditId(null)
+    if (editingCell?.id === id) setEditingCell(null)
   }
 
   const availableYears = useMemo(() => {
@@ -468,7 +510,6 @@ export default function KpiDashboardPage() {
     return Array.from(yearsSet).sort((a, b) => a - b)
   }, [records, currentYear])
 
-  // Record khusus untuk tab tahun yang sedang dipilih di tabel (maksimal 12 baris)
   const tableYearRecords = useMemo(() => {
     return records
       .filter(r => r.year === tableYearTab)
@@ -506,16 +547,6 @@ export default function KpiDashboardPage() {
     const chartManHours = sortedRecords.map(r => r.manHours)
     const chartManDays = sortedRecords.map(r => r.manDays || 0)
 
-    // Kalkulasi Target Dinamis per Bulan berdasarkan Headcount masing-masing bulan (±10% toleransi)
-    const minManDaysTargets = sortedRecords.map(r => {
-      const hc = r.headcount && r.headcount > 0 ? r.headcount : targets.defaultHeadcount
-      return Math.round(hc * targets.workingDaysPerMonth * 0.9)
-    })
-    const maxManDaysTargets = sortedRecords.map(r => {
-      const hc = r.headcount && r.headcount > 0 ? r.headcount : targets.defaultHeadcount
-      return Math.round(hc * targets.workingDaysPerMonth * 1.1)
-    })
-
     const minManHoursTargets = sortedRecords.map(r => {
       const hc = r.headcount && r.headcount > 0 ? r.headcount : targets.defaultHeadcount
       return Math.round(hc * targets.hoursPerDay * targets.workingDaysPerMonth * 0.9)
@@ -525,14 +556,12 @@ export default function KpiDashboardPage() {
       return Math.round(hc * targets.hoursPerDay * targets.workingDaysPerMonth * 1.1)
     })
 
-    const periodTargetManDays = minManDaysTargets.reduce((a, b) => a + b, 0)
     const periodTargetManHours = minManHoursTargets.reduce((a, b) => a + b, 0)
 
     return { 
       totalLti, totalSpills, totalManDays, totalManHours, 
       trir, trirNum, chartLabels, chartManHours, chartManDays,
-      minManDaysTargets, maxManDaysTargets, minManHoursTargets, maxManHoursTargets,
-      periodTargetManHours, periodTargetManDays
+      minManHoursTargets, maxManHoursTargets, periodTargetManHours
     }
   }, [records, selectedYear, selectedPeriod, targets, lang])
 
@@ -575,23 +604,22 @@ export default function KpiDashboardPage() {
       sign_hse: "Dianalisa Oleh (HSE Supervisor):",
       sign_gm: "Diketahui Oleh (Director):",
 
-      info_hours_title: "Panduan Tren Jam Kerja (Man-Hours) & Toleransi",
-      info_hours_q1: "1. Relevansi Man-Hours dengan K3L & Batas Toleransi",
-      info_hours_b1: "Indikator Eksposur Risiko (Denominator TRIR): Semakin besar jam kerja, semakin lama pekerja terpapar risiko di lapangan. 1 insiden dalam 1,000 jam kerja sangat buruk, namun 1 insiden dalam 1,000,000 jam kerja menunjukkan tingkat keselamatan tinggi.",
-      info_hours_b2: "Batas Atas Oranye (Fatigue & Overtime Limit +10%): Jika grafik menembus batas atas oranye, artinya terjadi lembur ekstrem di atas kapasitas normal Headcount bulan tersebut. Pekerja yang kelelahan berisiko tinggi mengalami kecelakaan kerja.",
-      info_hours_b3: "Batas Bawah Merah (Downtime & Absenteeism -10%): Jika grafik jatuh di bawah garis merah, menandakan tingginya absensi pekerja atau terhentinya jam operasional mesin.",
-      info_hours_q2: "2. Rumus Target Dinamis Per Bulan",
+      info_hours_title: "Panduan Tren Jam Kerja (Man-Hours) & Fatigue Limit",
+      info_hours_q1: "1. Relevansi Man-Hours dengan Kinerja HSE",
+      info_hours_b1: "Indikator Eksposur Risiko (Denominator TRIR): Man-Hours mengukur total durasi paparan bahaya pekerja di lapangan. 1 insiden dalam 1,000 jam kerja menandakan risiko tinggi, sedangkan 1 insiden dalam 1,000,000 jam kerja membuktikan keandalan sistem K3L.",
+      info_hours_b2: "Batas Atas Merah (Fatigue & Overtime Risk +10%): Jika grafik menembus garis merah, terjadi lembur berlebih di atas kapasitas Headcount bulan tersebut. Kelelahan fisik secara langsung meningkatkan potensi kecelakaan kerja.",
+      info_hours_b3: "Batas Bawah Oranye (Low Exposure / Downtime -10%): Jika grafik berada di bawah garis oranye, jam kerja sedang rendah akibat libur, penurunan produksi, atau absensi (bukan pelanggaran HSE, melainkan catatan volume paparan).",
+      info_hours_q2: "2. Rumus Zona Normal Man-Hours",
       info_hours_formula: "Headcount Bulan Tersebut x Jam Kerja/Hari x Hari Kerja Efektif (±10%)",
-      info_hours_ex: "Contoh: 110 karyawan x 8 jam x 22 hari kerja = 19,360 Man-Hours (Zona Aman: 17,424 – 21,296 HRS).",
+      info_hours_ex: "Contoh: 110 karyawan x 8 jam x 22 hari kerja = 19,360 Man-Hours (Zona Normal: 17,424 – 21,296 HRS).",
 
-      info_days_title: "Panduan Tren Hari Kerja (Man-Days) & Toleransi",
-      info_days_q1: "1. Relevansi Man-Days dengan K3L & Batas Toleransi",
-      info_days_b1: "Kepadatan Kehadiran Lapangan: Mengukur total akumulasi hari kerja aktif seluruh personel dalam satu bulan untuk memantau konsistensi kehadiran operasional.",
-      info_days_b2: "Batas Atas Oranye (Over-Scheduling +10%): Jika grafik menembus garis oranye, menandakan banyak pekerja masuk pada hari libur atau shift tambahan tanpa waktu istirahat memadai.",
-      info_days_b3: "Batas Bawah Merah (High Absenteeism -10%): Jika grafik jatuh di bawah garis merah, menandakan tingkat ketidakhadiran (sakit/izin/alfa) yang tinggi atau penghentian operasi pabrik.",
-      info_days_q2: "2. Rumus Target Dinamis Per Bulan",
-      info_days_formula: "Headcount Bulan Tersebut x Jumlah Hari Kerja Efektif Sebulan (±10%)",
-      info_days_ex: "Contoh: 110 karyawan x 22 hari kerja = 2,420 Man-Days (Zona Aman: 2,178 – 2,662 DAYS).",
+      info_days_title: "Panduan Tren Hari Kerja (Man-Days)",
+      info_days_q1: "1. Relevansi Man-Days dengan Kinerja HSE",
+      info_days_b1: "Baseline Kehadiran Tenaga Kerja: Man-Days merekam akumulasi hari kerja aktif seluruh personel untuk memantau kepadatan operasional dari bulan ke bulan.",
+      info_days_b2: "Mengapa Tanpa Batas Atas/Bawah? Berbeda dengan jam lembur (Man-Hours) yang memicu kelelahan fisik, fluktuasi hari kerja bulanan dipengaruhi kalender kerja dan jadwal operasional sehingga ditampilkan sebagai tren historis murni tanpa alarm palsu.",
+      info_days_q2: "2. Rumus Referensi Man-Days",
+      info_days_formula: "Headcount Bulan Tersebut x Jumlah Hari Kerja Efektif Sebulan",
+      info_days_ex: "Contoh: 110 karyawan x 22 hari kerja = 2,420 Man-Days.",
 
       btn_close: "Tutup"
     },
@@ -629,23 +657,22 @@ export default function KpiDashboardPage() {
       sign_hse: "Analyzed By (HSE Supervisor):",
       sign_gm: "Acknowledged By (Director):",
 
-      info_hours_title: "Man-Hours Trend & Tolerance Guide",
-      info_hours_q1: "1. Relevance to HSE & Tolerance Limits",
-      info_hours_b1: "Risk Exposure Denominator: Higher working hours mean longer exposure to field hazards. 1 incident in 1,000 hours is critical, whereas 1 incident in 1,000,000 hours demonstrates strong safety performance.",
-      info_hours_b2: "Orange Upper Limit (Fatigue & Overtime +10%): Breaching this line indicates extreme overtime beyond the month's Headcount capacity. Exhausted workers face elevated accident risks.",
-      info_hours_b3: "Red Lower Limit (Downtime & Absenteeism -10%): Falling below this line signals high absenteeism or unplanned operational downtime.",
-      info_hours_q2: "2. Dynamic Monthly Target Formula",
+      info_hours_title: "Man-Hours Trend & Fatigue Limit Guide",
+      info_hours_q1: "1. Relevance of Man-Hours to HSE Performance",
+      info_hours_b1: "Risk Exposure Denominator (TRIR): Measures total worker exposure duration to field hazards. 1 incident in 1,000 hours signals high risk, while 1 incident in 1,000,000 hours demonstrates strong safety control.",
+      info_hours_b2: "Red Upper Limit (Fatigue & Overtime Risk +10%): Breaching the red line indicates excessive overtime beyond the month's Headcount capacity, elevating physical fatigue and accident risks.",
+      info_hours_b3: "Orange Lower Limit (Low Exposure / Downtime -10%): Falling below the orange line indicates reduced working hours due to holidays or lower production volume (an exposure note, not an HSE failure).",
+      info_hours_q2: "2. Normal Man-Hours Zone Formula",
       info_hours_formula: "Monthly Headcount x Hours/Day x Effective Working Days (±10%)",
-      info_hours_ex: "Example: 110 employees x 8 hours x 22 days = 19,360 Man-Hours (Safe Zone: 17,424 – 21,296 HRS).",
+      info_hours_ex: "Example: 110 employees x 8 hours x 22 days = 19,360 Man-Hours (Normal Zone: 17,424 – 21,296 HRS).",
 
-      info_days_title: "Man-Days Trend & Tolerance Guide",
-      info_days_q1: "1. Relevance to HSE & Tolerance Limits",
-      info_days_b1: "Workforce Presence Density: Tracks total active working days across all personnel per month to monitor operational attendance consistency.",
-      info_days_b2: "Orange Upper Limit (Rest-Day Work +10%): Breaching this line indicates personnel working on scheduled off-days or double shifts without adequate recovery.",
-      info_days_b3: "Red Lower Limit (High Absenteeism -10%): Falling below this line indicates elevated sick leave, absence rates, or plant shutdowns.",
-      info_days_q2: "2. Dynamic Monthly Target Formula",
-      info_days_formula: "Monthly Headcount x Effective Working Days per Month (±10%)",
-      info_days_ex: "Example: 110 employees x 22 days = 2,420 Man-Days (Safe Zone: 2,178 – 2,662 DAYS).",
+      info_days_title: "Man-Days Trend Guide",
+      info_days_q1: "1. Relevance of Man-Days to HSE Performance",
+      info_days_b1: "Workforce Presence Baseline: Tracks accumulated active working days across all personnel to monitor monthly operational density.",
+      info_days_b2: "Why No Upper/Lower Limits? Unlike overtime hours (Man-Hours) which directly impact worker fatigue, monthly working-day variations follow calendar schedules and are displayed as a clean historical trend without false alarms.",
+      info_days_q2: "2. Man-Days Reference Formula",
+      info_days_formula: "Monthly Headcount x Effective Working Days per Month",
+      info_days_ex: "Example: 110 employees x 22 days = 2,420 Man-Days.",
 
       btn_close: "Close"
     }
@@ -707,7 +734,7 @@ export default function KpiDashboardPage() {
           <div className="mb-4 p-4 bg-slate-100 dark:bg-slate-900 border-2 border-teal-600/50 rounded-[4px]">
             <div className="flex justify-between items-center mb-3">
               <span className="text-[9px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400">
-                PARAMETER KALKULASI OTOMATIS ZONA AMAN (±10% DARI HEADCOUNT BULANAN)
+                PARAMETER KALKULASI OTOMATIS ZONA NORMAL MAN-HOURS (±10% DARI HEADCOUNT BULANAN)
               </span>
               <button onClick={() => setShowTargetConfig(false)} className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer">
                 [X]
@@ -806,7 +833,7 @@ export default function KpiDashboardPage() {
               <span className="text-[9px] font-bold text-slate-400 mb-1">DAYS</span>
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:text-black">
-              MIN. BASELINE: &gt; {filteredData.periodTargetManDays.toLocaleString('en-US')} DAYS
+              ACCUMULATED WORKFORCE EXPOSURE
             </p>
           </div>
 
@@ -861,7 +888,7 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* DUA GRAFIK TREN TERPISAH DENGAN ZONA AMAN DINAMIS */}
+      {/* DUA GRAFIK TREN TERPISAH: MAN-HOURS (DENGAN BATAS) & MAN-DAYS (CLEAN) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
         <TrendLineChart 
           title={t.chart_title_mhrs} 
@@ -870,6 +897,7 @@ export default function KpiDashboardPage() {
           maxTargets={filteredData.maxManHoursTargets}
           labels={filteredData.chartLabels}
           unit="HRS"
+          showBounds={true}
           isMultiYear={selectedYear === 'ALL'}
           onOpenInfo={() => setActiveInfoModal('HOURS')}
           lang={lang}
@@ -877,10 +905,9 @@ export default function KpiDashboardPage() {
         <TrendLineChart 
           title={t.chart_title_mdys} 
           data={filteredData.chartManDays} 
-          minTargets={filteredData.minManDaysTargets}
-          maxTargets={filteredData.maxManDaysTargets}
           labels={filteredData.chartLabels}
           unit="DAYS"
+          showBounds={false}
           isMultiYear={selectedYear === 'ALL'}
           onOpenInfo={() => setActiveInfoModal('DAYS')}
           lang={lang}
@@ -901,7 +928,7 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* DATABASE INPUT & TABEL RINGKAS (MAKSIMAL 12 BARIS PER TAB TAHUN + INLINE EDIT) */}
+      {/* DATABASE INPUT & TABEL RINGKAS (CLICK-TO-EDIT + FULL MONTH NAME + TRASH ICON) */}
       <div className="mt-12 print:hidden">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
@@ -922,7 +949,9 @@ export default function KpiDashboardPage() {
             <div>
               <label htmlFor={`${formId}-m`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_m}</label>
               <select id={`${formId}-m`} value={inputMonth} onChange={e=>setInputMonth(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500 cursor-pointer">
-                {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <option key={m} value={m}>{m}</option>)}
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                  <option key={m} value={m}>{getMonthFullName(m)}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -972,7 +1001,7 @@ export default function KpiDashboardPage() {
                     type="button"
                     onClick={() => {
                       setTableYearTab(yr)
-                      setInlineEditId(null)
+                      setEditingCell(null)
                     }}
                     className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-[2px] transition-colors cursor-pointer ${
                       isActive 
@@ -986,16 +1015,16 @@ export default function KpiDashboardPage() {
               })}
             </div>
             <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">
-              KLIK EDIT UNTUK REVISI LANGSUNG DI BARIS
+              KLIK ANGKA UNTUK EDIT OTOMATIS (ENTER / KLIK LUAR UNTUK SIMPAN)
             </span>
           </div>
 
-          {/* TABEL HISTORI DENGAN INLINE EDITING */}
+          {/* TABEL HISTORI DENGAN DIRECT CLICK-TO-EDIT */}
           <div className="mt-3 border border-slate-300 dark:border-slate-700 rounded-[2px] overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-200 dark:bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
                 <tr>
-                  <th className="py-2 px-3 w-24">PERIOD</th>
+                  <th className="py-2 px-3 w-32">MONTH</th>
                   <th className="py-2 px-3">HEADCOUNT</th>
                   <th className="py-2 px-3">M-DAYS</th>
                   <th className="py-2 px-3">M-HOURS</th>
@@ -1003,7 +1032,7 @@ export default function KpiDashboardPage() {
                   <th className="py-2 px-3">SPILLS</th>
                   <th className="py-2 px-3">INCIDENTS</th>
                   <th className="py-2 px-3">HAZARDS</th>
-                  <th className="py-2 px-3 text-center w-28">ACT</th>
+                  <th className="py-2 px-3 text-center w-14">DEL</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300">
@@ -1013,102 +1042,84 @@ export default function KpiDashboardPage() {
                   </tr>
                 ) : (
                   tableYearRecords.map(r => {
-                    const isEditing = inlineEditId === r.id
+                    const renderEditableCell = (
+                      field: EditableField, 
+                      displayContent: React.ReactNode, 
+                      textColorClass = ''
+                    ) => {
+                      const isEditingThis = editingCell?.id === r.id && editingCell?.field === field
+                      if (isEditingThis) {
+                        return (
+                          <input
+                            type="number"
+                            min="0"
+                            autoFocus
+                            aria-label={`Edit ${field}`}
+                            value={cellDraftValue}
+                            onChange={e => setCellDraftValue(e.target.value)}
+                            onBlur={commitCellEdit}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') commitCellEdit()
+                              if (e.key === 'Escape') setEditingCell(null)
+                            }}
+                            className="w-24 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-950 border-2 border-teal-500 rounded-[2px] focus:outline-none"
+                          />
+                        )
+                      }
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => startCellEdit(r, field)}
+                          title="Klik untuk edit"
+                          className={`text-left font-mono px-1.5 py-0.5 -ml-1.5 rounded-[2px] border border-transparent hover:border-slate-300 dark:hover:border-slate-600 hover:bg-white dark:hover:bg-slate-900 transition-colors cursor-pointer ${textColorClass}`}
+                        >
+                          {displayContent}
+                        </button>
+                      )
+                    }
+
                     return (
-                      <tr key={r.id} className={`transition-colors ${isEditing ? 'bg-amber-50 dark:bg-amber-950/30' : 'hover:bg-white dark:hover:bg-slate-950'}`}>
-                        <td className="py-2 px-3 font-mono">{r.year} - M{r.month.toString().padStart(2, '0')}</td>
-                        
-                        {isEditing ? (
-                          <>
-                            <td className="py-1.5 px-2">
-                              <input
-                                type="number"
-                                aria-label="Edit Headcount"
-                                value={editRowData.headcount}
-                                onChange={e => setEditRowData({ ...editRowData, headcount: Number(e.target.value) })}
-                                className="w-20 px-1.5 py-1 text-[10px] font-mono bg-white dark:bg-slate-950 border border-amber-500 rounded-[2px]"
-                              />
-                            </td>
-                            <td className="py-1.5 px-2">
-                              <input
-                                type="number"
-                                aria-label="Edit Man-Days"
-                                value={editRowData.manDays}
-                                onChange={e => setEditRowData({ ...editRowData, manDays: Number(e.target.value) })}
-                                className="w-24 px-1.5 py-1 text-[10px] font-mono bg-white dark:bg-slate-950 border border-amber-500 rounded-[2px]"
-                              />
-                            </td>
-                            <td className="py-1.5 px-2">
-                              <input
-                                type="number"
-                                aria-label="Edit Man-Hours"
-                                value={editRowData.manHours}
-                                onChange={e => setEditRowData({ ...editRowData, manHours: Number(e.target.value) })}
-                                className="w-24 px-1.5 py-1 text-[10px] font-mono bg-white dark:bg-slate-950 border border-amber-500 rounded-[2px]"
-                              />
-                            </td>
-                            <td className="py-1.5 px-2">
-                              <input
-                                type="number"
-                                min="0"
-                                aria-label="Edit LTI"
-                                value={editRowData.lti}
-                                onChange={e => setEditRowData({ ...editRowData, lti: Number(e.target.value) })}
-                                className="w-14 px-1.5 py-1 text-[10px] font-mono bg-white dark:bg-slate-950 border border-amber-500 rounded-[2px]"
-                              />
-                            </td>
-                            <td className="py-1.5 px-2">
-                              <input
-                                type="number"
-                                min="0"
-                                aria-label="Edit Spills"
-                                value={editRowData.spills}
-                                onChange={e => setEditRowData({ ...editRowData, spills: Number(e.target.value) })}
-                                className="w-14 px-1.5 py-1 text-[10px] font-mono bg-white dark:bg-slate-950 border border-amber-500 rounded-[2px]"
-                              />
-                            </td>
-                            <td className="py-1.5 px-2">
-                              <input
-                                type="number"
-                                min="0"
-                                aria-label="Edit Incidents"
-                                value={editRowData.recordableIncidents}
-                                onChange={e => setEditRowData({ ...editRowData, recordableIncidents: Number(e.target.value) })}
-                                className="w-14 px-1.5 py-1 text-[10px] font-mono bg-white dark:bg-slate-950 border border-amber-500 rounded-[2px]"
-                              />
-                            </td>
-                            <td className="py-1.5 px-2">
-                              <input
-                                type="number"
-                                min="0"
-                                aria-label="Edit Hazards"
-                                value={editRowData.hazardReports}
-                                onChange={e => setEditRowData({ ...editRowData, hazardReports: Number(e.target.value) })}
-                                className="w-14 px-1.5 py-1 text-[10px] font-mono bg-white dark:bg-slate-950 border border-amber-500 rounded-[2px]"
-                              />
-                            </td>
-                            <td className="py-1.5 px-2 text-center flex justify-center gap-1">
-                              <button onClick={() => saveInlineEdit(r.id)} aria-label="Save row" className="text-[8px] font-black uppercase bg-emerald-600 text-white px-1.5 py-1 rounded-[2px] hover:bg-emerald-500 cursor-pointer">SAVE</button>
-                              <button onClick={() => setInlineEditId(null)} aria-label="Cancel row edit" className="text-[8px] font-black uppercase bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1.5 py-1 rounded-[2px] hover:bg-slate-400 cursor-pointer">ESC</button>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="py-2 px-3 font-mono text-teal-700 dark:text-teal-400">
-                              {r.headcount ? r.headcount.toLocaleString('en-US') : <span className="text-slate-400">-{targets.defaultHeadcount}-</span>}
-                            </td>
-                            <td className="py-2 px-3 font-mono">{(r.manDays || 0).toLocaleString('en-US')}</td>
-                            <td className="py-2 px-3 font-mono">{r.manHours.toLocaleString('en-US')}</td>
-                            <td className="py-2 px-3 font-mono">{r.lti}</td>
-                            <td className="py-2 px-3 font-mono">{r.spills}</td>
-                            <td className="py-2 px-3 font-mono text-rose-600 dark:text-rose-400">{r.recordableIncidents}</td>
-                            <td className="py-2 px-3 font-mono text-teal-600 dark:text-teal-400">{r.hazardReports}</td>
-                            <td className="py-2 px-3 text-center flex justify-center gap-1.5">
-                              <button onClick={() => startInlineEdit(r)} aria-label="Edit record" className="text-[8px] font-black uppercase text-blue-600 dark:text-blue-500 hover:text-blue-700 border border-transparent hover:border-blue-300 dark:hover:border-blue-800 rounded px-1.5 py-0.5 transition-colors cursor-pointer">EDIT</button>
-                              <button onClick={() => handleDeleteRecord(r.id)} aria-label="Delete record" className="text-[8px] font-black uppercase text-rose-500 hover:text-rose-700 border border-transparent hover:border-rose-300 dark:hover:border-rose-900 rounded px-1.5 py-0.5 transition-colors cursor-pointer">DEL</button>
-                            </td>
-                          </>
-                        )}
+                      <tr key={r.id} className="hover:bg-white/60 dark:hover:bg-slate-950/60 transition-colors">
+                        <td className="py-2 px-3 font-black tracking-wider text-slate-900 dark:text-slate-100">
+                          {getMonthFullName(r.month)}
+                        </td>
+                        <td className="py-1.5 px-3">
+                          {renderEditableCell(
+                            'headcount',
+                            r.headcount ? r.headcount.toLocaleString('en-US') : <span className="text-slate-400">-{targets.defaultHeadcount}-</span>,
+                            'text-teal-700 dark:text-teal-400'
+                          )}
+                        </td>
+                        <td className="py-1.5 px-3">
+                          {renderEditableCell('manDays', (r.manDays || 0).toLocaleString('en-US'))}
+                        </td>
+                        <td className="py-1.5 px-3">
+                          {renderEditableCell('manHours', r.manHours.toLocaleString('en-US'))}
+                        </td>
+                        <td className="py-1.5 px-3">
+                          {renderEditableCell('lti', r.lti)}
+                        </td>
+                        <td className="py-1.5 px-3">
+                          {renderEditableCell('spills', r.spills)}
+                        </td>
+                        <td className="py-1.5 px-3">
+                          {renderEditableCell('recordableIncidents', r.recordableIncidents, 'text-rose-600 dark:text-rose-400')}
+                        </td>
+                        <td className="py-1.5 px-3">
+                          {renderEditableCell('hazardReports', r.hazardReports, 'text-teal-600 dark:text-teal-400')}
+                        </td>
+                        <td className="py-1.5 px-3 text-center">
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteRecord(r.id)} 
+                            aria-label={`Delete ${getMonthFullName(r.month)} ${r.year}`}
+                            className="inline-flex items-center justify-center p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-[2px] transition-colors cursor-pointer"
+                          >
+                            <svg className="w-3.5 h-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
                       </tr>
                     )
                   })
@@ -1142,11 +1153,11 @@ export default function KpiDashboardPage() {
                       <span>{t.info_hours_b1}</span>
                     </li>
                     <li className="flex gap-2">
-                      <span className="text-orange-500 mt-0.5">▪</span>
+                      <span className="text-rose-600 mt-0.5">▪</span>
                       <span>{t.info_hours_b2}</span>
                     </li>
                     <li className="flex gap-2">
-                      <span className="text-rose-600 mt-0.5">▪</span>
+                      <span className="text-orange-500 mt-0.5">▪</span>
                       <span>{t.info_hours_b3}</span>
                     </li>
                   </ul>
@@ -1170,12 +1181,8 @@ export default function KpiDashboardPage() {
                       <span>{t.info_days_b1}</span>
                     </li>
                     <li className="flex gap-2">
-                      <span className="text-orange-500 mt-0.5">▪</span>
+                      <span className="text-slate-400 mt-0.5">▪</span>
                       <span>{t.info_days_b2}</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-rose-600 mt-0.5">▪</span>
-                      <span>{t.info_days_b3}</span>
                     </li>
                   </ul>
                 </div>
