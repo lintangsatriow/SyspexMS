@@ -142,7 +142,7 @@ export default function KpiDashboardPage() {
   const dict = {
     ID: {
       breadcrumb: "Manajemen & ISO",
-      title: "HSE Perfomance Dashboard",
+      title: "HSE Performance Dashboard",
       subtitle: "Visibilitas metrik kinerja K3L tersinkronisasi otomatis dari database internal.",
       btn_print: "Cetak Laporan",
       
@@ -264,7 +264,7 @@ export default function KpiDashboardPage() {
       <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-4xl font-black text-black uppercase tracking-tight">HSE Performance Report</h1>
+            <h1 className="text-4xl font-black text-black uppercase tracking-tight">{t.title}</h1>
             <p className="text-[10px] text-black font-black uppercase tracking-widest mt-1">{t.print_doc_type}</p>
           </div>
           <div className="text-right border-2 border-black p-2">
