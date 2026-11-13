@@ -30,7 +30,7 @@ interface TargetConfig {
 
 type PeriodFilter = 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
 type YearFilter = number | 'ALL'
-type InfoModalType = 'HOURS' | 'DAYS' | null
+type InfoModalType = 'HOURS' | 'AVG_PERSONNEL' | 'DAILY_INTENSITY' | 'TRIR' | null
 type EditableField = 'headcount' | 'manDays' | 'manHours' | 'lti' | 'spills' | 'recordableIncidents' | 'hazardReports'
 
 interface HoverTooltip {
@@ -56,7 +56,8 @@ const TrendLineChart = ({
   criticalTargets, 
   labels, 
   unit,
-  showThresholds = false,
+  decimals = 0,
+  limitMode = 'NONE',
   isMultiYear,
   onOpenInfo,
   lang
@@ -67,14 +68,20 @@ const TrendLineChart = ({
   criticalTargets?: number[]
   labels: string[]
   unit: string
-  showThresholds?: boolean
+  decimals?: number
+  limitMode?: 'NONE' | 'TWO_TIER' | 'SINGLE_MAX'
   isMultiYear?: boolean
   onOpenInfo: () => void
   lang: 'ID' | 'EN'
 }) => {
   const [tooltip, setTooltip] = useState<HoverTooltip | null>(null)
 
-  const formatExact = (val: number) => Math.round(val).toLocaleString('en-US')
+  const formatVal = (val: number) => {
+    if (decimals > 0) {
+      return val.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    }
+    return Math.round(val).toLocaleString('en-US')
+  }
 
   if (data.length === 0) {
     return (
@@ -85,36 +92,37 @@ const TrendLineChart = ({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </button>
         </div>
-        <div className="h-48 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-200 dark:border-slate-800">
+        <div className="h-44 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-200 dark:border-slate-800">
           NO DATA FOR SELECTED PERIOD
         </div>
       </div>
     )
   }
 
-  const hasLimits = showThresholds && cautionTargets && criticalTargets && cautionTargets.length === data.length && criticalTargets.length === data.length
+  const hasTwoTier = limitMode === 'TWO_TIER' && cautionTargets && criticalTargets && cautionTargets.length === data.length && criticalTargets.length === data.length
+  const hasSingleMax = limitMode === 'SINGLE_MAX' && criticalTargets && criticalTargets.length === data.length
 
-  const padX = 48
-  const padY = 40
+  const padX = 44
+  const padY = 36
   const width = 1000
-  const height = 270
+  const height = 250
   const plotWidth = width - padX * 2
   const plotHeight = height - padY * 2
 
-  const maxValue = hasLimits 
-    ? Math.max(...data, ...criticalTargets) * 1.15 
-    : Math.max(...data) * 1.15
+  const maxCandidate = hasTwoTier || hasSingleMax
+    ? Math.max(...data, ...(criticalTargets || []))
+    : Math.max(...data)
+  const maxValue = maxCandidate > 0 ? maxCandidate * 1.18 : 1
 
-  const mapY = (val: number) => padY + plotHeight - (val / (maxValue || 1)) * plotHeight
+  const mapY = (val: number) => padY + plotHeight - (val / maxValue) * plotHeight
   const stepX = data.length > 1 ? plotWidth / (data.length - 1) : plotWidth / 2
   const getX = (i: number) => (data.length > 1 ? padX + i * stepX : padX + stepX)
 
   const points = data.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ')
-  const criticalPoints = hasLimits ? criticalTargets.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ') : ''
-  const cautionPoints = hasLimits ? cautionTargets.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ') : ''
+  const criticalPoints = (hasTwoTier || hasSingleMax) && criticalTargets ? criticalTargets.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ') : ''
+  const cautionPoints = hasTwoTier && cautionTargets ? cautionTargets.map((val, i) => `${getX(i)},${mapY(val)}`).join(' ') : ''
 
-  // Zona Waspada (Buffer Zone antara 100% Kapasitas Normal dan +10% Fatigue Limit)
-  const bufferZonePolygon = hasLimits && data.length > 1
+  const bufferZonePolygon = hasTwoTier && cautionTargets && criticalTargets && data.length > 1
     ? [
         ...criticalTargets.map((val, i) => `${getX(i)},${mapY(val)}`),
         ...[...cautionTargets].reverse().map((val, revI) => {
@@ -124,17 +132,17 @@ const TrendLineChart = ({
       ].join(' ')
     : ''
 
-  const avgCaution = hasLimits ? cautionTargets.reduce((a, b) => a + b, 0) / cautionTargets.length : 0
-  const avgCritical = hasLimits ? criticalTargets.reduce((a, b) => a + b, 0) / criticalTargets.length : 0
+  const avgCaution = hasTwoTier && cautionTargets ? cautionTargets.reduce((a, b) => a + b, 0) / cautionTargets.length : 0
+  const avgCritical = (hasTwoTier || hasSingleMax) && criticalTargets ? criticalTargets.reduce((a, b) => a + b, 0) / criticalTargets.length : 0
   const avgActual = data.reduce((a, b) => a + b, 0) / data.length
 
-  const criticalLimitText = lang === 'ID' ? 'BATAS KRITIS: FATIGUE RISK (+10%)' : 'CRITICAL LIMIT: FATIGUE RISK (+10%)'
-  const cautionLimitText = lang === 'ID' ? 'BATAS WASPADA: KAPASITAS NORMAL (100%)' : 'EARLY WARNING: NORMAL CAPACITY (100%)'
-  const bufferZoneText = lang === 'ID' ? 'ZONA WASPADA (ANTISIPASI LEMBUR)' : 'CAUTION BUFFER ZONE (OVERTIME WATCH)'
+  const criticalLimitText = lang === 'ID' ? 'BATAS KRITIS (OVER LIMIT)' : 'CRITICAL LIMIT (OVER LIMIT)'
+  const cautionLimitText = lang === 'ID' ? 'BATAS WASPADA (EARLY WARNING)' : 'EARLY WARNING THRESHOLD'
+  const bufferZoneText = lang === 'ID' ? 'ZONA WASPADA (ANTISIPASI LEMBUR)' : 'CAUTION BUFFER ZONE'
 
   return (
-    <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-6 rounded-[4px] print:border-black print:bg-transparent transition-colors">
-      <div className="flex justify-between items-start border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-4">
+    <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black print:bg-transparent transition-colors">
+      <div className="flex justify-between items-start border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-3 mb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">{title}</h2>
           <button onClick={onOpenInfo} aria-label="Panduan Metrik" className="text-slate-400 hover:text-teal-600 transition-colors print:hidden cursor-pointer">
@@ -142,20 +150,27 @@ const TrendLineChart = ({
           </button>
         </div>
         <div className="text-right">
-          {hasLimits ? (
+          {hasTwoTier ? (
             <>
-              <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">AVG CAUTION / CRITICAL</span>
+              <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">WARN / CRITICAL</span>
               <span className="text-[10px] font-black font-mono">
-                <span className="text-orange-600 dark:text-orange-400">{formatExact(avgCaution)}</span>
+                <span className="text-orange-600 dark:text-orange-400">{formatVal(avgCaution)}</span>
                 <span className="text-slate-400"> / </span>
-                <span className="text-rose-600 dark:text-rose-400">{formatExact(avgCritical)} {unit}</span>
+                <span className="text-rose-600 dark:text-rose-400">{formatVal(avgCritical)} {unit}</span>
+              </span>
+            </>
+          ) : hasSingleMax ? (
+            <>
+              <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">MAX TARGET</span>
+              <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 font-mono">
+                &lt; {formatVal(avgCritical)} {unit}
               </span>
             </>
           ) : (
             <>
-              <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">MONTHLY AVERAGE</span>
+              <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">MONTHLY AVG</span>
               <span className="text-[10px] font-black text-teal-700 dark:text-teal-400 font-mono">
-                {formatExact(avgActual)} {unit} / MO
+                {formatVal(avgActual)} {unit}
               </span>
             </>
           )}
@@ -163,35 +178,45 @@ const TrendLineChart = ({
       </div>
 
       {/* LEGENDA KONTEKSTUAL */}
-      <div className="flex flex-wrap gap-4 mb-3 text-[8px] font-black uppercase tracking-widest">
-        {hasLimits ? (
+      <div className="flex flex-wrap gap-3 mb-2 text-[8px] font-black uppercase tracking-widest">
+        {hasTwoTier ? (
           <>
             <div className="flex items-center gap-1.5">
-              <span className="w-4 border-t-2 border-dashed border-rose-600"></span>
+              <span className="w-3.5 border-t-2 border-dashed border-rose-600"></span>
               <span className="text-rose-600 dark:text-rose-400">FATIGUE LIMIT (+10%)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-4 border-t-2 border-dashed border-orange-500"></span>
-              <span className="text-orange-600 dark:text-orange-400">EARLY WARNING (100% HC)</span>
+              <span className="w-3.5 border-t-2 border-dashed border-orange-500"></span>
+              <span className="text-orange-600 dark:text-orange-400">EARLY WARNING (100%)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-teal-600"></span>
               <span className="text-slate-500 dark:text-slate-400">SAFE</span>
             </div>
           </>
+        ) : hasSingleMax ? (
+          <>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3.5 border-t-2 border-dashed border-rose-600"></span>
+              <span className="text-rose-600 dark:text-rose-400">THRESHOLD LIMIT ({formatVal(avgCritical)})</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-teal-600"></span>
+              <span className="text-slate-500 dark:text-slate-400">COMPLIANT</span>
+            </div>
+          </>
         ) : (
           <div className="flex items-center gap-1.5">
-            <span className="w-4 border-t-2 border-teal-600"></span>
-            <span className="text-slate-500 dark:text-slate-400">FIELD TECHNICIAN PRESENCE BASELINE</span>
+            <span className="w-3.5 border-t-2 border-teal-600"></span>
+            <span className="text-slate-500 dark:text-slate-400">HISTORICAL TREND</span>
           </div>
         )}
       </div>
       
       <div className="w-full overflow-hidden relative" onMouseLeave={() => setTooltip(null)}>
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
-          {hasLimits && (
+          {hasTwoTier && cautionTargets && criticalTargets && (
             <>
-              {/* Zona Waspada (Buffer Zone Oranye Lembut antara 100% dan +10%) */}
               {data.length > 1 ? (
                 <polygon
                   points={bufferZonePolygon}
@@ -200,7 +225,7 @@ const TrendLineChart = ({
                     x: width / 2,
                     y: (mapY(avgCritical) + mapY(avgCaution)) / 2,
                     title: bufferZoneText,
-                    value: `AVG ${formatExact(avgCaution)} - ${formatExact(avgCritical)} ${unit}`,
+                    value: `${formatVal(avgCaution)} - ${formatVal(avgCritical)} ${unit}`,
                     statusColor: 'text-orange-600 dark:text-orange-400'
                   })}
                 />
@@ -214,26 +239,6 @@ const TrendLineChart = ({
                 />
               )}
 
-              {/* Garis Batas Kritis (MERAH - +10% Fatigue Limit) */}
-              {data.length > 1 ? (
-                <g
-                  className="cursor-pointer"
-                  onMouseEnter={() => setTooltip({
-                    x: width / 2,
-                    y: mapY(avgCritical),
-                    title: criticalLimitText,
-                    value: `AVG MAX ${formatExact(avgCritical)} ${unit}`,
-                    statusColor: 'text-rose-600 dark:text-rose-400'
-                  })}
-                >
-                  <polyline points={criticalPoints} fill="none" stroke="transparent" strokeWidth="14" />
-                  <polyline points={criticalPoints} fill="none" className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
-                </g>
-              ) : (
-                <line x1={padX} y1={mapY(criticalTargets[0])} x2={width-padX} y2={mapY(criticalTargets[0])} className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
-              )}
-
-              {/* Garis Early Warning / Kehati-hatian (ORANYE - 100% Kapasitas Normal) */}
               {data.length > 1 ? (
                 <g
                   className="cursor-pointer"
@@ -241,7 +246,7 @@ const TrendLineChart = ({
                     x: width / 2,
                     y: mapY(avgCaution),
                     title: cautionLimitText,
-                    value: `AVG NORMAL ${formatExact(avgCaution)} ${unit}`,
+                    value: `${formatVal(avgCaution)} ${unit}`,
                     statusColor: 'text-orange-600 dark:text-orange-400'
                   })}
                 >
@@ -254,7 +259,26 @@ const TrendLineChart = ({
             </>
           )}
 
-          {/* Garis Tren Aktual */}
+          {(hasTwoTier || hasSingleMax) && criticalTargets && (
+            data.length > 1 ? (
+              <g
+                className="cursor-pointer"
+                onMouseEnter={() => setTooltip({
+                  x: width / 2,
+                  y: mapY(avgCritical),
+                  title: criticalLimitText,
+                  value: `MAX ${formatVal(avgCritical)} ${unit}`,
+                  statusColor: 'text-rose-600 dark:text-rose-400'
+                })}
+              >
+                <polyline points={criticalPoints} fill="none" stroke="transparent" strokeWidth="14" />
+                <polyline points={criticalPoints} fill="none" className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+              </g>
+            ) : (
+              <line x1={padX} y1={mapY(criticalTargets[0])} x2={width-padX} y2={mapY(criticalTargets[0])} className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+            )
+          )}
+
           {data.length > 1 && (
             <polyline 
               points={points} 
@@ -264,12 +288,30 @@ const TrendLineChart = ({
             />
           )}
 
-          {/* Titik Data Bulanan */}
           {data.map((val, i) => {
             const cx = getX(i)
             const cy = mapY(val)
 
-            if (!hasLimits) {
+            if (hasTwoTier && cautionTargets && criticalTargets) {
+              const curCaution = cautionTargets[i]
+              const curCritical = criticalTargets[i]
+              const isCritical = val > curCritical
+              const isCaution = !isCritical && val >= curCaution
+              
+              const pointClass = isCritical 
+                ? "fill-rose-600 print:fill-gray-600" 
+                : isCaution
+                ? "fill-orange-500 print:fill-gray-400"
+                : "fill-teal-600 dark:fill-teal-400 print:fill-black"
+
+              const statusColor = isCritical 
+                ? "text-rose-600 dark:text-rose-400" 
+                : isCaution
+                ? "text-orange-600 dark:text-orange-400"
+                : "text-teal-700 dark:text-teal-400"
+
+              const statusTag = isCritical ? ' (OVER LIMIT)' : isCaution ? ' (CAUTION)' : ' (SAFE)'
+
               return (
                 <g 
                   key={i} 
@@ -277,9 +319,9 @@ const TrendLineChart = ({
                   onMouseEnter={() => setTooltip({
                     x: cx,
                     y: cy,
-                    title: labels[i],
-                    value: `${formatExact(val)} ${unit}`,
-                    statusColor: 'text-teal-700 dark:text-teal-400'
+                    title: `${labels[i]}${statusTag}`,
+                    value: `${formatVal(val)} ${unit} [WARN: ${formatVal(curCaution)} | MAX: ${formatVal(curCritical)}]`,
+                    statusColor
                   })}
                 >
                   <circle cx={cx} cy={cy} r="14" fill="transparent" />
@@ -287,35 +329,43 @@ const TrendLineChart = ({
                     cx={cx} 
                     cy={cy} 
                     r={isMultiYear ? "4.5" : "6"} 
-                    className="fill-teal-700 dark:fill-teal-400 stroke-white dark:stroke-[#0b0f19] print:fill-black print:stroke-white transition-transform duration-150 hover:scale-150" 
+                    className={`${pointClass} stroke-white dark:stroke-[#0b0f19] print:stroke-white transition-transform duration-150 hover:scale-150`} 
                     strokeWidth="2" 
                   />
                 </g>
               )
             }
 
-            const curCaution = cautionTargets[i]
-            const curCritical = criticalTargets[i]
-            const isCritical = val > curCritical
-            const isCaution = !isCritical && val >= curCaution
-            
-            const pointClass = isCritical 
-              ? "fill-rose-600 print:fill-gray-600" 
-              : isCaution
-              ? "fill-orange-500 print:fill-gray-400"
-              : "fill-teal-600 dark:fill-teal-400 print:fill-black"
+            if (hasSingleMax && criticalTargets) {
+              const curMax = criticalTargets[i]
+              const isOver = val > curMax
+              const pointClass = isOver ? "fill-rose-600 print:fill-gray-600" : "fill-teal-600 dark:fill-teal-400 print:fill-black"
+              const statusColor = isOver ? "text-rose-600 dark:text-rose-400" : "text-teal-700 dark:text-teal-400"
+              const statusTag = isOver ? ' (OFF TRACK)' : ' (ON TRACK)'
 
-            const statusColor = isCritical 
-              ? "text-rose-600 dark:text-rose-400" 
-              : isCaution
-              ? "text-orange-600 dark:text-orange-400"
-              : "text-teal-700 dark:text-teal-400"
-
-            const statusTag = isCritical 
-              ? ' (FATIGUE RISK)' 
-              : isCaution 
-              ? ' (CAUTION: NEAR LIMIT)' 
-              : ' (SAFE)'
+              return (
+                <g 
+                  key={i} 
+                  className="cursor-pointer"
+                  onMouseEnter={() => setTooltip({
+                    x: cx,
+                    y: cy,
+                    title: `${labels[i]}${statusTag}`,
+                    value: `${formatVal(val)} ${unit} [MAX: ${formatVal(curMax)}]`,
+                    statusColor
+                  })}
+                >
+                  <circle cx={cx} cy={cy} r="14" fill="transparent" />
+                  <circle 
+                    cx={cx} 
+                    cy={cy} 
+                    r={isMultiYear ? "4.5" : "6"} 
+                    className={`${pointClass} stroke-white dark:stroke-[#0b0f19] print:stroke-white transition-transform duration-150 hover:scale-150`} 
+                    strokeWidth="2" 
+                  />
+                </g>
+              )
+            }
 
             return (
               <g 
@@ -324,9 +374,9 @@ const TrendLineChart = ({
                 onMouseEnter={() => setTooltip({
                   x: cx,
                   y: cy,
-                  title: `${labels[i]}${statusTag}`,
-                  value: `${formatExact(val)} ${unit} [WARN: ${formatExact(curCaution)} | MAX: ${formatExact(curCritical)}]`,
-                  statusColor
+                  title: labels[i],
+                  value: `${formatVal(val)} ${unit}`,
+                  statusColor: 'text-teal-700 dark:text-teal-400'
                 })}
               >
                 <circle cx={cx} cy={cy} r="14" fill="transparent" />
@@ -334,7 +384,7 @@ const TrendLineChart = ({
                   cx={cx} 
                   cy={cy} 
                   r={isMultiYear ? "4.5" : "6"} 
-                  className={`${pointClass} stroke-white dark:stroke-[#0b0f19] print:stroke-white transition-transform duration-150 hover:scale-150`} 
+                  className="fill-teal-700 dark:fill-teal-400 stroke-white dark:stroke-[#0b0f19] print:fill-black print:stroke-white transition-transform duration-150 hover:scale-150" 
                   strokeWidth="2" 
                 />
               </g>
@@ -551,27 +601,49 @@ export default function KpiDashboardPage() {
       return selectedYear === 'ALL' ? `${mStr} '${r.year.toString().slice(-2)}` : mStr
     })
     
+    // 1. Total Man-Hours Bulanan
     const chartManHours = sortedRecords.map(r => r.manHours)
-    const chartManDays = sortedRecords.map(r => r.manDays || 0)
-
-    // Garis Early Warning (100% Kapasitas Normal Headcount bulan tersebut)
     const cautionManHoursTargets = sortedRecords.map(r => {
       const hc = r.headcount && r.headcount > 0 ? r.headcount : targets.defaultHeadcount
       return Math.round(hc * targets.hoursPerDay * targets.workingDaysPerMonth)
     })
-
-    // Garis Kritis Fatigue Limit (+10% di atas kapasitas normal)
     const criticalManHoursTargets = sortedRecords.map(r => {
       const hc = r.headcount && r.headcount > 0 ? r.headcount : targets.defaultHeadcount
       return Math.round(hc * targets.hoursPerDay * targets.workingDaysPerMonth * 1.1)
     })
 
+    // 2. Rata-Rata Jam Kerja per Personel (Man-Hours / Total Headcount)
+    const chartAvgHoursPerPerson = sortedRecords.map(r => {
+      const hc = r.headcount && r.headcount > 0 ? r.headcount : targets.defaultHeadcount
+      return hc > 0 ? Number((r.manHours / hc).toFixed(1)) : 0
+    })
+    const cautionAvgPersonTargets = sortedRecords.map(() => Number((targets.hoursPerDay * targets.workingDaysPerMonth).toFixed(1)))
+    const criticalAvgPersonTargets = sortedRecords.map(() => Number((targets.hoursPerDay * targets.workingDaysPerMonth * 1.1).toFixed(1)))
+
+    // 3. Intensitas Jam Kerja Harian (Man-Hours / Man-Days)
+    const chartDailyIntensity = sortedRecords.map(r => {
+      const md = r.manDays || 0
+      return md > 0 ? Number((r.manHours / md).toFixed(2)) : 0
+    })
+    const cautionDailyTargets = sortedRecords.map(() => Number(targets.hoursPerDay.toFixed(2)))
+    const criticalDailyTargets = sortedRecords.map(() => Number((targets.hoursPerDay * 1.1).toFixed(2)))
+
+    // 4. Tren TRIR Bulanan ((Incidents * 200,000) / Man-Hours)
+    const chartMonthlyTrir = sortedRecords.map(r => {
+      return r.manHours > 0 ? Number(((r.recordableIncidents * 200000) / r.manHours).toFixed(2)) : 0
+    })
+    const maxTrirTargets = sortedRecords.map(() => targets.trirMax)
+
     const periodFatigueCeiling = criticalManHoursTargets.reduce((a, b) => a + b, 0)
 
     return { 
       totalLti, totalSpills, totalManDays, totalManHours, 
-      trir, trirNum, chartLabels, chartManHours, chartManDays,
-      cautionManHoursTargets, criticalManHoursTargets, periodFatigueCeiling
+      trir, trirNum, chartLabels, 
+      chartManHours, cautionManHoursTargets, criticalManHoursTargets,
+      chartAvgHoursPerPerson, cautionAvgPersonTargets, criticalAvgPersonTargets,
+      chartDailyIntensity, cautionDailyTargets, criticalDailyTargets,
+      chartMonthlyTrir, maxTrirTargets,
+      periodFatigueCeiling
     }
   }, [records, selectedYear, selectedPeriod, targets, lang])
 
@@ -601,8 +673,10 @@ export default function KpiDashboardPage() {
       lead_3: "Kepatuhan TBM",
       lead_4: "Skor Audit",
       
-      chart_title_mhrs: `Tren Jam Kerja Bulanan (${periodLabel})`,
-      chart_title_mdys: `Tren Hari Kerja Bulanan (${periodLabel})`,
+      chart_1_title: `1. Tren Jam Kerja Bulanan (${periodLabel})`,
+      chart_2_title: `2. Rata-Rata Jam Kerja per Personel (${periodLabel})`,
+      chart_3_title: `3. Intensitas Jam Kerja Harian (${periodLabel})`,
+      chart_4_title: `4. Tren Rasio Insiden / TRIR (${periodLabel})`,
       
       mgr_title: "DATA HSE (Input & Log Histori)",
       mgr_add: "Tambah Data Kinerja Bulanan Baru",
@@ -614,22 +688,37 @@ export default function KpiDashboardPage() {
       sign_hse: "Dianalisa Oleh (HSE Supervisor):",
       sign_gm: "Diketahui Oleh (Director):",
 
-      info_hours_title: "Panduan Tren Jam Kerja (Man-Hours) & Early Warning",
-      info_hours_q1: "1. Sistem Peringatan Dini (Early Warning) Teknisi Lapangan",
-      info_hours_b1: "Indikator Eksposur Risiko (Denominator TRIR): Mengukur total durasi teknisi terpapar risiko di lokasi customer (instalasi, commissioning, dan perbaikan mesin). 1 insiden dalam 1,000 jam kerja menandakan risiko tinggi, sedangkan 1 insiden dalam 1,000,000 jam kerja membuktikan keandalan kontrol K3L.",
-      info_hours_b2: "Garis Oranye (Early Warning — 100% Kapasitas Normal): Menandakan jam kerja reguler penuh tanpa lembur. Jika grafik menyentuh zona oranye ini, HSE dan Manajer Servis harus mulai mengantisipasi rotasi teknisi agar tidak terjadi penumpukan lembur di bulan berikutnya.",
-      info_hours_b3: "Garis Merah (Critical Fatigue Limit +10%): Menandakan lembur berlebih dan kelelahan perjalanan antar-customer. Titik merah di atas garis ini berisiko tinggi memicu kecelakaan berkendara maupun kesalahan teknis saat instalasi.",
-      info_hours_q2: "2. Rumus Ambang Batas (Berdasarkan Headcount Bulanan)",
-      info_hours_formula: "Early Warning = Headcount x Jam/Hari x Hari Kerja | Fatigue Limit = +10%",
-      info_hours_ex: "Contoh: 110 personel x 8 jam x 22 hari = 19,360 HRS (Garis Oranye) | Batas Merah = 21,296 HRS.",
+      // Panduan 1: Total Man-Hours
+      info_1_title: "1. Panduan Total Jam Kerja Bulanan (Man-Hours)",
+      info_1_q1: "Relevansi dengan Operasional & Risiko",
+      info_1_b1: "Indikator Eksposur Risiko (Denominator TRIR): Mengukur total akumulasi durasi kerja seluruh personel (teknisi lapangan & backoffice) sebagai pembagi standar dalam kalkulasi TRIR.",
+      info_1_b2: "Garis Oranye (Early Warning — 100% Kapasitas Normal): Batas jam kerja reguler penuh. Jika grafik memasuki zona oranye, HSE perlu mengantisipasi pengaturan shift dan batasan lembur untuk bulan berikutnya.",
+      info_1_b3: "Garis Merah (Critical Fatigue Limit +10%): Ambang batas lembur berlebih. Titik merah menandakan risiko kelelahan kolektif yang meningkatkan potensi kecelakaan berkendara maupun instalasi mesin.",
+      info_1_formula: "Early Warning = Headcount x Jam/Hari x Hari Kerja | Fatigue Limit = +10%",
 
-      info_days_title: "Panduan Tren Hari Kerja (Man-Days)",
-      info_days_q1: "1. Relevansi Man-Days dengan Operasional Teknisi",
-      info_days_b1: "Baseline Mobilisasi & Kehadiran: Merekam akumulasi hari kerja aktif personel untuk memantau volume aktivitas instalasi dan servis dari bulan ke bulan.",
-      info_days_b2: "Mengapa Tanpa Garis Batas? Fluktuasi hari kerja mengikuti kalender dan jadwal proyek customer, sehingga ditampilkan sebagai tren historis murni tanpa alarm palsu.",
-      info_days_q2: "2. Rumus Referensi Man-Days",
-      info_days_formula: "Headcount Bulan Tersebut x Jumlah Hari Kerja Efektif Sebulan",
-      info_days_ex: "Contoh: 110 personel x 22 hari kerja = 2,420 Man-Days.",
+      // Panduan 2: Rata-rata Jam Kerja per Personel
+      info_2_title: "2. Panduan Rata-Rata Jam Kerja per Personel",
+      info_2_q1: "Mengapa Metrik Ini Penting?",
+      info_2_b1: "Netral terhadap Perubahan Jumlah Karyawan: Total Man-Hours bisa naik hanya karena ada perekrutan baru. Dengan membagi Man-Hours dengan Total Headcount (teknisi + backoffice), kita melihat beban kerja rata-rata per individu secara murni.",
+      info_2_b2: "Garis Oranye (Standar Bulanan = Jam/Hari x Hari Kerja): Contoh 8 jam x 22 hari = 176 jam/personel/bulan.",
+      info_2_b3: "Garis Merah (+10% Beban Individual): Jika rata-rata melewati garis merah (misal > 193.6 jam/orang), artinya terjadi beban lembur merata yang memicu kelelahan individu.",
+      info_2_formula: "Rumus = Total Man-Hours ÷ Total Headcount Bulan Tersebut",
+
+      // Panduan 3: Intensitas Jam Kerja Harian
+      info_3_title: "3. Panduan Intensitas Jam Kerja Harian",
+      info_3_q1: "Deteksi Lembur Harian (Daily Overtime)",
+      info_3_b1: "Durasi Kerja per Hari Kehadiran: Membandingkan total jam kerja dengan total hari kehadiran (Man-Days) untuk mengetahui rata-rata jam kerja efektif setiap harinya.",
+      info_3_b2: "Garis Oranye (Jam Kerja Normal/Hari): Standar 8.0 jam/hari sesuai regulasi ketenagakerjaan.",
+      info_3_b3: "Garis Merah (+10% Lembur Harian): Jika rata-rata harian menembus 8.8 jam/hari secara konsisten dalam sebulan, artinya personel sering pulang larut saat melakukan instalasi atau perbaikan di lokasi customer.",
+      info_3_formula: "Rumus = Total Man-Hours ÷ Total Man-Days Bulan Tersebut",
+
+      // Panduan 4: Tren TRIR
+      info_4_title: "4. Panduan Tren Rasio Insiden (TRIR)",
+      info_4_q1: "Standar Kinerja Keselamatan Kerja (OSHA / ISO 45001)",
+      info_4_b1: "Frekuensi Kecelakaan Tercatat: Mengukur jumlah insiden kerja yang memerlukan penanganan medis (Recordable Incidents) per 200,000 jam kerja.",
+      info_4_b2: "Garis Merah (Batas Maksimum Perusahaan): Target perusahaan adalah menjaga TRIR di bawah 1.0 (atau 0.00 untuk Zero Accident).",
+      info_4_b3: "Catatan Masa Transisi: Grafik akan menampilkan garis datar di angka 0.00 hingga modul pelaporan insiden aktif sepenuhnya.",
+      info_4_formula: "Rumus = (Recordable Incidents x 200,000) ÷ Total Man-Hours",
 
       btn_close: "Tutup"
     },
@@ -654,8 +743,10 @@ export default function KpiDashboardPage() {
       lead_3: "TBM Compliance",
       lead_4: "Audit Score",
       
-      chart_title_mhrs: `Monthly Man-Hours Trend (${periodLabel})`,
-      chart_title_mdys: `Monthly Man-Days Trend (${periodLabel})`,
+      chart_1_title: `1. Monthly Total Man-Hours Trend (${periodLabel})`,
+      chart_2_title: `2. Avg Working Hours per Personnel (${periodLabel})`,
+      chart_3_title: `3. Daily Working Hour Intensity (${periodLabel})`,
+      chart_4_title: `4. Monthly Incident Rate / TRIR Trend (${periodLabel})`,
       
       mgr_title: "DATA HSE (Input & History Logs)",
       mgr_add: "Add New Monthly Performance Record",
@@ -667,22 +758,33 @@ export default function KpiDashboardPage() {
       sign_hse: "Analyzed By (HSE Supervisor):",
       sign_gm: "Acknowledged By (Director):",
 
-      info_hours_title: "Man-Hours Trend & Early Warning Guide",
-      info_hours_q1: "1. Field Technician Fatigue Early Warning System",
-      info_hours_b1: "Risk Exposure Denominator (TRIR): Measures total duration technicians are exposed to hazards at customer sites (installation, commissioning, and repair). 1 incident in 1,000 hours signals high risk, while 1 incident in 1,000,000 hours proves strong safety control.",
-      info_hours_b2: "Orange Line (Early Warning — 100% Normal Capacity): Marks full regular working hours. Entering the orange buffer zone prompts HSE and Service Managers to plan technician rotation and cap overtime for the upcoming month.",
-      info_hours_b3: "Red Line (Critical Fatigue Limit +10%): Signals excessive overtime and inter-site travel fatigue. Points breaching the red line indicate high risk for commuting accidents and installation errors.",
-      info_hours_q2: "2. Threshold Formulas (Based on Monthly Headcount)",
-      info_hours_formula: "Early Warning = Headcount x Hours/Day x Working Days | Fatigue Limit = +10%",
-      info_hours_ex: "Example: 110 personnel x 8 hours x 22 days = 19,360 HRS (Orange Line) | Red Limit = 21,296 HRS.",
+      info_1_title: "1. Total Monthly Man-Hours Guide",
+      info_1_q1: "Relevance to Operations & Risk Exposure",
+      info_1_b1: "Risk Exposure Denominator (TRIR): Tracks total accumulated working hours across all personnel (field technicians & backoffice) as the standard denominator for TRIR.",
+      info_1_b2: "Orange Line (Early Warning — 100% Normal Capacity): Full regular working hours. Entering the orange buffer prompts HSE to manage shift rotation and cap overtime for the following month.",
+      info_1_b3: "Red Line (Critical Fatigue Limit +10%): Excessive overtime threshold. Red points indicate collective fatigue that elevates commuting and installation accident risks.",
+      info_1_formula: "Early Warning = Headcount x Hours/Day x Working Days | Fatigue Limit = +10%",
 
-      info_days_title: "Man-Days Trend Guide",
-      info_days_q1: "1. Relevance of Man-Days to Field Operations",
-      info_days_b1: "Mobilization & Presence Baseline: Tracks accumulated active working days across personnel to monitor monthly installation and service volume.",
-      info_days_b2: "Why No Limit Lines? Working-day variations follow calendar schedules and customer project timelines, so they are shown as a clean historical trend without false alarms.",
-      info_days_q2: "2. Man-Days Reference Formula",
-      info_days_formula: "Monthly Headcount x Effective Working Days per Month",
-      info_days_ex: "Example: 110 personnel x 22 days = 2,420 Man-Days.",
+      info_2_title: "2. Avg Working Hours per Personnel Guide",
+      info_2_q1: "Why This Metric Matters",
+      info_2_b1: "Headcount-Neutral Workload: Total Man-Hours can rise simply due to new hires. Dividing Man-Hours by Total Headcount (technicians + backoffice) isolates true individual workload.",
+      info_2_b2: "Orange Line (Monthly Standard = Hours/Day x Working Days): Example 8 hrs x 22 days = 176 hrs/person/month.",
+      info_2_b3: "Red Line (+10% Individual Load): Exceeding the red line (> 193.6 hrs/person) signals widespread overtime and individual fatigue.",
+      info_2_formula: "Formula = Total Man-Hours ÷ Total Monthly Headcount",
+
+      info_3_title: "3. Daily Working Hour Intensity Guide",
+      info_3_q1: "Detecting Daily Overtime",
+      info_3_b1: "Hours per Attendance Day: Compares total working hours against total attendance days (Man-Days) to measure average daily shift duration.",
+      info_3_b2: "Orange Line (Standard Daily Hours): 8.0 hours/day baseline.",
+      info_3_b3: "Red Line (+10% Daily Overtime): Consistently exceeding 8.8 hours/day indicates frequent late shifts during customer machine installations or repairs.",
+      info_3_formula: "Formula = Total Man-Hours ÷ Total Monthly Man-Days",
+
+      info_4_title: "4. Monthly Incident Rate (TRIR) Guide",
+      info_4_q1: "OSHA / ISO 45001 Safety Benchmark",
+      info_4_b1: "Recordable Incident Frequency: Measures work-related recordable incidents per 200,000 working hours.",
+      info_4_b2: "Red Line (Company Threshold): Target is keeping TRIR below 1.0 (or 0.00 for Zero Accident).",
+      info_4_b3: "Transition Note: Displays a flat 0.00 baseline until incident reporting modules are fully integrated.",
+      info_4_formula: "Formula = (Recordable Incidents x 200,000) ÷ Total Man-Hours",
 
       btn_close: "Close"
     }
@@ -744,7 +846,7 @@ export default function KpiDashboardPage() {
           <div className="mb-4 p-4 bg-slate-100 dark:bg-slate-900 border-2 border-teal-600/50 rounded-[4px]">
             <div className="flex justify-between items-center mb-3">
               <span className="text-[9px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400">
-                PARAMETER KALKULASI EARLY WARNING (100% HC) & FATIGUE LIMIT (+10% HC)
+                PARAMETER KALKULASI EARLY WARNING (100%) & FATIGUE LIMIT (+10%)
               </span>
               <button onClick={() => setShowTargetConfig(false)} className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer">
                 [X]
@@ -898,28 +1000,57 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* DUA GRAFIK TREN TERPISAH: MAN-HOURS (EARLY WARNING + FATIGUE LIMIT) & MAN-DAYS (CLEAN) */}
+      {/* 4 GRAFIK TREN ANALITIK (GRID 2x2) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
         <TrendLineChart 
-          title={t.chart_title_mhrs} 
+          title={t.chart_1_title} 
           data={filteredData.chartManHours} 
           cautionTargets={filteredData.cautionManHoursTargets}
           criticalTargets={filteredData.criticalManHoursTargets}
           labels={filteredData.chartLabels}
           unit="HRS"
-          showThresholds={true}
+          decimals={0}
+          limitMode="TWO_TIER"
           isMultiYear={selectedYear === 'ALL'}
           onOpenInfo={() => setActiveInfoModal('HOURS')}
           lang={lang}
         />
         <TrendLineChart 
-          title={t.chart_title_mdys} 
-          data={filteredData.chartManDays} 
+          title={t.chart_2_title} 
+          data={filteredData.chartAvgHoursPerPerson} 
+          cautionTargets={filteredData.cautionAvgPersonTargets}
+          criticalTargets={filteredData.criticalAvgPersonTargets}
           labels={filteredData.chartLabels}
-          unit="DAYS"
-          showThresholds={false}
+          unit="HRS / PERSON"
+          decimals={1}
+          limitMode="TWO_TIER"
           isMultiYear={selectedYear === 'ALL'}
-          onOpenInfo={() => setActiveInfoModal('DAYS')}
+          onOpenInfo={() => setActiveInfoModal('AVG_PERSONNEL')}
+          lang={lang}
+        />
+        <TrendLineChart 
+          title={t.chart_3_title} 
+          data={filteredData.chartDailyIntensity} 
+          cautionTargets={filteredData.cautionDailyTargets}
+          criticalTargets={filteredData.criticalDailyTargets}
+          labels={filteredData.chartLabels}
+          unit="HRS / DAY"
+          decimals={2}
+          limitMode="TWO_TIER"
+          isMultiYear={selectedYear === 'ALL'}
+          onOpenInfo={() => setActiveInfoModal('DAILY_INTENSITY')}
+          lang={lang}
+        />
+        <TrendLineChart 
+          title={t.chart_4_title} 
+          data={filteredData.chartMonthlyTrir} 
+          criticalTargets={filteredData.maxTrirTargets}
+          labels={filteredData.chartLabels}
+          unit="TRIR"
+          decimals={2}
+          limitMode="SINGLE_MAX"
+          isMultiYear={selectedYear === 'ALL'}
+          onOpenInfo={() => setActiveInfoModal('TRIR')}
           lang={lang}
         />
       </div>
@@ -1140,72 +1271,87 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* MODAL PANDUAN SPESIFIK PER TREND */}
+      {/* MODAL PANDUAN SPESIFIK UNTUK MASING-MASING DARI 4 TREN */}
       {activeInfoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden" onClick={() => setActiveInfoModal(null)}>
           <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 p-6 rounded-[4px] max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start border-b-2 border-slate-200 dark:border-slate-800 pb-4 mb-4">
               <h3 className="text-sm font-black uppercase tracking-widest text-teal-700 dark:text-teal-500">
-                {activeInfoModal === 'HOURS' ? t.info_hours_title : t.info_days_title}
+                {activeInfoModal === 'HOURS' && t.info_1_title}
+                {activeInfoModal === 'AVG_PERSONNEL' && t.info_2_title}
+                {activeInfoModal === 'DAILY_INTENSITY' && t.info_3_title}
+                {activeInfoModal === 'TRIR' && t.info_4_title}
               </h3>
               <button onClick={() => setActiveInfoModal(null)} aria-label="Close modal" className="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             
-            {activeInfoModal === 'HOURS' ? (
-              <div className="space-y-6 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
-                <div>
-                  <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t.info_hours_q1}</h4>
-                  <ul className="space-y-3 list-none pl-0">
-                    <li className="flex gap-2">
-                      <span className="text-teal-600 mt-0.5">▪</span>
-                      <span>{t.info_hours_b1}</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-orange-500 mt-0.5">▪</span>
-                      <span>{t.info_hours_b2}</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-rose-600 mt-0.5">▪</span>
-                      <span>{t.info_hours_b3}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-2">{t.info_hours_q2}</h4>
-                  <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] font-mono">
-                    <p className="text-[11px] text-slate-900 dark:text-white mb-2">{t.info_hours_formula}</p>
-                    <p className="text-[10px] text-slate-500">{t.info_hours_ex}</p>
+            <div className="space-y-6 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
+              {activeInfoModal === 'HOURS' && (
+                <>
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t.info_1_q1}</h4>
+                    <ul className="space-y-3 list-none pl-0">
+                      <li className="flex gap-2"><span className="text-teal-600 mt-0.5">▪</span><span>{t.info_1_b1}</span></li>
+                      <li className="flex gap-2"><span className="text-orange-500 mt-0.5">▪</span><span>{t.info_1_b2}</span></li>
+                      <li className="flex gap-2"><span className="text-rose-600 mt-0.5">▪</span><span>{t.info_1_b3}</span></li>
+                    </ul>
                   </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
-                <div>
-                  <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t.info_days_q1}</h4>
-                  <ul className="space-y-3 list-none pl-0">
-                    <li className="flex gap-2">
-                      <span className="text-teal-600 mt-0.5">▪</span>
-                      <span>{t.info_days_b1}</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-slate-400 mt-0.5">▪</span>
-                      <span>{t.info_days_b2}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-2">{t.info_days_q2}</h4>
                   <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] font-mono">
-                    <p className="text-[11px] text-slate-900 dark:text-white mb-2">{t.info_days_formula}</p>
-                    <p className="text-[10px] text-slate-500">{t.info_days_ex}</p>
+                    <p className="text-[11px] text-slate-900 dark:text-white">{t.info_1_formula}</p>
                   </div>
-                </div>
-              </div>
-            )}
+                </>
+              )}
+
+              {activeInfoModal === 'AVG_PERSONNEL' && (
+                <>
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t.info_2_q1}</h4>
+                    <ul className="space-y-3 list-none pl-0">
+                      <li className="flex gap-2"><span className="text-teal-600 mt-0.5">▪</span><span>{t.info_2_b1}</span></li>
+                      <li className="flex gap-2"><span className="text-orange-500 mt-0.5">▪</span><span>{t.info_2_b2}</span></li>
+                      <li className="flex gap-2"><span className="text-rose-600 mt-0.5">▪</span><span>{t.info_2_b3}</span></li>
+                    </ul>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] font-mono">
+                    <p className="text-[11px] text-slate-900 dark:text-white">{t.info_2_formula}</p>
+                  </div>
+                </>
+              )}
+
+              {activeInfoModal === 'DAILY_INTENSITY' && (
+                <>
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t.info_3_q1}</h4>
+                    <ul className="space-y-3 list-none pl-0">
+                      <li className="flex gap-2"><span className="text-teal-600 mt-0.5">▪</span><span>{t.info_3_b1}</span></li>
+                      <li className="flex gap-2"><span className="text-orange-500 mt-0.5">▪</span><span>{t.info_3_b2}</span></li>
+                      <li className="flex gap-2"><span className="text-rose-600 mt-0.5">▪</span><span>{t.info_3_b3}</span></li>
+                    </ul>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] font-mono">
+                    <p className="text-[11px] text-slate-900 dark:text-white">{t.info_3_formula}</p>
+                  </div>
+                </>
+              )}
+
+              {activeInfoModal === 'TRIR' && (
+                <>
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t.info_4_q1}</h4>
+                    <ul className="space-y-3 list-none pl-0">
+                      <li className="flex gap-2"><span className="text-teal-600 mt-0.5">▪</span><span>{t.info_4_b1}</span></li>
+                      <li className="flex gap-2"><span className="text-rose-600 mt-0.5">▪</span><span>{t.info_4_b2}</span></li>
+                      <li className="flex gap-2"><span className="text-slate-400 mt-0.5">▪</span><span>{t.info_4_b3}</span></li>
+                    </ul>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] font-mono">
+                    <p className="text-[11px] text-slate-900 dark:text-white">{t.info_4_formula}</p>
+                  </div>
+                </>
+              )}
+            </div>
 
             <div className="mt-6 pt-4 border-t-2 border-slate-200 dark:border-slate-800 text-right">
               <button onClick={() => setActiveInfoModal(null)} className="px-6 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] transition-colors cursor-pointer">
