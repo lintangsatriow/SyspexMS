@@ -66,7 +66,7 @@ export default function AiCopilotPage() {
     setHistory([...history, newMsg])
     setInput('')
     
-    // Simulate mechanical AI response (Placeholder)
+    // Simulate mechanical AI response
     setTimeout(() => {
       setHistory(prev => [...prev, {
         id: Math.random().toString(),
@@ -113,7 +113,7 @@ export default function AiCopilotPage() {
           {history.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
               <span className="text-[8px] font-black text-slate-400 dark:text-slate-600 mb-1">
-                {msg.role === 'user' ? 'USER' : msg.role === 'system' ? 'SYSTEM' : 'COPILOT'} // {msg.timestamp}
+                {msg.role === 'user' ? 'USER' : msg.role === 'system' ? 'SYSTEM' : 'COPILOT'} {'//'} {msg.timestamp}
               </span>
               <div className={`max-w-[85%] p-3 border-l-2 ${
                 msg.role === 'user' 
