@@ -20,15 +20,109 @@ interface HseRecord {
 }
 
 type PeriodFilter = 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
+type YearFilter = number | 'ALL'
+
+const TrendLineChart = ({ 
+  title, 
+  data, 
+  labels, 
+  minTarget, 
+  maxTarget, 
+  unit,
+  isMultiYear
+}: { 
+  title: string, data: number[], labels: string[], minTarget: number, maxTarget: number, unit: string, isMultiYear?: boolean 
+}) => {
+  if (data.length === 0) {
+    return (
+      <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-6 rounded-[4px] print:border-black transition-colors">
+        <div className="flex justify-between items-end border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-6">
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">{title}</h2>
+        </div>
+        <div className="h-48 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-200 dark:border-slate-800">
+          NO DATA FOR SELECTED PERIOD
+        </div>
+      </div>
+    )
+  }
+
+  const formatVal = (val: number) => val >= 1000 ? (val/1000).toFixed(1) + 'K' : val.toString()
+
+  const padX = 40
+  const padY = 40
+  const width = 1000
+  const height = 260
+  const plotWidth = width - padX * 2
+  const plotHeight = height - padY * 2
+
+  const maxValue = Math.max(...data, maxTarget) * 1.15 
+  const mapY = (val: number) => padY + plotHeight - (val / (maxValue || 1)) * plotHeight
+  const stepX = data.length > 1 ? plotWidth / (data.length - 1) : plotWidth / 2
+
+  const points = data.map((val, i) => `${data.length > 1 ? padX + i * stepX : padX + stepX},${mapY(val)}`).join(' ')
+
+  return (
+    <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-6 rounded-[4px] print:border-black print:bg-transparent transition-colors">
+      <div className="flex justify-between items-end border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-4">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">{title}</h2>
+        <div className="text-right">
+          <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">SAFE RANGE / MO</span>
+          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-500">{formatVal(minTarget)} - {formatVal(maxTarget)} {unit}</span>
+        </div>
+      </div>
+      
+      <div className="w-full overflow-hidden relative">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
+          <rect x={padX} y={mapY(maxTarget)} width={plotWidth} height={mapY(minTarget) - mapY(maxTarget)} className="fill-emerald-50 dark:fill-emerald-900/20 print:fill-gray-100" />
+          
+          <line x1={padX} y1={mapY(maxTarget)} x2={width-padX} y2={mapY(maxTarget)} className="stroke-emerald-500 dark:stroke-emerald-600 print:stroke-black" strokeWidth="2" strokeDasharray="6,6" />
+          <line x1={padX} y1={mapY(minTarget)} x2={width-padX} y2={mapY(minTarget)} className="stroke-emerald-500 dark:stroke-emerald-600 print:stroke-black" strokeWidth="2" strokeDasharray="6,6" />
+
+          {data.length > 1 && <polyline points={points} fill="none" className="stroke-slate-800 dark:stroke-slate-300 print:stroke-black" strokeWidth="2.5" />}
+
+          {data.map((val, i) => {
+            const cx = data.length > 1 ? padX + i * stepX : padX + stepX
+            const cy = mapY(val)
+            const isSafe = val >= minTarget && val <= maxTarget
+            
+            const pointClass = isSafe ? "fill-slate-800 dark:fill-slate-300 print:fill-black" : (val > maxTarget ? "fill-rose-600 print:fill-gray-500" : "fill-amber-500 print:fill-gray-300")
+            const labelClass = isSafe ? "fill-slate-600 dark:fill-slate-400 print:fill-black" : (val > maxTarget ? "fill-rose-600 dark:fill-rose-400 print:fill-black" : "fill-amber-600 dark:fill-amber-500 print:fill-black")
+
+            return (
+              <g key={i} className="group cursor-pointer">
+                <circle cx={cx} cy={cy} r={isMultiYear ? "4.5" : "6"} className={`${pointClass} stroke-white dark:stroke-[#0b0f19] print:stroke-white`} strokeWidth="1.5" />
+                <text x={cx} y={cy - 12} textAnchor="middle" className={`text-[10px] font-black ${labelClass} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                  {labels[i]}: {formatVal(val)}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+        
+        <div className="flex justify-between mt-2" style={{ paddingLeft: `${(padX/width)*100}%`, paddingRight: `${(padX/width)*100}%` }}>
+          {labels.map((lbl, i) => {
+            // Jika data lebih dari 14 bulan (multi-year), tampilkan label setiap 3 bulan agar tidak bertumpuk
+            const showLabel = !isMultiYear || labels.length <= 14 || i % 3 === 0 || i === labels.length - 1
+            return (
+              <span key={i} className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest text-center w-10 -ml-5">
+                {showLabel ? lbl : ''}
+              </span>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function KpiDashboardPage() {
   const { lang } = useLanguage()
   const formId = useId()
-  const [todayDate, setTodayDate] = useState<string>('')
   const [mounted, setMounted] = useState(false)
 
   const currentYear = new Date().getFullYear()
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear)
+  // Default langsung ke 'ALL' agar rentang 2024 - 2026 langsung terlihat
+  const [selectedYear, setSelectedYear] = useState<YearFilter>('ALL')
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>('YTD')
 
   const [records, setRecords] = useState<HseRecord[]>([])
@@ -43,27 +137,22 @@ export default function KpiDashboardPage() {
   const [inputIncidents, setInputIncidents] = useState<number | ''>(0)
   const [inputHazards, setInputHazards] = useState<number | ''>(0)
 
-  // State untuk menampilkan Modal Panduan
   const [showInfo, setShowInfo] = useState(false)
 
-  // Nilai Target Baseline
   const TARGET_TRIR = 1.0
   const TARGET_LTI = 0
-  const TARGET_MAN_DAYS_PER_MONTH = 1500
-  const TARGET_MAN_HOURS_PER_MONTH = 12000 
+  const TARGET_MAN_DAYS_MIN = 1350
+  const TARGET_MAN_DAYS_MAX = 1650
+  const TARGET_MAN_HOURS_MIN = 10800 
+  const TARGET_MAN_HOURS_MAX = 13200 
 
   useEffect(() => {
-    setTodayDate(new Date().toISOString().split('T')[0])
     setMounted(true)
-    
     const savedData = localStorage.getItem('syspex_hse_db')
     if (savedData) {
       setRecords(JSON.parse(savedData))
-    } else {
-      const seedData: HseRecord[] = []
-      setRecords(seedData)
     }
-  }, [currentYear])
+  }, [])
 
   const saveRecords = (newRecords: HseRecord[]) => {
     setRecords(newRecords)
@@ -138,13 +227,24 @@ export default function KpiDashboardPage() {
     setInputManDays(''); setInputManHours(''); setInputLti(0); setInputSpills(0); setInputIncidents(0); setInputHazards(0)
   }
 
+  // Daftar tahun dinamis berdasarkan data yang sudah diinput + rentang 2024-2026
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<number>([2024, 2025, 2026, currentYear])
+    records.forEach(r => yearsSet.add(r.year))
+    return Array.from(yearsSet).sort((a, b) => a - b)
+  }, [records, currentYear])
+
   const filteredData = useMemo(() => {
-    let filtered = records.filter(r => r.year === selectedYear)
+    let filtered = selectedYear === 'ALL' 
+      ? [...records] 
+      : records.filter(r => r.year === selectedYear)
     
-    if (selectedPeriod === 'Q1') filtered = filtered.filter(r => r.month >= 1 && r.month <= 3)
-    if (selectedPeriod === 'Q2') filtered = filtered.filter(r => r.month >= 4 && r.month <= 6)
-    if (selectedPeriod === 'Q3') filtered = filtered.filter(r => r.month >= 7 && r.month <= 9)
-    if (selectedPeriod === 'Q4') filtered = filtered.filter(r => r.month >= 10 && r.month <= 12)
+    if (selectedYear !== 'ALL') {
+      if (selectedPeriod === 'Q1') filtered = filtered.filter(r => r.month >= 1 && r.month <= 3)
+      if (selectedPeriod === 'Q2') filtered = filtered.filter(r => r.month >= 4 && r.month <= 6)
+      if (selectedPeriod === 'Q3') filtered = filtered.filter(r => r.month >= 7 && r.month <= 9)
+      if (selectedPeriod === 'Q4') filtered = filtered.filter(r => r.month >= 10 && r.month <= 12)
+    }
 
     const totalLti = filtered.reduce((sum, r) => sum + r.lti, 0)
     const totalSpills = filtered.reduce((sum, r) => sum + r.spills, 0)
@@ -153,34 +253,37 @@ export default function KpiDashboardPage() {
     const totalIncidents = filtered.reduce((sum, r) => sum + r.recordableIncidents, 0)
 
     const numMonths = filtered.length || 1
-    const periodTargetManDays = TARGET_MAN_DAYS_PER_MONTH * numMonths
-    const periodTargetManHours = TARGET_MAN_HOURS_PER_MONTH * numMonths
+    const periodTargetManDays = TARGET_MAN_DAYS_MIN * numMonths
+    const periodTargetManHours = TARGET_MAN_HOURS_MIN * numMonths
 
     const trirNum = totalManHours > 0 ? ((totalIncidents * 200000) / totalManHours) : 0
     const trir = trirNum.toFixed(2)
 
     let formattedManHours = '0'
-    if (totalManHours >= 1000000) formattedManHours = (totalManHours / 1000000).toFixed(1) + 'M'
+    if (totalManHours >= 1000000) formattedManHours = (totalManHours / 1000000).toFixed(2) + 'M'
     else if (totalManHours >= 1000) formattedManHours = (totalManHours / 1000).toFixed(1) + 'K'
     else formattedManHours = totalManHours.toString()
 
-    const chartData = filtered.sort((a, b) => a.month - b.month).map(r => ({
-      month: new Date(2000, r.month - 1).toLocaleString(lang === 'ID' ? 'id-ID' : 'en-US', { month: 'short' }).toUpperCase(),
-      manHours: r.manHours,
-      manDays: r.manDays || 0
-    }))
-
-    const rawMaxManHours = chartData.length > 0 ? Math.max(...chartData.map(d => d.manHours)) : 0
-    const rawMaxManDays = chartData.length > 0 ? Math.max(...chartData.map(d => d.manDays)) : 0
+    // Urutkan kronologis dari tahun terlama ke terbaru, lalu bulan 1 ke 12
+    const sortedRecords = filtered.sort((a, b) => a.year - b.year || a.month - b.month)
     
-    const maxManHours = Math.max(rawMaxManHours, TARGET_MAN_HOURS_PER_MONTH)
-    const maxManDays = Math.max(rawMaxManDays, TARGET_MAN_DAYS_PER_MONTH)
+    const chartLabels = sortedRecords.map(r => {
+      const mStr = new Date(2000, r.month - 1).toLocaleString(lang === 'ID' ? 'id-ID' : 'en-US', { month: 'short' }).toUpperCase()
+      return selectedYear === 'ALL' ? `${mStr} '${r.year.toString().slice(-2)}` : mStr
+    })
+    
+    const chartManHours = sortedRecords.map(r => r.manHours)
+    const chartManDays = sortedRecords.map(r => r.manDays || 0)
 
     return { 
       totalLti, totalSpills, totalManDays, totalManHours, formattedManHours, 
-      trir, trirNum, chartData, maxManHours, maxManDays, periodTargetManHours, periodTargetManDays
+      trir, trirNum, chartLabels, chartManHours, chartManDays, periodTargetManHours, periodTargetManDays
     }
   }, [records, selectedYear, selectedPeriod, lang])
+
+  const periodLabel = selectedYear === 'ALL' 
+    ? `2024 – ${Math.max(...availableYears)}` 
+    : `${selectedPeriod} ${selectedYear}`
 
   const dict = {
     ID: {
@@ -188,6 +291,7 @@ export default function KpiDashboardPage() {
       title: "HSE Performance Dashboard",
       subtitle: "Visibilitas metrik kinerja K3L tersinkronisasi otomatis dari database internal.",
       btn_print: "Cetak Laporan",
+      all_years: "SEMUA TAHUN (2024–2026)",
       
       sect_lagging: "Lagging Indicators (Data Langsung)",
       lag_1: "Total Recordable Incident Rate (TRIR)",
@@ -202,9 +306,8 @@ export default function KpiDashboardPage() {
       lead_3: "Kepatuhan TBM",
       lead_4: "Skor Audit",
       
-      chart_title: `Tren Produktivitas & Jam Kerja K3 (${selectedPeriod} ${selectedYear})`,
-      chart_mhrs: "Man-Hours",
-      chart_mdys: "Man-Days",
+      chart_title_mhrs: `Tren Jam Kerja Bulanan (${periodLabel})`,
+      chart_title_mdys: `Tren Hari Kerja Bulanan (${periodLabel})`,
       
       mgr_title: "DATA HSE (Input & Log Histori)",
       mgr_add: "Tambah / Ubah Data Kinerja Bulanan",
@@ -218,19 +321,17 @@ export default function KpiDashboardPage() {
       sign_hse: "Dianalisa Oleh (HSE Supervisor):",
       sign_gm: "Diketahui Oleh (Director):",
 
-      // Teks untuk Modal Panduan
-      info_title: "Panduan Metrik Produktivitas K3L",
-      info_q1: "1. Mengapa HSE Sangat Membutuhkan Man-Hours & Man-Days?",
-      info_a1_1: "Sebagai Indikator Eksposur Risiko (Risk Exposure): Semakin besar jam kerja, semakin lama pekerja Anda terpapar risiko di lapangan. 1 insiden yang terjadi dalam 1.000 jam kerja itu sangat buruk, tetapi 1 insiden dalam 1.000.000 jam kerja itu sangat luar biasa aman. Kita butuh Man-Hours sebagai angka pembagi untuk mengetahui skala performa kita.",
-      info_a1_2: "Sebagai Deteksi Kelelahan (Fatigue Warning): Jika Man-Hours dan Man-Days tiba-tiba melonjak drastis di atas target normal pada suatu bulan, manajemen harus waspada. Artinya ada Lembur Ekstrem (Overtime) atau pekerja didera beban kerja berlebih. Kelelahan adalah penyebab utama kecelakaan kerja.",
-      info_a1_3: "Sebagai Papan Kebanggaan (Milestone): Angka pada papan 'Telah Dicapai 1.000.000 Jam Kerja Aman Tanpa LTI' di depan pabrik didapat dari akumulasi data Man-Hours ini.",
-      info_q2: "2. Bagaimana Cara Menentukan Targetnya?",
+      info_title: "Panduan Metrik & Batas Toleransi",
+      info_q1: "1. Mengapa Ada Batas Atas dan Bawah di Grafik?",
+      info_a1_1: "Garis Bawah (Lower Bound): Menandakan target minimum agar operasional dianggap produktif. Jika grafik jatuh ke bawah batas ini (warna kuning), itu menandakan tingginya absensi karyawan, mesin mati (downtime), atau kurangnya hari kerja produktif.",
+      info_a1_2: "Garis Atas (Upper Bound): Menandakan ambang batas aman kelelahan (Fatigue Limit). Jika grafik menembus batas atas ini (warna merah), itu menandakan terjadinya lembur ekstrem (overtime). Pekerja yang kelelahan berisiko sangat tinggi mengalami kecelakaan kerja fatal.",
+      info_a1_3: "Kotak Hijau (Safe Zone): Area ideal di mana produktivitas terjaga dan risiko kelelahan minim.",
+      info_q2: "2. Bagaimana Cara Menentukan Angkanya?",
       info_a2_desc: "Target ini bukan ditebak, melainkan dihitung secara matematis berdasarkan jumlah karyawan Anda (Manpower).",
-      info_a2_f1: "Rumus Target Man-Days (Hari Kerja Bulanan):",
-      info_a2_f1_c: "Jumlah Karyawan x Jumlah Hari Kerja Efektif Sebulan. (Contoh: 60 karyawan x 25 hari kerja = 1.500 Man-Days).",
-      info_a2_f2: "Rumus Target Man-Hours (Jam Kerja Bulanan):",
-      info_a2_f2_c: "Jumlah Karyawan x Jam Kerja Per Hari x Jumlah Hari Kerja Efektif. (Contoh: 60 karyawan x 8 Jam x 25 hari kerja = 12.000 Man-Hours).",
-      info_a2_note: "Jika aktual perusahaan jauh di bawah target ini, berarti banyak absensi atau mesin mati. Jika jauh di atas target, berarti banyak lembur dan risiko K3L sedang tinggi.",
+      info_a2_f1: "Rumus Man-Days (Hari Kerja Bulanan):",
+      info_a2_f1_c: "Jumlah Karyawan x Jumlah Hari Kerja Efektif. (Contoh: 60 orang x 25 hari = 1.500 Man-Days). Beri toleransi ±10% untuk batas atas dan bawah.",
+      info_a2_f2: "Rumus Man-Hours (Jam Kerja Bulanan):",
+      info_a2_f2_c: "Jumlah Karyawan x Jam Kerja Per Hari x Jumlah Hari Kerja Efektif. (Contoh: 60 orang x 8 Jam x 25 hari = 12.000 Man-Hours). Beri toleransi ±10% untuk batas atas dan bawah.",
       btn_close: "Tutup Panduan"
     },
     EN: {
@@ -238,6 +339,7 @@ export default function KpiDashboardPage() {
       title: "HSE Performance Dashboard",
       subtitle: "HSE performance metrics visibility automatically synchronized from internal database.",
       btn_print: "Print Report",
+      all_years: "ALL YEARS (2024–2026)",
       
       sect_lagging: "Lagging Indicators (Live Data)",
       lag_1: "Total Recordable Incident Rate (TRIR)",
@@ -252,9 +354,8 @@ export default function KpiDashboardPage() {
       lead_3: "TBM Compliance",
       lead_4: "Audit Score",
       
-      chart_title: `HSE Productivity & Working Hours Trend (${selectedPeriod} ${selectedYear})`,
-      chart_mhrs: "Man-Hours",
-      chart_mdys: "Man-Days",
+      chart_title_mhrs: `Monthly Man-Hours Trend (${periodLabel})`,
+      chart_title_mdys: `Monthly Man-Days Trend (${periodLabel})`,
       
       mgr_title: "DATA HSE (Input & History Logs)",
       mgr_add: "Add / Update Monthly Performance Data",
@@ -268,19 +369,17 @@ export default function KpiDashboardPage() {
       sign_hse: "Analyzed By (HSE Supervisor):",
       sign_gm: "Acknowledged By (Director):",
 
-      // Teks untuk Modal Panduan
-      info_title: "HSE Productivity Metrics Guide",
-      info_q1: "1. Why Does HSE Need Man-Hours & Man-Days?",
-      info_a1_1: "As a Risk Exposure Indicator: The higher the working hours, the longer your workers are exposed to field risks. 1 incident in 1,000 hours is terrible, but 1 incident in 1,000,000 hours is exceptionally safe. We need Man-Hours as a denominator to understand our performance scale.",
-      info_a1_2: "As a Fatigue Warning: If Man-Hours and Man-Days suddenly spike above the normal target, management must be alert. It indicates extreme overtime or overworked personnel. Fatigue is a leading cause of workplace accidents.",
-      info_a1_3: "As a Milestone Achievement: The '1,000,000 Safe Working Hours Without LTI' signboard in front of the factory is accumulated directly from this Man-Hours data.",
+      info_title: "Productivity Metrics & Tolerance Guide",
+      info_q1: "1. Why Are There Upper and Lower Bounds?",
+      info_a1_1: "Lower Bound (Minimum Target): Ensures operations remain productive. If the graph falls below this line (yellow), it indicates high absenteeism, machine downtime, or a lack of productive working days.",
+      info_a1_2: "Upper Bound (Fatigue Limit): Marks the safe limit for physical exhaustion. If the graph breaches this line (red), it signifies extreme overtime. Exhausted workers have a significantly higher risk of fatal workplace accidents.",
+      info_a1_3: "Green Box (Safe Zone): The ideal operational area where productivity is maintained and fatigue risks are minimized.",
       info_q2: "2. How to Determine the Targets?",
-      info_a2_desc: "These targets are not guessed; they are calculated mathematically based on your total headcount (Manpower).",
+      info_a2_desc: "These targets are calculated mathematically based on your total headcount (Manpower).",
       info_a2_f1: "Target Man-Days (Monthly Working Days) Formula:",
-      info_a2_f1_c: "Total Employees x Effective Working Days per Month. (Example: 60 employees x 25 working days = 1,500 Man-Days).",
+      info_a2_f1_c: "Total Employees x Effective Working Days. (Example: 60 people x 25 days = 1,500 Man-Days). Apply a ±10% tolerance for upper and lower bounds.",
       info_a2_f2: "Target Man-Hours (Monthly Working Hours) Formula:",
-      info_a2_f2_c: "Total Employees x Working Hours per Day x Effective Working Days. (Example: 60 employees x 8 Hours x 25 working days = 12,000 Man-Hours).",
-      info_a2_note: "If the actual data is far below target, it indicates high absenteeism or downtime. If it is far above target, it indicates excessive overtime and elevated HSE risks.",
+      info_a2_f2_c: "Total Employees x Working Hours per Day x Effective Working Days. (Example: 60 people x 8 Hours x 25 days = 12,000 Man-Hours). Apply a ±10% tolerance.",
       btn_close: "Close Guide"
     }
   }
@@ -300,22 +399,30 @@ export default function KpiDashboardPage() {
           </div>
           
           <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 border border-slate-300 dark:border-slate-700 rounded-[4px]">
-            <div className="flex items-center gap-2 px-2 border-r border-slate-300 dark:border-slate-700">
+            <div className={`flex items-center gap-2 px-2 ${selectedYear !== 'ALL' ? 'border-r border-slate-300 dark:border-slate-700' : ''}`}>
               <label htmlFor={`${formId}-fyear`} className="text-[9px] font-black uppercase text-slate-500">Year:</label>
-              <select id={`${formId}-fyear`} value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
-                {[currentYear-2, currentYear-1, currentYear, currentYear+1, currentYear+2].map(y => <option key={y} value={y} className="dark:bg-slate-900">{y}</option>)}
+              <select 
+                id={`${formId}-fyear`} 
+                value={selectedYear} 
+                onChange={(e) => setSelectedYear(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))} 
+                className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+              >
+                <option value="ALL" className="dark:bg-slate-900">{t.all_years}</option>
+                {availableYears.map(y => <option key={y} value={y} className="dark:bg-slate-900">{y}</option>)}
               </select>
             </div>
-            <div className="flex items-center gap-2 px-2">
-              <label htmlFor={`${formId}-fperiod`} className="text-[9px] font-black uppercase text-slate-500">Period:</label>
-              <select id={`${formId}-fperiod`} value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value as PeriodFilter)} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
-                <option value="YTD" className="dark:bg-slate-900">YEAR TO DATE (YTD)</option>
-                <option value="Q1" className="dark:bg-slate-900">QUARTER 1 (Q1)</option>
-                <option value="Q2" className="dark:bg-slate-900">QUARTER 2 (Q2)</option>
-                <option value="Q3" className="dark:bg-slate-900">QUARTER 3 (Q3)</option>
-                <option value="Q4" className="dark:bg-slate-900">QUARTER 4 (Q4)</option>
-              </select>
-            </div>
+            {selectedYear !== 'ALL' && (
+              <div className="flex items-center gap-2 px-2">
+                <label htmlFor={`${formId}-fperiod`} className="text-[9px] font-black uppercase text-slate-500">Period:</label>
+                <select id={`${formId}-fperiod`} value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value as PeriodFilter)} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
+                  <option value="YTD" className="dark:bg-slate-900">YEAR TO DATE (YTD)</option>
+                  <option value="Q1" className="dark:bg-slate-900">QUARTER 1 (Q1)</option>
+                  <option value="Q2" className="dark:bg-slate-900">QUARTER 2 (Q2)</option>
+                  <option value="Q3" className="dark:bg-slate-900">QUARTER 3 (Q3)</option>
+                  <option value="Q4" className="dark:bg-slate-900">QUARTER 4 (Q4)</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
         
@@ -324,7 +431,7 @@ export default function KpiDashboardPage() {
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase transition-colors">{t.title}</h1>
               <span className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-[2px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-500 animate-pulse"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-500"></span>
                 <span className="text-[8px] font-black text-emerald-800 dark:text-emerald-500 tracking-widest">INTERNAL DATABASE</span>
               </span>
             </div>
@@ -344,7 +451,7 @@ export default function KpiDashboardPage() {
           </div>
           <div className="text-right border-2 border-black p-2">
             <span className="text-[9px] font-black text-black uppercase tracking-widest block">{t.print_reg}</span>
-            <span className="text-sm font-black text-black uppercase">{selectedPeriod} {selectedYear}</span>
+            <span className="text-sm font-black text-black uppercase">{periodLabel}</span>
           </div>
         </div>
       </div>
@@ -354,7 +461,6 @@ export default function KpiDashboardPage() {
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
             {t.sect_lagging}
           </h2>
-          {/* INFO BUTTON UNTUK LAGGING INDICATORS */}
           <button onClick={() => setShowInfo(true)} aria-label="Informasi Metrik" className="text-slate-400 hover:text-teal-600 transition-colors print:hidden">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </button>
@@ -390,7 +496,7 @@ export default function KpiDashboardPage() {
               <span className="text-[9px] font-bold text-slate-400 mb-1.5">DAYS</span>
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:text-black">
-              TARGET: &gt; {(filteredData.periodTargetManDays).toLocaleString()} DAYS
+              MIN. BASELINE: &gt; {(filteredData.periodTargetManDays).toLocaleString()} DAYS
             </p>
           </div>
 
@@ -401,7 +507,7 @@ export default function KpiDashboardPage() {
               <span className="text-[9px] font-bold text-slate-400 mb-1.5">HOURS</span>
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:text-black">
-              TARGET: &gt; {(filteredData.periodTargetManHours / 1000).toFixed(0)}K HRS
+              MIN. BASELINE: &gt; {(filteredData.periodTargetManHours / 1000).toFixed(0)}K HRS
             </p>
           </div>
         </div>
@@ -444,75 +550,25 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      <div className="mt-8 bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-6 rounded-[4px] print:border-black print:bg-transparent transition-colors">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-8">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
-            {t.chart_title}
-          </h2>
-          <div className="flex flex-wrap gap-4 mt-3 sm:mt-0">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-teal-600 border border-teal-700 print:border-black print:bg-gray-300"></div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 print:text-black">{t.chart_mhrs}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-cyan-600 border border-cyan-700 print:border-black print:bg-gray-400"></div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 print:text-black">{t.chart_mdys}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-end gap-2 sm:gap-6 h-56 pt-4 relative">
-          {filteredData.maxManHours > 0 && (
-            <div 
-              className="absolute left-0 w-full border-t-2 border-dashed border-slate-400 dark:border-slate-600 z-0 pointer-events-none flex justify-start items-center opacity-70"
-              style={{ bottom: `${(TARGET_MAN_HOURS_PER_MONTH / filteredData.maxManHours) * 100}%` }}
-            >
-              <span className="absolute -top-4 text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-white dark:bg-[#0b0f19] px-1 print:bg-transparent print:text-black">
-                TARGET BASELINE: {(TARGET_MAN_HOURS_PER_MONTH/1000).toFixed(0)}K HRS
-              </span>
-            </div>
-          )}
-
-          {filteredData.chartData.length === 0 ? (
-            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest z-10">
-              NO DATA FOR SELECTED PERIOD
-            </div>
-          ) : (
-            filteredData.chartData.map((data, idx) => {
-              const hoursHeight = filteredData.maxManHours > 0 ? (data.manHours / filteredData.maxManHours) * 100 : 0
-              const daysHeight = filteredData.maxManDays > 0 ? (data.manDays / filteredData.maxManDays) * 100 : 0
-              
-              const isHoursBelowTarget = data.manHours > 0 && data.manHours < TARGET_MAN_HOURS_PER_MONTH
-
-              return (
-                <div key={idx} className="flex-1 flex flex-col justify-end items-center gap-2 h-full z-10">
-                  <div className="w-full flex items-end justify-center gap-1 h-full relative group">
-                    <div 
-                      style={{ height: `${hoursHeight}%` }} 
-                      className={`w-1/2 max-w-[28px] border-t-2 print:border-black print:bg-gray-300 transition-all duration-500 relative ${isHoursBelowTarget ? 'bg-amber-500 border-amber-400' : 'bg-teal-600 border-teal-400 dark:border-teal-300'}`}
-                    >
-                      <span className={`absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black print:text-black opacity-0 group-hover:opacity-100 print:opacity-100 ${isHoursBelowTarget ? 'text-amber-600 dark:text-amber-500' : 'text-teal-700 dark:text-teal-400'}`}>
-                        {data.manHours > 1000 ? (data.manHours/1000).toFixed(1)+'k' : data.manHours}
-                      </span>
-                    </div>
-
-                    <div 
-                      style={{ height: `${daysHeight}%` }} 
-                      className="w-1/2 max-w-[28px] bg-cyan-600 border-t-2 border-cyan-400 dark:border-cyan-300 print:border-black print:bg-gray-400 transition-all duration-500 relative"
-                    >
-                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-cyan-700 dark:text-cyan-400 print:text-black opacity-0 group-hover:opacity-100 print:opacity-100">
-                        {data.manDays > 1000 ? (data.manDays/1000).toFixed(1)+'k' : data.manDays}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500 print:text-black border-t-2 border-slate-200 dark:border-slate-800 print:border-black w-full text-center pt-3">
-                    {data.month}
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <TrendLineChart 
+          title={t.chart_title_mhrs} 
+          data={filteredData.chartManHours} 
+          labels={filteredData.chartLabels}
+          minTarget={TARGET_MAN_HOURS_MIN}
+          maxTarget={TARGET_MAN_HOURS_MAX}
+          unit="HRS"
+          isMultiYear={selectedYear === 'ALL'}
+        />
+        <TrendLineChart 
+          title={t.chart_title_mdys} 
+          data={filteredData.chartManDays} 
+          labels={filteredData.chartLabels}
+          minTarget={TARGET_MAN_DAYS_MIN}
+          maxTarget={TARGET_MAN_DAYS_MAX}
+          unit="DAYS"
+          isMultiYear={selectedYear === 'ALL'}
+        />
       </div>
 
       <div className="hidden print:grid grid-cols-2 gap-12 pt-12 mt-12 border-t-4 border-black text-black">
@@ -534,10 +590,6 @@ export default function KpiDashboardPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zM9 14h6M9 10h6" /></svg>
             {t.mgr_title}
           </h2>
-          {/* INFO BUTTON UNTUK FORM DATA */}
-          <button onClick={() => setShowInfo(true)} aria-label="Informasi Metrik" className="text-slate-400 hover:text-teal-600 transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          </button>
         </div>
         
         <div className={`bg-slate-100 dark:bg-slate-900 border ${editingId ? 'border-amber-400 dark:border-amber-600 shadow-md' : 'border-slate-300 dark:border-slate-800'} rounded-[4px] p-5 transition-all`}>
@@ -610,7 +662,7 @@ export default function KpiDashboardPage() {
                     <td colSpan={7} className="py-4 text-center text-slate-400">NO DATA FOUND</td>
                   </tr>
                 ) : (
-                  records.sort((a,b) => b.year - a.year || b.month - a.month).map(r => (
+                  [...records].sort((a,b) => b.year - a.year || b.month - a.month).map(r => (
                     <tr key={r.id} className={`transition-colors ${editingId === r.id ? 'bg-amber-50 dark:bg-amber-950/30' : 'hover:bg-white dark:hover:bg-slate-950'}`}>
                       <td className="py-2 px-3">{r.year} - M{r.month.toString().padStart(2, '0')}</td>
                       <td className="py-2 px-3 font-mono">{(r.manDays || 0).toLocaleString()}</td>
@@ -631,7 +683,6 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* INFO MODAL OVERLAY */}
       {showInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden" onClick={() => setShowInfo(false)}>
           <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 p-6 rounded-[4px] max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -676,10 +727,6 @@ export default function KpiDashboardPage() {
                   <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{t.info_a2_f2}</p>
                   <p>{t.info_a2_f2_c}</p>
                 </div>
-                
-                <p className="text-[10px] text-amber-700 dark:text-amber-500 font-black uppercase tracking-widest p-3 bg-amber-50 dark:bg-amber-950/30 border-l-2 border-amber-500">
-                  {t.info_a2_note}
-                </p>
               </div>
             </div>
 
