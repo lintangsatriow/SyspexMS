@@ -2,11 +2,11 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { LanguageProvider, useLanguage } from '../LanguageContext'
-import { ThemeProvider, useTheme } from '../ThemeContext'
+import { useLanguage } from '../LanguageContext'
+import { useTheme } from '../ThemeContext'
 import LogoutButton from './LogoutButton'
 
-function SidebarContent({ children }: { children: React.ReactNode }) {
+export default function ClientSidebarLayout({ children }: { children: React.ReactNode }) {
   const { lang, setLang } = useLanguage()
   const { theme, setTheme } = useTheme()
   
@@ -34,7 +34,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const t = dict[lang]
+  const t = dict[lang as keyof typeof dict] || dict.EN
 
   return (
     <>
@@ -60,7 +60,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             <Link href="/" className="w-full flex">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/Syspex%20Logo%20(Trademark)%20black.png" alt="Syspex Logo" className="w-full h-8 object-contain bg-white border border-slate-200 dark:border-transparent px-3 py-1.5 rounded-[2px]" />
             </Link>
           </div>
@@ -73,7 +72,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* FOLDER: OPERATIONS */}
           <div className="space-y-2">
             <button onClick={() => setOpsOpen(!opsOpen)} className="w-full flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-widest px-2 py-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               <span>{t.cat_ops}</span>
@@ -91,7 +89,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          {/* FOLDER: TECHNICAL */}
           <div className="space-y-2">
             <button onClick={() => setTechOpen(!techOpen)} className="w-full flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-widest px-2 py-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               <span>{t.cat_tech}</span>
@@ -107,7 +104,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          {/* FOLDER: MANAGEMENT */}
           <div className="space-y-2">
             <button onClick={() => setMgmtOpen(!mgmtOpen)} className="w-full flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-widest px-2 py-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               <span>{t.cat_mgmt}</span>
@@ -123,7 +119,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* BOTTOM CONTROLS (Theme, Language, and Logout) */}
         <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 flex flex-col gap-3 mt-4">
           <div className="flex justify-between items-center gap-2">
             <div className="flex bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-[4px] overflow-hidden w-full">
@@ -136,7 +131,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           
-          {/* TOMBOL LOGOUT TERINTEGRASI DI SIDEBAR */}
           <div className="w-full mt-2">
             <LogoutButton />
           </div>
@@ -148,7 +142,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
       {/* MOBILE TOPBAR & DRAWER */}
       <div className="lg:hidden fixed top-0 inset-x-0 h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between z-50">
         <Link href="/" className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/Syspex%20Logo%20(Trademark)%20black.png" alt="Syspex" className="h-6 bg-white px-2 py-0.5 border border-slate-200 dark:border-transparent rounded-[2px]" />
         </Link>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
@@ -171,7 +164,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
             <button onClick={() => setTheme('DARK')} className={`w-full py-2.5 text-[10px] font-black uppercase tracking-widest rounded-[4px] border ${theme === 'DARK' ? 'bg-slate-900 text-white border-slate-900' : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-700'}`}>DARK</button>
           </div>
 
-          {/* TOMBOL LOGOUT TERINTEGRASI DI MOBILE */}
           <div className="pt-4">
             <LogoutButton />
           </div>
@@ -183,15 +175,5 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </>
-  )
-}
-
-export default function ClientSidebarLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <SidebarContent>{children}</SidebarContent>
-      </LanguageProvider>
-    </ThemeProvider>
   )
 }
