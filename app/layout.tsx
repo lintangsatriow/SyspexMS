@@ -1,7 +1,8 @@
 import { cookies } from 'next/headers'
-import LogoutButton from './components/LogoutButton'
 import './globals.css'
-import ClientSidebarLayout from './components/ClientSidebarLayout' // Anda perlu memindahkan SidebarLayout ke komponen terpisah, lihat penjelasan di bawah
+import ClientSidebarLayout from './components/ClientSidebarLayout'
+import { ThemeProvider } from './ThemeContext'
+import { LanguageProvider } from './LanguageContext'
 
 export const metadata = {
   title: 'Syspex Management System',
@@ -20,17 +21,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/favicon-syspex.png?v=3" type="image/png" />
       </head>
       <body className="bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 min-h-screen flex font-sans antialiased selection:bg-teal-500 selection:text-white overflow-x-hidden">
-        {/* Jika belum login (misal sedang di halaman /login), render children polos tanpa Sidebar */}
-        {!isLoggedIn ? (
-          <main className="w-full flex-1">
-            {children}
-          </main>
-        ) : (
-          /* Jika sudah login, bungkus dengan Sidebar dan Provider lengkap */
-          <ClientSidebarLayout>
-            {children}
-          </ClientSidebarLayout>
-        )}
+        
+        {/* PROVIDER HARUS BERADA DI ROOT AGAR REACT TIDAK CRASH */}
+        <ThemeProvider>
+          <LanguageProvider>
+            
+            {!isLoggedIn ? (
+              <main className="w-full flex-1 min-h-screen flex flex-col">
+                {children}
+              </main>
+            ) : (
+              <ClientSidebarLayout>
+                {children}
+              </ClientSidebarLayout>
+            )}
+
+          </LanguageProvider>
+        </ThemeProvider>
+
       </body>
     </html>
   )
