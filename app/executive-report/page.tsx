@@ -41,12 +41,49 @@ interface HoverTooltip {
   statusColor: string
 }
 
+const VERIFIED_BASELINE_DATA: Array<{ year: number; month: number; headcount: number; manDays: number; manHours: number }> = [
+  { year: 2024, month: 1, headcount: 100, manDays: 1793, manHours: 16402 },
+  { year: 2024, month: 2, headcount: 101, manDays: 1605, manHours: 14509 },
+  { year: 2024, month: 3, headcount: 101, manDays: 1623, manHours: 14698 },
+  { year: 2024, month: 4, headcount: 102, manDays: 1299, manHours: 11752 },
+  { year: 2024, month: 5, headcount: 102, manDays: 1621, manHours: 14959 },
+  { year: 2024, month: 6, headcount: 104, manDays: 1574, manHours: 14362 },
+  { year: 2024, month: 7, headcount: 107, manDays: 1992, manHours: 18131 },
+  { year: 2024, month: 8, headcount: 107, manDays: 1909, manHours: 17547 },
+  { year: 2024, month: 9, headcount: 108, manDays: 1757, manHours: 16252 },
+  { year: 2024, month: 10, headcount: 108, manDays: 2036, manHours: 18539 },
+  { year: 2024, month: 11, headcount: 109, manDays: 1855, manHours: 16767 },
+  { year: 2024, month: 12, headcount: 110, manDays: 1803, manHours: 16750 },
+  { year: 2025, month: 1, headcount: 98, manDays: 1642, manHours: 14959 },
+  { year: 2025, month: 2, headcount: 98, manDays: 1710, manHours: 15748 },
+  { year: 2025, month: 3, headcount: 98, manDays: 1613, manHours: 14872 },
+  { year: 2025, month: 4, headcount: 99, manDays: 1415, manHours: 12850 },
+  { year: 2025, month: 5, headcount: 100, manDays: 1629, manHours: 15043 },
+  { year: 2025, month: 6, headcount: 101, manDays: 1638, manHours: 15171 },
+  { year: 2025, month: 7, headcount: 102, manDays: 1973, manHours: 17972 },
+  { year: 2025, month: 8, headcount: 106, manDays: 1932, manHours: 17693 },
+  { year: 2025, month: 9, headcount: 108, manDays: 1935, manHours: 18011 },
+  { year: 2025, month: 10, headcount: 108, manDays: 2117, manHours: 19478 },
+  { year: 2025, month: 11, headcount: 109, manDays: 1877, manHours: 17226 },
+  { year: 2025, month: 12, headcount: 109, manDays: 1841, manHours: 16833 },
+  { year: 2026, month: 1, headcount: 101, manDays: 1761, manHours: 16266 },
+  { year: 2026, month: 2, headcount: 101, manDays: 1676, manHours: 15374 },
+  { year: 2026, month: 3, headcount: 102, manDays: 1534, manHours: 13774 },
+  { year: 2026, month: 4, headcount: 104, manDays: 1909, manHours: 17222 },
+  { year: 2026, month: 5, headcount: 108, manDays: 1736, manHours: 15726 },
+  { year: 2026, month: 6, headcount: 108, manDays: 1869, manHours: 16813 },
+  { year: 2026, month: 7, headcount: 111, manDays: 2295, manHours: 20977 },
+  { year: 2026, month: 8, headcount: 113, manDays: 1987, manHours: 18125 },
+  { year: 2026, month: 9, headcount: 117, manDays: 2288, manHours: 21037 },
+  { year: 2026, month: 10, headcount: 123, manDays: 2396, manHours: 22215 }
+]
+
 const DEFAULT_TARGETS: TargetConfig = {
   trirMax: 1.0,
   ltiMax: 0,
-  defaultHeadcount: 110,
+  defaultHeadcount: 106,
   workingDaysPerMonth: 22,
-  hoursPerDay: 8
+  hoursPerDay: 9
 }
 
 const TrendLineChart = ({ 
@@ -177,7 +214,6 @@ const TrendLineChart = ({
         </div>
       </div>
 
-      {/* LEGENDA KONTEKSTUAL */}
       <div className="flex flex-wrap gap-3 mb-2 text-[8px] font-black uppercase tracking-widest">
         {hasTwoTier ? (
           <>
@@ -459,10 +495,29 @@ export default function KpiDashboardPage() {
     const savedData = localStorage.getItem('syspex_hse_db')
     if (savedData) {
       setRecords(JSON.parse(savedData))
+    } else {
+      const initialRecords: HseRecord[] = VERIFIED_BASELINE_DATA.map(item => ({
+        id: `${item.year}-${item.month}`,
+        year: item.year,
+        month: item.month,
+        headcount: item.headcount,
+        manDays: item.manDays,
+        manHours: item.manHours,
+        lti: 0,
+        spills: 0,
+        recordableIncidents: 0,
+        hazardReports: 0
+      }))
+      setRecords(initialRecords)
+      localStorage.setItem('syspex_hse_db', JSON.stringify(initialRecords))
     }
+
     const savedTargets = localStorage.getItem('syspex_hse_targets')
     if (savedTargets) {
       setTargets({ ...DEFAULT_TARGETS, ...JSON.parse(savedTargets) })
+    } else {
+      setTargets(DEFAULT_TARGETS)
+      localStorage.setItem('syspex_hse_targets', JSON.stringify(DEFAULT_TARGETS))
     }
   }, [])
 
@@ -601,7 +656,6 @@ export default function KpiDashboardPage() {
       return selectedYear === 'ALL' ? `${mStr} '${r.year.toString().slice(-2)}` : mStr
     })
     
-    // 1. Total Man-Hours Bulanan
     const chartManHours = sortedRecords.map(r => r.manHours)
     const cautionManHoursTargets = sortedRecords.map(r => {
       const hc = r.headcount && r.headcount > 0 ? r.headcount : targets.defaultHeadcount
@@ -612,7 +666,6 @@ export default function KpiDashboardPage() {
       return Math.round(hc * targets.hoursPerDay * targets.workingDaysPerMonth * 1.1)
     })
 
-    // 2. Rata-Rata Jam Kerja per Personel (Man-Hours / Total Headcount)
     const chartAvgHoursPerPerson = sortedRecords.map(r => {
       const hc = r.headcount && r.headcount > 0 ? r.headcount : targets.defaultHeadcount
       return hc > 0 ? Number((r.manHours / hc).toFixed(1)) : 0
@@ -620,7 +673,6 @@ export default function KpiDashboardPage() {
     const cautionAvgPersonTargets = sortedRecords.map(() => Number((targets.hoursPerDay * targets.workingDaysPerMonth).toFixed(1)))
     const criticalAvgPersonTargets = sortedRecords.map(() => Number((targets.hoursPerDay * targets.workingDaysPerMonth * 1.1).toFixed(1)))
 
-    // 3. Intensitas Jam Kerja Harian (Man-Hours / Man-Days)
     const chartDailyIntensity = sortedRecords.map(r => {
       const md = r.manDays || 0
       return md > 0 ? Number((r.manHours / md).toFixed(2)) : 0
@@ -628,7 +680,6 @@ export default function KpiDashboardPage() {
     const cautionDailyTargets = sortedRecords.map(() => Number(targets.hoursPerDay.toFixed(2)))
     const criticalDailyTargets = sortedRecords.map(() => Number((targets.hoursPerDay * 1.1).toFixed(2)))
 
-    // 4. Tren TRIR Bulanan ((Incidents * 200,000) / Man-Hours)
     const chartMonthlyTrir = sortedRecords.map(r => {
       return r.manHours > 0 ? Number(((r.recordableIncidents * 200000) / r.manHours).toFixed(2)) : 0
     })
@@ -688,7 +739,6 @@ export default function KpiDashboardPage() {
       sign_hse: "Dianalisa Oleh (HSE Supervisor):",
       sign_gm: "Diketahui Oleh (Director):",
 
-      // Panduan 1: Total Man-Hours
       info_1_title: "1. Panduan Total Jam Kerja Bulanan (Man-Hours)",
       info_1_q1: "Relevansi dengan Operasional & Risiko",
       info_1_b1: "Indikator Eksposur Risiko (Denominator TRIR): Mengukur total akumulasi durasi kerja seluruh personel (teknisi lapangan & backoffice) sebagai pembagi standar dalam kalkulasi TRIR.",
@@ -696,23 +746,20 @@ export default function KpiDashboardPage() {
       info_1_b3: "Garis Merah (Critical Fatigue Limit +10%): Ambang batas lembur berlebih. Titik merah menandakan risiko kelelahan kolektif yang meningkatkan potensi kecelakaan berkendara maupun instalasi mesin.",
       info_1_formula: "Early Warning = Headcount x Jam/Hari x Hari Kerja | Fatigue Limit = +10%",
 
-      // Panduan 2: Rata-rata Jam Kerja per Personel
       info_2_title: "2. Panduan Rata-Rata Jam Kerja per Personel",
       info_2_q1: "Mengapa Metrik Ini Penting?",
       info_2_b1: "Netral terhadap Perubahan Jumlah Karyawan: Total Man-Hours bisa naik hanya karena ada perekrutan baru. Dengan membagi Man-Hours dengan Total Headcount (teknisi + backoffice), kita melihat beban kerja rata-rata per individu secara murni.",
-      info_2_b2: "Garis Oranye (Standar Bulanan = Jam/Hari x Hari Kerja): Contoh 8 jam x 22 hari = 176 jam/personel/bulan.",
-      info_2_b3: "Garis Merah (+10% Beban Individual): Jika rata-rata melewati garis merah (misal > 193.6 jam/orang), artinya terjadi beban lembur merata yang memicu kelelahan individu.",
+      info_2_b2: "Garis Oranye (Standar Bulanan = Jam/Hari x Hari Kerja): Contoh 9 jam kotor (termasuk istirahat) x 22 hari = 198 jam/personel/bulan.",
+      info_2_b3: "Garis Merah (+10% Beban Individual): Jika rata-rata melewati garis merah, artinya terjadi beban lembur merata yang memicu kelelahan individu.",
       info_2_formula: "Rumus = Total Man-Hours ÷ Total Headcount Bulan Tersebut",
 
-      // Panduan 3: Intensitas Jam Kerja Harian
       info_3_title: "3. Panduan Intensitas Jam Kerja Harian",
       info_3_q1: "Deteksi Lembur Harian (Daily Overtime)",
-      info_3_b1: "Durasi Kerja per Hari Kehadiran: Membandingkan total jam kerja dengan total hari kehadiran (Man-Days) untuk mengetahui rata-rata jam kerja efektif setiap harinya.",
-      info_3_b2: "Garis Oranye (Jam Kerja Normal/Hari): Standar 8.0 jam/hari sesuai regulasi ketenagakerjaan.",
-      info_3_b3: "Garis Merah (+10% Lembur Harian): Jika rata-rata harian menembus 8.8 jam/hari secara konsisten dalam sebulan, artinya personel sering pulang larut saat melakukan instalasi atau perbaikan di lokasi customer.",
-      info_3_formula: "Rumus = Total Man-Hours ÷ Total Man-Days Bulan Tersebut",
+      info_3_b1: "Durasi Kerja per Hari Kehadiran Aktif: Membandingkan total jam kerja dengan total hari kehadiran aktif (Durasi kerja > 0, tanpa menghitung hari Off/Libur/Cuti).",
+      info_3_b2: "Garis Oranye (Jam Kerja Normal/Hari): Standar 9.0 jam kotor/hari sesuai pencatatan sistem absensi HRIS.",
+      info_3_b3: "Garis Merah (+10% Lembur Harian): Jika rata-rata harian menembus 9.9 jam/hari, artinya personel sering pulang larut saat melakukan instalasi atau perbaikan di lokasi customer.",
+      info_3_formula: "Rumus = Total Man-Hours ÷ Active Man-Days (Durasi Kerja > 0)",
 
-      // Panduan 4: Tren TRIR
       info_4_title: "4. Panduan Tren Rasio Insiden (TRIR)",
       info_4_q1: "Standar Kinerja Keselamatan Kerja (OSHA / ISO 45001)",
       info_4_b1: "Frekuensi Kecelakaan Tercatat: Mengukur jumlah insiden kerja yang memerlukan penanganan medis (Recordable Incidents) per 200,000 jam kerja.",
@@ -768,16 +815,16 @@ export default function KpiDashboardPage() {
       info_2_title: "2. Avg Working Hours per Personnel Guide",
       info_2_q1: "Why This Metric Matters",
       info_2_b1: "Headcount-Neutral Workload: Total Man-Hours can rise simply due to new hires. Dividing Man-Hours by Total Headcount (technicians + backoffice) isolates true individual workload.",
-      info_2_b2: "Orange Line (Monthly Standard = Hours/Day x Working Days): Example 8 hrs x 22 days = 176 hrs/person/month.",
-      info_2_b3: "Red Line (+10% Individual Load): Exceeding the red line (> 193.6 hrs/person) signals widespread overtime and individual fatigue.",
+      info_2_b2: "Orange Line (Monthly Standard = Hours/Day x Working Days): Example 9 gross hrs x 22 days = 198 hrs/person/month.",
+      info_2_b3: "Red Line (+10% Individual Load): Exceeding the red line signals widespread overtime and individual fatigue.",
       info_2_formula: "Formula = Total Man-Hours ÷ Total Monthly Headcount",
 
       info_3_title: "3. Daily Working Hour Intensity Guide",
       info_3_q1: "Detecting Daily Overtime",
-      info_3_b1: "Hours per Attendance Day: Compares total working hours against total attendance days (Man-Days) to measure average daily shift duration.",
-      info_3_b2: "Orange Line (Standard Daily Hours): 8.0 hours/day baseline.",
-      info_3_b3: "Red Line (+10% Daily Overtime): Consistently exceeding 8.8 hours/day indicates frequent late shifts during customer machine installations or repairs.",
-      info_3_formula: "Formula = Total Man-Hours ÷ Total Monthly Man-Days",
+      info_3_b1: "Hours per Active Attendance Day: Compares total working hours against active attendance days (Duration > 0, excluding Off/Holidays/Leave).",
+      info_3_b2: "Orange Line (Standard Daily Hours): 9.0 gross hours/day baseline per HRIS attendance logs.",
+      info_3_b3: "Red Line (+10% Daily Overtime): Consistently exceeding 9.9 hours/day indicates frequent late shifts during customer machine installations or repairs.",
+      info_3_formula: "Formula = Total Man-Hours ÷ Active Monthly Man-Days",
 
       info_4_title: "4. Monthly Incident Rate (TRIR) Guide",
       info_4_q1: "OSHA / ISO 45001 Safety Benchmark",
@@ -806,6 +853,7 @@ export default function KpiDashboardPage() {
           
           <div className="flex flex-wrap items-center gap-2">
             <button 
+              type="button"
               onClick={() => setShowTargetConfig(!showTargetConfig)} 
               className={`px-3 py-1.5 border rounded-[4px] text-[9px] font-black uppercase tracking-widest transition-colors cursor-pointer ${showTargetConfig ? 'bg-teal-700 text-white border-teal-700' : 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-teal-600'}`}
             >
@@ -942,10 +990,10 @@ export default function KpiDashboardPage() {
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_3}</p>
             <div className="flex items-end gap-2">
               <span className="text-3xl xl:text-4xl font-black font-mono text-slate-900 dark:text-white print:text-black">{filteredData.totalManDays.toLocaleString('en-US')}</span>
-              <span className="text-[9px] font-bold text-slate-400 mb-1">DAYS</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1">ACTIVE DAYS</span>
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:text-black">
-              ACCUMULATED FIELD EXPOSURE
+              VERIFIED WORKING ATTENDANCE
             </p>
           </div>
 
@@ -1101,11 +1149,11 @@ export default function KpiDashboardPage() {
             </div>
             <div>
               <label htmlFor={`${formId}-mdys`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_mdys}</label>
-              <input id={`${formId}-mdys`} type="number" placeholder="2420" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <input id={`${formId}-mdys`} type="number" placeholder="2000" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
               <label htmlFor={`${formId}-hrs`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_hrs}</label>
-              <input id={`${formId}-hrs`} type="number" placeholder="19360" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <input id={`${formId}-hrs`} type="number" placeholder="18000" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
               <label htmlFor={`${formId}-lti`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_lti}</label>
