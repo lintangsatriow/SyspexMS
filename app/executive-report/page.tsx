@@ -4,16 +4,18 @@ import { useState, useEffect, useId, useMemo } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '../LanguageContext'
 
-// Struktur Database Internal
 interface HseRecord {
   id: string
   year: number
-  month: number // 1-12
+  month: number
   lti: number
   spills: number
   manHours: number
   recordableIncidents: number
   hazardReports: number
+  capaClosure?: number
+  tbmCompliance?: number
+  auditScore?: number
 }
 
 type PeriodFilter = 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
@@ -24,15 +26,13 @@ export default function KpiDashboardPage() {
   const [todayDate, setTodayDate] = useState<string>('')
   const [mounted, setMounted] = useState(false)
 
-  // Filter States
   const currentYear = new Date().getFullYear()
   const [selectedYear, setSelectedYear] = useState<number>(currentYear)
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>('YTD')
 
-  // Database State (Disimpan di LocalStorage)
   const [records, setRecords] = useState<HseRecord[]>([])
-
-  // Form Input States
+  
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [inputYear, setInputYear] = useState<number>(currentYear)
   const [inputMonth, setInputMonth] = useState<number>(new Date().getMonth() + 1)
   const [inputLti, setInputLti] = useState<number | ''>('')
@@ -41,7 +41,6 @@ export default function KpiDashboardPage() {
   const [inputIncidents, setInputIncidents] = useState<number | ''>('')
   const [inputHazards, setInputHazards] = useState<number | ''>('')
 
-  // Inisialisasi Database
   useEffect(() => {
     setTodayDate(new Date().toISOString().split('T')[0])
     setMounted(true)
@@ -50,7 +49,6 @@ export default function KpiDashboardPage() {
     if (savedData) {
       setRecords(JSON.parse(savedData))
     } else {
-      // Seed Data Awal agar tidak kosong
       const seedData: HseRecord[] = [
         { id: '1', year: currentYear, month: 1, lti: 0, spills: 0, manHours: 250000, recordableIncidents: 0, hazardReports: 22 },
         { id: '2', year: currentYear, month: 2, lti: 0, spills: 1, manHours: 245000, recordableIncidents: 1, hazardReports: 18 },
@@ -61,19 +59,17 @@ export default function KpiDashboardPage() {
     }
   }, [currentYear])
 
-  // Menyimpan perubahan ke LocalStorage
   const saveRecords = (newRecords: HseRecord[]) => {
     setRecords(newRecords)
     localStorage.setItem('syspex_hse_db', JSON.stringify(newRecords))
   }
 
-  // Fungsi Tambah Data Manual
-  const handleAddRecord = (e: React.FormEvent) => {
+  const handleSubmitRecord = (e: React.FormEvent) => {
     e.preventDefault()
     if (inputLti === '' || inputManHours === '' || inputIncidents === '' || inputHazards === '') return
 
     const newRecord: HseRecord = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: editingId || Math.random().toString(36).substring(2, 9),
       year: inputYear,
       month: inputMonth,
       lti: Number(inputLti),
@@ -83,27 +79,56 @@ export default function KpiDashboardPage() {
       hazardReports: Number(inputHazards)
     }
 
-    // Cek apakah bulan dan tahun sudah ada, jika ya timpa (update)
-    const existingIdx = records.findIndex(r => r.year === inputYear && r.month === inputMonth)
-    let updatedRecords = [...records]
-    
-    if (existingIdx >= 0) {
-      updatedRecords[existingIdx] = newRecord
+    if (editingId) {
+      const updatedRecords = records.map(r => r.id === editingId ? newRecord : r)
+      saveRecords(updatedRecords)
+      setEditingId(null)
     } else {
-      updatedRecords.push(newRecord)
+      const existingIdx = records.findIndex(r => r.year === inputYear && r.month === inputMonth)
+      const updatedRecords = [...records]
+      
+      if (existingIdx >= 0) {
+        newRecord.id = updatedRecords[existingIdx].id
+        updatedRecords[existingIdx] = newRecord
+      } else {
+        updatedRecords.push(newRecord)
+      }
+      saveRecords(updatedRecords)
     }
     
-    saveRecords(updatedRecords)
+    setInputLti('')
+    setInputSpills('')
+    setInputManHours('')
+    setInputIncidents('')
+    setInputHazards('')
+  }
+
+  const handleEditClick = (record: HseRecord) => {
+    setEditingId(record.id)
+    setInputYear(record.year)
+    setInputMonth(record.month)
+    setInputLti(record.lti)
+    setInputSpills(record.spills)
+    setInputManHours(record.manHours)
+    setInputIncidents(record.recordableIncidents)
+    setInputHazards(record.hazardReports)
     
-    // Reset sebagian form
-    setInputLti(''); setInputSpills(''); setInputManHours(''); setInputIncidents(''); setInputHazards('')
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }
 
   const handleDeleteRecord = (id: string) => {
     saveRecords(records.filter(r => r.id !== id))
+    if (editingId === id) {
+      setEditingId(null)
+      setInputLti(''); setInputSpills(''); setInputManHours(''); setInputIncidents(''); setInputHazards('')
+    }
   }
 
-  // MESIN FILTER & KALKULASI OTOMATIS
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setInputLti(''); setInputSpills(''); setInputManHours(''); setInputIncidents(''); setInputHazards('')
+  }
+
   const filteredData = useMemo(() => {
     let filtered = records.filter(r => r.year === selectedYear)
     
@@ -112,7 +137,6 @@ export default function KpiDashboardPage() {
     if (selectedPeriod === 'Q3') filtered = filtered.filter(r => r.month >= 7 && r.month <= 9)
     if (selectedPeriod === 'Q4') filtered = filtered.filter(r => r.month >= 10 && r.month <= 12)
 
-    // Agregasi Data Lagging
     const totalLti = filtered.reduce((sum, r) => sum + r.lti, 0)
     const totalSpills = filtered.reduce((sum, r) => sum + r.spills, 0)
     const totalManHours = filtered.reduce((sum, r) => sum + r.manHours, 0)
@@ -121,13 +145,11 @@ export default function KpiDashboardPage() {
     // Rumus TRIR OSHA: (Total Insiden * 200,000) / Total Man Hours
     const trir = totalManHours > 0 ? ((totalIncidents * 200000) / totalManHours).toFixed(2) : '0.00'
 
-    // Format Man Hours (K / M)
     let formattedManHours = '0'
     if (totalManHours >= 1000000) formattedManHours = (totalManHours / 1000000).toFixed(1) + 'M'
     else if (totalManHours >= 1000) formattedManHours = (totalManHours / 1000).toFixed(1) + 'K'
     else formattedManHours = totalManHours.toString()
 
-    // Siapkan Data Chart agar berurutan per bulan
     const chartData = filtered.sort((a, b) => a.month - b.month).map(r => ({
       month: new Date(2000, r.month - 1).toLocaleString(lang === 'ID' ? 'id-ID' : 'en-US', { month: 'short' }).toUpperCase(),
       hazards: r.hazardReports,
@@ -165,7 +187,10 @@ export default function KpiDashboardPage() {
       
       mgr_title: "DATA HSE (Input & Log Histori)",
       mgr_add: "Tambah / Ubah Data Kinerja Bulanan",
-      form_y: "Tahun", form_m: "Bulan", form_lti: "Total LTI", form_spill: "Total Spills", form_hrs: "Man-Hours", form_inc: "Recordable Incidents", form_haz: "Hazard Reports", btn_save: "Simpan Database",
+      form_y: "Tahun", form_m: "Bulan", form_lti: "Total LTI", form_spill: "Total Spills", form_hrs: "Man-Hours", form_inc: "Recordable Incidents", form_haz: "Hazard Reports", 
+      btn_save: "Simpan Baru",
+      btn_update: "Perbarui Data",
+      btn_cancel: "Batal",
 
       print_doc_type: "LAPORAN KINERJA K3L",
       print_reg: "Periode Laporan:",
@@ -197,7 +222,10 @@ export default function KpiDashboardPage() {
       
       mgr_title: "DATA HSE (Input & History Logs)",
       mgr_add: "Add / Update Monthly Performance Data",
-      form_y: "Year", form_m: "Month", form_lti: "Total LTI", form_spill: "Total Spills", form_hrs: "Man-Hours", form_inc: "Recordable Inc.", form_haz: "Hazard Reports", btn_save: "Save to Database",
+      form_y: "Year", form_m: "Month", form_lti: "Total LTI", form_spill: "Total Spills", form_hrs: "Man-Hours", form_inc: "Recordable Inc.", form_haz: "Hazard Reports", 
+      btn_save: "Save New",
+      btn_update: "Update Record",
+      btn_cancel: "Cancel",
 
       print_doc_type: "HSE PERFORMANCE REPORT",
       print_reg: "Report Period:",
@@ -208,12 +236,11 @@ export default function KpiDashboardPage() {
 
   const t = dict[lang]
 
-  if (!mounted) return null // Mencegah hydration error
+  if (!mounted) return null 
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
       
-      {/* HEADER WEB & FILTER BAR */}
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
@@ -222,17 +249,16 @@ export default function KpiDashboardPage() {
             <span className="text-slate-900 dark:text-slate-100">{t.breadcrumb}</span>
           </div>
           
-          {/* FILTER MESIN WAKTU */}
           <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 border border-slate-300 dark:border-slate-700 rounded-[4px]">
             <div className="flex items-center gap-2 px-2 border-r border-slate-300 dark:border-slate-700">
-              <span className="text-[9px] font-black uppercase text-slate-500">Year:</span>
-              <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
-                {[currentYear-1, currentYear, currentYear+1].map(y => <option key={y} value={y} className="dark:bg-slate-900">{y}</option>)}
+              <label htmlFor={`${formId}-fyear`} className="text-[9px] font-black uppercase text-slate-500">Year:</label>
+              <select id={`${formId}-fyear`} value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
+                {[currentYear-2, currentYear-1, currentYear, currentYear+1, currentYear+2].map(y => <option key={y} value={y} className="dark:bg-slate-900">{y}</option>)}
               </select>
             </div>
             <div className="flex items-center gap-2 px-2">
-              <span className="text-[9px] font-black uppercase text-slate-500">Period:</span>
-              <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value as PeriodFilter)} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
+              <label htmlFor={`${formId}-fperiod`} className="text-[9px] font-black uppercase text-slate-500">Period:</label>
+              <select id={`${formId}-fperiod`} value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value as PeriodFilter)} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
                 <option value="YTD" className="dark:bg-slate-900">YEAR TO DATE (YTD)</option>
                 <option value="Q1" className="dark:bg-slate-900">QUARTER 1 (Q1)</option>
                 <option value="Q2" className="dark:bg-slate-900">QUARTER 2 (Q2)</option>
@@ -260,7 +286,6 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* HEADER CETAK DOKUMEN (PRINT) */}
       <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
@@ -274,7 +299,6 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* 1. LAGGING INDICATORS (LIVE) */}
       <div>
         <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-4 print:text-black print:border-black">
           {t.sect_lagging}
@@ -311,7 +335,6 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* 2. LEADING INDICATORS (COMING SOON) */}
       <div className="mt-8 relative group opacity-60 hover:opacity-100 transition-opacity duration-500">
         <div className="flex justify-between items-end border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-4 print:text-black print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 print:text-black">
@@ -349,7 +372,6 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* 3. TREND CHART SECTION (DYNAMIC) */}
       <div className="mt-8 bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-6 rounded-[4px] print:border-black print:bg-transparent transition-colors">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-8">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
@@ -367,7 +389,6 @@ export default function KpiDashboardPage() {
           </div>
         </div>
 
-        {/* CSS Grid Bar Chart */}
         <div className="flex items-end gap-2 sm:gap-6 h-56 pt-4">
           {filteredData.chartData.length === 0 ? (
             <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -398,7 +419,6 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* 4. DOKUMEN CETAK (PRINT) - SIGNATURES */}
       <div className="hidden print:grid grid-cols-2 gap-12 pt-12 mt-12 border-t-4 border-black text-black">
         <div className="text-center border-2 border-black p-4">
           <p className="text-[9px] font-black uppercase tracking-widest mb-20">{t.sign_hse}</p>
@@ -412,81 +432,93 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* 5. DATA HSE (HIDE ON PRINT) */}
       <div className="mt-12 print:hidden">
         <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zM9 14h6M9 10h6" /></svg>
           {t.mgr_title}
         </h2>
         
-        <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-[4px] p-5">
-          <p className="text-[9px] font-black text-slate-700 dark:text-slate-300 mb-4">{t.mgr_add}</p>
-          <form onSubmit={handleAddRecord} className="grid grid-cols-2 md:grid-cols-8 gap-3 items-end">
+        <div className={`bg-slate-100 dark:bg-slate-900 border ${editingId ? 'border-amber-400 dark:border-amber-600 shadow-md' : 'border-slate-300 dark:border-slate-800'} rounded-[4px] p-5 transition-all`}>
+          <p className={`text-[9px] font-black mb-4 ${editingId ? 'text-amber-600 dark:text-amber-500' : 'text-slate-700 dark:text-slate-300'}`}>
+            {editingId ? "EDITING MODE ACTIVE" : t.mgr_add}
+          </p>
+          <form onSubmit={handleSubmitRecord} className="grid grid-cols-2 md:grid-cols-9 gap-3 items-end">
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_y}</label>
-              <input type="number" value={inputYear} onChange={e=>setInputYear(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <label htmlFor={`${formId}-y`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_y}</label>
+              <input id={`${formId}-y`} type="number" value={inputYear} onChange={e=>setInputYear(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_m}</label>
-              <select value={inputMonth} onChange={e=>setInputMonth(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500">
+              <label htmlFor={`${formId}-m`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_m}</label>
+              <select id={`${formId}-m`} value={inputMonth} onChange={e=>setInputMonth(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500">
                 {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_hrs}</label>
-              <input type="number" placeholder="250000" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <label htmlFor={`${formId}-hrs`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_hrs}</label>
+              <input id={`${formId}-hrs`} type="number" placeholder="250000" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_lti}</label>
-              <input type="number" min="0" placeholder="0" value={inputLti} onChange={e=>setInputLti(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <label htmlFor={`${formId}-lti`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_lti}</label>
+              <input id={`${formId}-lti`} type="number" min="0" placeholder="0" value={inputLti} onChange={e=>setInputLti(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_spill}</label>
-              <input type="number" min="0" placeholder="0" value={inputSpills} onChange={e=>setInputSpills(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <label htmlFor={`${formId}-spl`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_spill}</label>
+              <input id={`${formId}-spl`} type="number" min="0" placeholder="0" value={inputSpills} onChange={e=>setInputSpills(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_inc}</label>
-              <input type="number" min="0" placeholder="0" value={inputIncidents} onChange={e=>setInputIncidents(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <label htmlFor={`${formId}-inc`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_inc}</label>
+              <input id={`${formId}-inc`} type="number" min="0" placeholder="0" value={inputIncidents} onChange={e=>setInputIncidents(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_haz}</label>
-              <input type="number" min="0" placeholder="0" value={inputHazards} onChange={e=>setInputHazards(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <label htmlFor={`${formId}-haz`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_haz}</label>
+              <input id={`${formId}-haz`} type="number" min="0" placeholder="0" value={inputHazards} onChange={e=>setInputHazards(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
-            <div>
-              <button type="submit" disabled={inputManHours===''} className="w-full py-1.5 bg-teal-700 dark:bg-teal-600 hover:bg-teal-600 text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] disabled:opacity-50 transition-colors h-[30px]">
-                {t.btn_save}
+            <div className="md:col-span-2 flex gap-2">
+              <button type="submit" disabled={inputManHours===''} className={`flex-1 py-1.5 text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] disabled:opacity-50 transition-colors h-[30px] ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-teal-700 dark:bg-teal-600 hover:bg-teal-500'}`}>
+                {editingId ? t.btn_update : t.btn_save}
               </button>
+              {editingId && (
+                <button type="button" onClick={handleCancelEdit} className="px-3 py-1.5 bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-[9px] font-black uppercase tracking-widest rounded-[2px] hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors h-[30px]">
+                  {t.btn_cancel}
+                </button>
+              )}
             </div>
           </form>
 
-          {/* HISTORICAL LOG TABLE */}
           <div className="mt-6 border border-slate-300 dark:border-slate-700 rounded-[2px] overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-200 dark:bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
                 <tr>
-                  <th className="py-2 px-3">PERIOD</th>
+                  <th className="py-2 px-3 w-20">PERIOD</th>
                   <th className="py-2 px-3">MAN-HOURS</th>
                   <th className="py-2 px-3">LTI</th>
                   <th className="py-2 px-3">SPILLS</th>
                   <th className="py-2 px-3">INCIDENTS</th>
                   <th className="py-2 px-3">HAZARDS</th>
-                  <th className="py-2 px-3 text-center">ACT</th>
+                  <th className="py-2 px-3 text-center w-24">ACT</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                {records.sort((a,b) => b.year - a.year || b.month - a.month).map(r => (
-                  <tr key={r.id} className="hover:bg-white dark:hover:bg-slate-950 transition-colors">
-                    <td className="py-2 px-3">{r.year} - M{r.month.toString().padStart(2, '0')}</td>
-                    <td className="py-2 px-3 font-mono">{r.manHours.toLocaleString()}</td>
-                    <td className="py-2 px-3">{r.lti}</td>
-                    <td className="py-2 px-3">{r.spills}</td>
-                    <td className="py-2 px-3 text-rose-600 dark:text-rose-400">{r.recordableIncidents}</td>
-                    <td className="py-2 px-3 text-teal-600 dark:text-teal-400">{r.hazardReports}</td>
-                    <td className="py-2 px-3 text-center">
-                      <button onClick={() => handleDeleteRecord(r.id)} className="text-[8px] font-black uppercase text-rose-500 hover:text-rose-700 border border-transparent hover:border-rose-300 rounded px-1">DEL</button>
-                    </td>
+                {records.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-4 text-center text-slate-400">NO DATA FOUND</td>
                   </tr>
-                ))}
+                ) : (
+                  records.sort((a,b) => b.year - a.year || b.month - a.month).map(r => (
+                    <tr key={r.id} className={`transition-colors ${editingId === r.id ? 'bg-amber-50 dark:bg-amber-950/30' : 'hover:bg-white dark:hover:bg-slate-950'}`}>
+                      <td className="py-2 px-3">{r.year} - M{r.month.toString().padStart(2, '0')}</td>
+                      <td className="py-2 px-3 font-mono">{r.manHours.toLocaleString()}</td>
+                      <td className="py-2 px-3">{r.lti}</td>
+                      <td className="py-2 px-3">{r.spills}</td>
+                      <td className="py-2 px-3 text-rose-600 dark:text-rose-400">{r.recordableIncidents}</td>
+                      <td className="py-2 px-3 text-teal-600 dark:text-teal-400">{r.hazardReports}</td>
+                      <td className="py-2 px-3 text-center flex justify-center gap-1.5">
+                        <button onClick={() => handleEditClick(r)} aria-label="Edit record" className="text-[8px] font-black uppercase text-blue-600 dark:text-blue-500 hover:text-blue-700 border border-transparent hover:border-blue-300 dark:hover:border-blue-800 rounded px-1 transition-colors">EDIT</button>
+                        <button onClick={() => handleDeleteRecord(r.id)} aria-label="Delete record" className="text-[8px] font-black uppercase text-rose-500 hover:text-rose-700 border border-transparent hover:border-rose-300 dark:hover:border-rose-900 rounded px-1 transition-colors">DEL</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
