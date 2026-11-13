@@ -1,27 +1,23 @@
 "use client"
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(false)
 
-    // Simulasi loading mekanikal singkat
     setTimeout(() => {
-      // GANTI USERNAME DAN PASSWORD DI SINI
       if (username === 'admin' && password === 'syspex2026') {
-        // Tanamkan tiket otentikasi (berlaku 1 hari)
         document.cookie = "syspex_auth=true; path=/; max-age=86400"
-        router.push('/')
+        // HARD REDIRECT: Memaksa server membaca cookie baru
+        window.location.href = '/'
       } else {
         setError(true)
         setIsLoading(false)
@@ -33,7 +29,6 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center p-4 selection:bg-teal-500/30 font-sans">
       <div className="w-full max-w-sm bg-slate-900 border-2 border-slate-800 p-8 rounded-[4px] shadow-2xl relative overflow-hidden">
         
-        {/* Aksen Garis Atas */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-700 to-cyan-600"></div>
 
         <div className="mb-8">
