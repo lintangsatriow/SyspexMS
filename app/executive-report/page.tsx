@@ -10,6 +10,7 @@ interface HseRecord {
   month: number
   lti: number
   spills: number
+  manDays?: number
   manHours: number
   recordableIncidents: number
   hazardReports: number
@@ -35,11 +36,18 @@ export default function KpiDashboardPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [inputYear, setInputYear] = useState<number>(currentYear)
   const [inputMonth, setInputMonth] = useState<number>(new Date().getMonth() + 1)
-  const [inputLti, setInputLti] = useState<number | ''>('')
-  const [inputSpills, setInputSpills] = useState<number | ''>('')
+  const [inputManDays, setInputManDays] = useState<number | ''>('')
   const [inputManHours, setInputManHours] = useState<number | ''>('')
-  const [inputIncidents, setInputIncidents] = useState<number | ''>('')
-  const [inputHazards, setInputHazards] = useState<number | ''>('')
+  const [inputLti, setInputLti] = useState<number | ''>(0)
+  const [inputSpills, setInputSpills] = useState<number | ''>(0)
+  const [inputIncidents, setInputIncidents] = useState<number | ''>(0)
+  const [inputHazards, setInputHazards] = useState<number | ''>(0)
+
+  // Nilai Target Baseline (Dapat disesuaikan sesuai regulasi perusahaan)
+  const TARGET_TRIR = 1.0
+  const TARGET_LTI = 0
+  const TARGET_SPILLS = 0
+  const TARGET_MAN_HOURS_PER_MONTH = 12000 
 
   useEffect(() => {
     setTodayDate(new Date().toISOString().split('T')[0])
@@ -50,9 +58,9 @@ export default function KpiDashboardPage() {
       setRecords(JSON.parse(savedData))
     } else {
       const seedData: HseRecord[] = [
-        { id: '1', year: currentYear, month: 1, lti: 0, spills: 0, manHours: 250000, recordableIncidents: 0, hazardReports: 22 },
-        { id: '2', year: currentYear, month: 2, lti: 0, spills: 1, manHours: 245000, recordableIncidents: 1, hazardReports: 18 },
-        { id: '3', year: currentYear, month: 3, lti: 0, spills: 0, manHours: 260000, recordableIncidents: 0, hazardReports: 35 },
+        { id: '1', year: currentYear, month: 1, lti: 0, spills: 0, manDays: 1420, manHours: 11360, recordableIncidents: 0, hazardReports: 22 },
+        { id: '2', year: currentYear, month: 2, lti: 0, spills: 1, manDays: 1550, manHours: 12400, recordableIncidents: 1, hazardReports: 18 },
+        { id: '3', year: currentYear, month: 3, lti: 0, spills: 0, manDays: 1680, manHours: 13440, recordableIncidents: 0, hazardReports: 35 },
       ]
       setRecords(seedData)
       localStorage.setItem('syspex_hse_db', JSON.stringify(seedData))
@@ -66,17 +74,18 @@ export default function KpiDashboardPage() {
 
   const handleSubmitRecord = (e: React.FormEvent) => {
     e.preventDefault()
-    if (inputLti === '' || inputManHours === '' || inputIncidents === '' || inputHazards === '') return
+    if (inputManHours === '' || inputManDays === '') return
 
     const newRecord: HseRecord = {
       id: editingId || Math.random().toString(36).substring(2, 9),
       year: inputYear,
       month: inputMonth,
-      lti: Number(inputLti),
-      spills: Number(inputSpills) || 0,
+      lti: inputLti === '' ? 0 : Number(inputLti),
+      spills: inputSpills === '' ? 0 : Number(inputSpills),
+      manDays: Number(inputManDays),
       manHours: Number(inputManHours),
-      recordableIncidents: Number(inputIncidents),
-      hazardReports: Number(inputHazards)
+      recordableIncidents: inputIncidents === '' ? 0 : Number(inputIncidents),
+      hazardReports: inputHazards === '' ? 0 : Number(inputHazards)
     }
 
     if (editingId) {
@@ -96,11 +105,12 @@ export default function KpiDashboardPage() {
       saveRecords(updatedRecords)
     }
     
-    setInputLti('')
-    setInputSpills('')
+    setInputManDays('')
     setInputManHours('')
-    setInputIncidents('')
-    setInputHazards('')
+    setInputLti(0)
+    setInputSpills(0)
+    setInputIncidents(0)
+    setInputHazards(0)
   }
 
   const handleEditClick = (record: HseRecord) => {
@@ -109,6 +119,7 @@ export default function KpiDashboardPage() {
     setInputMonth(record.month)
     setInputLti(record.lti)
     setInputSpills(record.spills)
+    setInputManDays(record.manDays || 0)
     setInputManHours(record.manHours)
     setInputIncidents(record.recordableIncidents)
     setInputHazards(record.hazardReports)
@@ -120,13 +131,13 @@ export default function KpiDashboardPage() {
     saveRecords(records.filter(r => r.id !== id))
     if (editingId === id) {
       setEditingId(null)
-      setInputLti(''); setInputSpills(''); setInputManHours(''); setInputIncidents(''); setInputHazards('')
+      setInputManDays(''); setInputManHours(''); setInputLti(0); setInputSpills(0); setInputIncidents(0); setInputHazards(0)
     }
   }
 
   const handleCancelEdit = () => {
     setEditingId(null)
-    setInputLti(''); setInputSpills(''); setInputManHours(''); setInputIncidents(''); setInputHazards('')
+    setInputManDays(''); setInputManHours(''); setInputLti(0); setInputSpills(0); setInputIncidents(0); setInputHazards(0)
   }
 
   const filteredData = useMemo(() => {
@@ -139,11 +150,15 @@ export default function KpiDashboardPage() {
 
     const totalLti = filtered.reduce((sum, r) => sum + r.lti, 0)
     const totalSpills = filtered.reduce((sum, r) => sum + r.spills, 0)
+    const totalManDays = filtered.reduce((sum, r) => sum + (r.manDays || 0), 0)
     const totalManHours = filtered.reduce((sum, r) => sum + r.manHours, 0)
     const totalIncidents = filtered.reduce((sum, r) => sum + r.recordableIncidents, 0)
 
-    // Rumus TRIR OSHA: (Total Insiden * 200,000) / Total Man Hours
-    const trir = totalManHours > 0 ? ((totalIncidents * 200000) / totalManHours).toFixed(2) : '0.00'
+    const numMonths = filtered.length || 1
+    const periodTargetManHours = TARGET_MAN_HOURS_PER_MONTH * numMonths
+
+    const trirNum = totalManHours > 0 ? ((totalIncidents * 200000) / totalManHours) : 0
+    const trir = trirNum.toFixed(2)
 
     let formattedManHours = '0'
     if (totalManHours >= 1000000) formattedManHours = (totalManHours / 1000000).toFixed(1) + 'M'
@@ -152,13 +167,18 @@ export default function KpiDashboardPage() {
 
     const chartData = filtered.sort((a, b) => a.month - b.month).map(r => ({
       month: new Date(2000, r.month - 1).toLocaleString(lang === 'ID' ? 'id-ID' : 'en-US', { month: 'short' }).toUpperCase(),
-      hazards: r.hazardReports,
-      incidents: r.recordableIncidents
+      manHours: r.manHours,
+      manDays: r.manDays || 0
     }))
 
-    const maxHazards = chartData.length > 0 ? Math.max(...chartData.map(d => Math.max(d.hazards, d.incidents))) : 0
+    const rawMaxManHours = chartData.length > 0 ? Math.max(...chartData.map(d => d.manHours)) : 0
+    // Pastikan batas atas chart setidaknya menampung garis target bulanan
+    const maxManHours = Math.max(rawMaxManHours, TARGET_MAN_HOURS_PER_MONTH + 2000)
 
-    return { totalLti, totalSpills, totalManHours, formattedManHours, trir, chartData, maxHazards }
+    return { 
+      totalLti, totalSpills, totalManDays, totalManHours, formattedManHours, 
+      trir, trirNum, chartData, maxManHours, periodTargetManHours 
+    }
   }, [records, selectedYear, selectedPeriod, lang])
 
   const dict = {
@@ -171,7 +191,7 @@ export default function KpiDashboardPage() {
       sect_lagging: "Lagging Indicators (Data Langsung)",
       lag_1: "Total Recordable Incident Rate (TRIR)",
       lag_2: "Lost Time Injury (LTI)",
-      lag_3: "Insiden Lingkungan (Spills)",
+      lag_3: "Total Hari Kerja (Man-Days)",
       lag_4: "Total Jam Kerja (Man-Hours)",
       
       sect_leading: "Leading Indicators (Dalam Pengembangan)",
@@ -181,13 +201,12 @@ export default function KpiDashboardPage() {
       lead_3: "Kepatuhan TBM",
       lead_4: "Skor Audit",
       
-      chart_title: `Korelasi Pelaporan Proaktif vs Insiden (${selectedPeriod} ${selectedYear})`,
-      chart_hazards: "Laporan Bahaya (Pencegahan)",
-      chart_incidents: "Insiden Tercatat",
+      chart_title: `Tren Produktivitas & Jam Kerja K3 (${selectedPeriod} ${selectedYear})`,
+      chart_mhrs: "Jam Kerja (Man-Hours)",
       
       mgr_title: "DATA HSE (Input & Log Histori)",
       mgr_add: "Tambah / Ubah Data Kinerja Bulanan",
-      form_y: "Tahun", form_m: "Bulan", form_lti: "Total LTI", form_spill: "Total Spills", form_hrs: "Man-Hours", form_inc: "Recordable Incidents", form_haz: "Hazard Reports", 
+      form_y: "Tahun", form_m: "Bulan", form_lti: "Total LTI", form_spill: "Total Spills", form_mdys: "Man-Days", form_hrs: "Man-Hours", form_inc: "Recordable Inc.", form_haz: "Hazard Reports", 
       btn_save: "Simpan Baru",
       btn_update: "Perbarui Data",
       btn_cancel: "Batal",
@@ -206,7 +225,7 @@ export default function KpiDashboardPage() {
       sect_lagging: "Lagging Indicators (Live Data)",
       lag_1: "Total Recordable Incident Rate (TRIR)",
       lag_2: "Lost Time Injury (LTI)",
-      lag_3: "Environmental Spills",
+      lag_3: "Total Safe Man-Days",
       lag_4: "Total Safe Man-Hours",
       
       sect_leading: "Leading Indicators (Coming Soon)",
@@ -216,13 +235,12 @@ export default function KpiDashboardPage() {
       lead_3: "TBM Compliance",
       lead_4: "Audit Score",
       
-      chart_title: `Proactive Reporting vs Incident Correlation (${selectedPeriod} ${selectedYear})`,
-      chart_hazards: "Hazard Reports (Prevention)",
-      chart_incidents: "Recordable Incidents",
+      chart_title: `HSE Productivity & Working Hours Trend (${selectedPeriod} ${selectedYear})`,
+      chart_mhrs: "Working Hours (Man-Hours)",
       
       mgr_title: "DATA HSE (Input & History Logs)",
       mgr_add: "Add / Update Monthly Performance Data",
-      form_y: "Year", form_m: "Month", form_lti: "Total LTI", form_spill: "Total Spills", form_hrs: "Man-Hours", form_inc: "Recordable Inc.", form_haz: "Hazard Reports", 
+      form_y: "Year", form_m: "Month", form_lti: "Total LTI", form_spill: "Total Spills", form_mdys: "Man-Days", form_hrs: "Man-Hours", form_inc: "Recordable Inc.", form_haz: "Hazard Reports", 
       btn_save: "Save New",
       btn_update: "Update Record",
       btn_cancel: "Cancel",
@@ -235,7 +253,6 @@ export default function KpiDashboardPage() {
   }
 
   const t = dict[lang]
-
   if (!mounted) return null 
 
   return (
@@ -304,33 +321,53 @@ export default function KpiDashboardPage() {
           {t.sect_lagging}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4 print:gap-4">
-          <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${Number(filteredData.trir) > 1.0 ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
+          
+          {/* TRIR CARD WITH TARGET */}
+          <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.trirNum > TARGET_TRIR ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_1}</p>
             <div className="flex items-end gap-2">
-              <span className={`text-4xl font-black print:text-black ${Number(filteredData.trir) > 1.0 ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.trir}</span>
+              <span className={`text-4xl font-black print:text-black ${filteredData.trirNum > TARGET_TRIR ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.trir}</span>
               <span className="text-[9px] font-bold text-slate-400 mb-1.5">/ 200K HRS</span>
             </div>
+            <p className={`text-[8px] font-black uppercase tracking-widest mt-3 pt-2 border-t print:border-black print:text-black ${filteredData.trirNum > TARGET_TRIR ? 'text-rose-500 border-rose-200 dark:border-rose-800' : 'text-slate-400 border-slate-100 dark:border-slate-800'}`}>
+              TARGET: &lt; {TARGET_TRIR.toFixed(1)} {filteredData.trirNum > TARGET_TRIR && '(OFF TRACK)'}
+            </p>
           </div>
-          <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.totalLti > 0 ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'}`}>
+
+          {/* LTI CARD WITH TARGET */}
+          <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.totalLti > TARGET_LTI ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'}`}>
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_2}</p>
             <div className="flex items-end gap-2">
-              <span className={`text-4xl font-black print:text-black ${filteredData.totalLti > 0 ? 'text-rose-600 dark:text-rose-500' : 'text-emerald-600 dark:text-emerald-500'}`}>{filteredData.totalLti}</span>
+              <span className={`text-4xl font-black print:text-black ${filteredData.totalLti > TARGET_LTI ? 'text-rose-600 dark:text-rose-500' : 'text-emerald-600 dark:text-emerald-500'}`}>{filteredData.totalLti}</span>
               <span className="text-[9px] font-bold text-slate-400 mb-1.5">CASES</span>
             </div>
+            <p className={`text-[8px] font-black uppercase tracking-widest mt-3 pt-2 border-t print:border-black print:text-black ${filteredData.totalLti > TARGET_LTI ? 'text-rose-500 border-rose-200 dark:border-rose-800' : 'text-emerald-600 dark:text-emerald-500 border-emerald-200 dark:border-emerald-800'}`}>
+              TARGET: {TARGET_LTI} CASES {filteredData.totalLti > TARGET_LTI && '(OFF TRACK)'}
+            </p>
           </div>
-          <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.totalSpills > 0 ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
+
+          {/* SPILLS CARD WITH TARGET */}
+          <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.totalSpills > TARGET_SPILLS ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_3}</p>
             <div className="flex items-end gap-2">
-              <span className={`text-4xl font-black print:text-black ${filteredData.totalSpills > 0 ? 'text-amber-600 dark:text-amber-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.totalSpills}</span>
+              <span className={`text-4xl font-black print:text-black ${filteredData.totalSpills > TARGET_SPILLS ? 'text-amber-600 dark:text-amber-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.totalSpills}</span>
               <span className="text-[9px] font-bold text-slate-400 mb-1.5">EVENTS</span>
             </div>
+            <p className={`text-[8px] font-black uppercase tracking-widest mt-3 pt-2 border-t print:border-black print:text-black ${filteredData.totalSpills > TARGET_SPILLS ? 'text-amber-600 dark:text-amber-500 border-amber-200 dark:border-amber-800' : 'text-slate-400 border-slate-100 dark:border-slate-800'}`}>
+              TARGET: {TARGET_SPILLS} EVENTS {filteredData.totalSpills > TARGET_SPILLS && '(OFF TRACK)'}
+            </p>
           </div>
+
+          {/* MAN-HOURS CARD WITH TARGET */}
           <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black print:bg-transparent transition-colors">
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_4}</p>
             <div className="flex items-end gap-2">
               <span className="text-4xl font-black text-slate-900 dark:text-white print:text-black">{filteredData.formattedManHours}</span>
               <span className="text-[9px] font-bold text-slate-400 mb-1.5">HOURS</span>
             </div>
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:text-black">
+              TARGET: &gt; {(filteredData.periodTargetManHours / 1000).toFixed(0)}K HRS
+            </p>
           </div>
         </div>
       </div>
@@ -380,34 +417,47 @@ export default function KpiDashboardPage() {
           <div className="flex flex-wrap gap-4 mt-3 sm:mt-0">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-teal-600 border border-teal-700 print:border-black print:bg-gray-300"></div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 print:text-black">{t.chart_hazards}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-rose-600 border border-rose-700 print:border-black print:bg-black"></div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 print:text-black">{t.chart_incidents}</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 print:text-black">{t.chart_mhrs}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-end gap-2 sm:gap-6 h-56 pt-4">
+        {/* CSS Grid Bar Chart with Target Threshold Line */}
+        <div className="flex items-end gap-2 sm:gap-6 h-56 pt-4 relative">
+          
+          {/* TARGET THRESHOLD LINE (DASHED) */}
+          {filteredData.maxManHours > 0 && (
+            <div 
+              className="absolute left-0 w-full border-t-2 border-dashed border-slate-400 dark:border-slate-600 z-0 pointer-events-none flex justify-start items-center opacity-70"
+              style={{ bottom: `${(TARGET_MAN_HOURS_PER_MONTH / filteredData.maxManHours) * 100}%` }}
+            >
+              <span className="absolute -top-4 text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest bg-white dark:bg-[#0b0f19] px-1 print:bg-transparent print:text-black">
+                TARGET BASELINE: {(TARGET_MAN_HOURS_PER_MONTH/1000).toFixed(0)}K HRS
+              </span>
+            </div>
+          )}
+
           {filteredData.chartData.length === 0 ? (
-            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest z-10">
               NO DATA FOR SELECTED PERIOD
             </div>
           ) : (
             filteredData.chartData.map((data, idx) => {
-              const hazardHeight = filteredData.maxHazards > 0 ? (data.hazards / filteredData.maxHazards) * 100 : 0
+              const barHeight = filteredData.maxManHours > 0 ? (data.manHours / filteredData.maxManHours) * 100 : 0
+              // Beri tanda merah (off track) jika dibawah target
+              const isBelowTarget = data.manHours > 0 && data.manHours < TARGET_MAN_HOURS_PER_MONTH
+
               return (
-                <div key={idx} className="flex-1 flex flex-col justify-end items-center gap-2 h-full">
-                  <div className="w-full flex items-end justify-center gap-0.5 sm:gap-1.5 h-full relative">
-                    <div style={{ height: `${hazardHeight}%` }} className="w-1/2 max-w-[45px] bg-teal-600 border-t-2 border-teal-400 dark:border-teal-300 print:border-black print:bg-gray-300 transition-all duration-500 relative group">
-                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-teal-700 dark:text-teal-400 print:text-black opacity-0 group-hover:opacity-100 print:opacity-100">{data.hazards}</span>
+                <div key={idx} className="flex-1 flex flex-col justify-end items-center gap-2 h-full z-10">
+                  <div className="w-full flex items-end justify-center h-full relative group">
+                    <div 
+                      style={{ height: `${barHeight}%` }} 
+                      className={`w-full max-w-[60px] border-t-2 print:border-black print:bg-gray-300 transition-all duration-500 relative ${isBelowTarget ? 'bg-amber-500 border-amber-400' : 'bg-teal-600 border-teal-400 dark:border-teal-300'}`}
+                    >
+                      <span className={`absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black print:text-black opacity-0 group-hover:opacity-100 print:opacity-100 ${isBelowTarget ? 'text-amber-600 dark:text-amber-500' : 'text-teal-700 dark:text-teal-400'}`}>
+                        {data.manHours > 1000 ? (data.manHours/1000).toFixed(1)+'k' : data.manHours}
+                      </span>
                     </div>
-                    {data.incidents > 0 && (
-                      <div style={{ height: `${(data.incidents / filteredData.maxHazards) * 100}%` }} className="w-1/2 max-w-[45px] bg-rose-600 border-t-2 border-rose-400 dark:border-rose-300 print:border-black print:bg-black transition-all duration-500 relative group">
-                        <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-rose-700 dark:text-rose-400 print:text-black opacity-0 group-hover:opacity-100 print:opacity-100">{data.incidents}</span>
-                      </div>
-                    )}
                   </div>
                   <div className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500 print:text-black border-t-2 border-slate-200 dark:border-slate-800 print:border-black w-full text-center pt-3">
                     {data.month}
@@ -442,7 +492,7 @@ export default function KpiDashboardPage() {
           <p className={`text-[9px] font-black mb-4 ${editingId ? 'text-amber-600 dark:text-amber-500' : 'text-slate-700 dark:text-slate-300'}`}>
             {editingId ? "EDITING MODE ACTIVE" : t.mgr_add}
           </p>
-          <form onSubmit={handleSubmitRecord} className="grid grid-cols-2 md:grid-cols-9 gap-3 items-end">
+          <form onSubmit={handleSubmitRecord} className="grid grid-cols-2 md:grid-cols-10 gap-3 items-end">
             <div>
               <label htmlFor={`${formId}-y`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_y}</label>
               <input id={`${formId}-y`} type="number" value={inputYear} onChange={e=>setInputYear(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
@@ -454,8 +504,12 @@ export default function KpiDashboardPage() {
               </select>
             </div>
             <div>
+              <label htmlFor={`${formId}-mdys`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Man-Days</label>
+              <input id={`${formId}-mdys`} type="number" placeholder="1200" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+            </div>
+            <div>
               <label htmlFor={`${formId}-hrs`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_hrs}</label>
-              <input id={`${formId}-hrs`} type="number" placeholder="250000" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <input id={`${formId}-hrs`} type="number" placeholder="9600" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
               <label htmlFor={`${formId}-lti`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_lti}</label>
@@ -474,7 +528,7 @@ export default function KpiDashboardPage() {
               <input id={`${formId}-haz`} type="number" min="0" value={inputHazards} onChange={e=>setInputHazards(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div className="md:col-span-2 flex gap-2">
-              <button type="submit" disabled={inputManHours===''} className={`flex-1 py-1.5 text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] disabled:opacity-50 transition-colors h-[30px] ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-teal-700 dark:bg-teal-600 hover:bg-teal-500'}`}>
+              <button type="submit" disabled={inputManHours==='' || inputManDays===''} className={`flex-1 py-1.5 text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] disabled:opacity-50 transition-colors h-[30px] ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-teal-700 dark:bg-teal-600 hover:bg-teal-500'}`}>
                 {editingId ? t.btn_update : t.btn_save}
               </button>
               {editingId && (
@@ -490,9 +544,9 @@ export default function KpiDashboardPage() {
               <thead className="bg-slate-200 dark:bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
                 <tr>
                   <th className="py-2 px-3 w-20">PERIOD</th>
-                  <th className="py-2 px-3">MAN-HOURS</th>
+                  <th className="py-2 px-3">M-DAYS</th>
+                  <th className="py-2 px-3">M-HOURS</th>
                   <th className="py-2 px-3">LTI</th>
-                  <th className="py-2 px-3">SPILLS</th>
                   <th className="py-2 px-3">INCIDENTS</th>
                   <th className="py-2 px-3">HAZARDS</th>
                   <th className="py-2 px-3 text-center w-24">ACT</th>
@@ -507,9 +561,9 @@ export default function KpiDashboardPage() {
                   records.sort((a,b) => b.year - a.year || b.month - a.month).map(r => (
                     <tr key={r.id} className={`transition-colors ${editingId === r.id ? 'bg-amber-50 dark:bg-amber-950/30' : 'hover:bg-white dark:hover:bg-slate-950'}`}>
                       <td className="py-2 px-3">{r.year} - M{r.month.toString().padStart(2, '0')}</td>
+                      <td className="py-2 px-3 font-mono">{(r.manDays || 0).toLocaleString()}</td>
                       <td className="py-2 px-3 font-mono">{r.manHours.toLocaleString()}</td>
                       <td className="py-2 px-3">{r.lti}</td>
-                      <td className="py-2 px-3">{r.spills}</td>
                       <td className="py-2 px-3 text-rose-600 dark:text-rose-400">{r.recordableIncidents}</td>
                       <td className="py-2 px-3 text-teal-600 dark:text-teal-400">{r.hazardReports}</td>
                       <td className="py-2 px-3 text-center flex justify-center gap-1.5">
