@@ -21,6 +21,15 @@ interface HseRecord {
 
 type PeriodFilter = 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
 type YearFilter = number | 'ALL'
+type InfoModalType = 'HOURS' | 'DAYS' | null
+
+interface HoverTooltip {
+  x: number
+  y: number
+  title: string
+  value: string
+  statusColor: string
+}
 
 const TrendLineChart = ({ 
   title, 
@@ -29,15 +38,32 @@ const TrendLineChart = ({
   minTarget, 
   maxTarget, 
   unit,
-  isMultiYear
+  isMultiYear,
+  onOpenInfo,
+  lang
 }: { 
-  title: string, data: number[], labels: string[], minTarget: number, maxTarget: number, unit: string, isMultiYear?: boolean 
+  title: string
+  data: number[]
+  labels: string[]
+  minTarget: number
+  maxTarget: number
+  unit: string
+  isMultiYear?: boolean
+  onOpenInfo: () => void
+  lang: 'ID' | 'EN'
 }) => {
+  const [tooltip, setTooltip] = useState<HoverTooltip | null>(null)
+
+  const formatExact = (val: number) => val.toLocaleString('en-US')
+
   if (data.length === 0) {
     return (
       <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-6 rounded-[4px] print:border-black transition-colors">
-        <div className="flex justify-between items-end border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-6">
+        <div className="flex justify-between items-center border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-6">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">{title}</h2>
+          <button onClick={onOpenInfo} aria-label="Panduan Metrik" className="text-slate-400 hover:text-teal-600 transition-colors print:hidden cursor-pointer">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </button>
         </div>
         <div className="h-48 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-200 dark:border-slate-800">
           NO DATA FOR SELECTED PERIOD
@@ -46,12 +72,10 @@ const TrendLineChart = ({
     )
   }
 
-  const formatVal = (val: number) => val >= 1000 ? (val/1000).toFixed(1) + 'K' : val.toString()
-
-  const padX = 40
+  const padX = 48
   const padY = 40
   const width = 1000
-  const height = 260
+  const height = 270
   const plotWidth = width - padX * 2
   const plotHeight = height - padY * 2
 
@@ -61,50 +85,162 @@ const TrendLineChart = ({
 
   const points = data.map((val, i) => `${data.length > 1 ? padX + i * stepX : padX + stepX},${mapY(val)}`).join(' ')
 
+  const upperLimitText = lang === 'ID' ? 'BATAS ATAS (OVERTIME)' : 'UPPER LIMIT (OVERTIME)'
+  const lowerLimitText = lang === 'ID' ? 'BATAS BAWAH (DOWNTIME)' : 'LOWER LIMIT (DOWNTIME)'
+  const safeZoneText = lang === 'ID' ? 'ZONA AMAN (SAFE RANGE)' : 'SAFE OPERATIONAL RANGE'
+
   return (
     <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-6 rounded-[4px] print:border-black print:bg-transparent transition-colors">
-      <div className="flex justify-between items-end border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-4">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">{title}</h2>
+      <div className="flex justify-between items-start border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-4 mb-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">{title}</h2>
+          <button onClick={onOpenInfo} aria-label="Panduan Metrik" className="text-slate-400 hover:text-teal-600 transition-colors print:hidden cursor-pointer">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </button>
+        </div>
         <div className="text-right">
           <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">SAFE RANGE / MO</span>
-          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-500">{formatVal(minTarget)} - {formatVal(maxTarget)} {unit}</span>
+          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 font-mono">
+            {formatExact(minTarget)} - {formatExact(maxTarget)} {unit}
+          </span>
+        </div>
+      </div>
+
+      {/* LEGENDA BATAS ATAS & BAWAH */}
+      <div className="flex flex-wrap gap-4 mb-3 text-[8px] font-black uppercase tracking-widest">
+        <div className="flex items-center gap-1.5">
+          <span className="w-4 border-t-2 border-dashed border-orange-500"></span>
+          <span className="text-orange-600 dark:text-orange-400">MAX: {formatExact(maxTarget)} {unit}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-4 border-t-2 border-dashed border-rose-600"></span>
+          <span className="text-rose-600 dark:text-rose-400">MIN: {formatExact(minTarget)} {unit}</span>
         </div>
       </div>
       
-      <div className="w-full overflow-hidden relative">
+      <div className="w-full overflow-hidden relative" onMouseLeave={() => setTooltip(null)}>
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
-          <rect x={padX} y={mapY(maxTarget)} width={plotWidth} height={mapY(minTarget) - mapY(maxTarget)} className="fill-emerald-50 dark:fill-emerald-900/20 print:fill-gray-100" />
+          {/* Zona Aman (Hoverable) */}
+          <rect 
+            x={padX} 
+            y={mapY(maxTarget)} 
+            width={plotWidth} 
+            height={Math.max(0, mapY(minTarget) - mapY(maxTarget))} 
+            className="fill-emerald-50 dark:fill-emerald-950/30 print:fill-gray-100 cursor-crosshair transition-opacity hover:opacity-80"
+            onMouseEnter={() => setTooltip({
+              x: width / 2,
+              y: (mapY(maxTarget) + mapY(minTarget)) / 2,
+              title: safeZoneText,
+              value: `${formatExact(minTarget)} - ${formatExact(maxTarget)} ${unit}`,
+              statusColor: 'text-emerald-600 dark:text-emerald-400'
+            })}
+          />
           
-          <line x1={padX} y1={mapY(maxTarget)} x2={width-padX} y2={mapY(maxTarget)} className="stroke-emerald-500 dark:stroke-emerald-600 print:stroke-black" strokeWidth="2" strokeDasharray="6,6" />
-          <line x1={padX} y1={mapY(minTarget)} x2={width-padX} y2={mapY(minTarget)} className="stroke-emerald-500 dark:stroke-emerald-600 print:stroke-black" strokeWidth="2" strokeDasharray="6,6" />
+          {/* Garis Batas Atas (Orange) + Hit Area Hover */}
+          <g 
+            className="cursor-pointer"
+            onMouseEnter={() => setTooltip({
+              x: width / 2,
+              y: mapY(maxTarget),
+              title: upperLimitText,
+              value: `MAX ${formatExact(maxTarget)} ${unit}`,
+              statusColor: 'text-orange-600 dark:text-orange-400'
+            })}
+          >
+            <line x1={padX} y1={mapY(maxTarget)} x2={width-padX} y2={mapY(maxTarget)} stroke="transparent" strokeWidth="14" />
+            <line x1={padX} y1={mapY(maxTarget)} x2={width-padX} y2={mapY(maxTarget)} className="stroke-orange-500 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+          </g>
 
-          {data.length > 1 && <polyline points={points} fill="none" className="stroke-slate-800 dark:stroke-slate-300 print:stroke-black" strokeWidth="2.5" />}
+          {/* Garis Batas Bawah (Merah) + Hit Area Hover */}
+          <g 
+            className="cursor-pointer"
+            onMouseEnter={() => setTooltip({
+              x: width / 2,
+              y: mapY(minTarget),
+              title: lowerLimitText,
+              value: `MIN ${formatExact(minTarget)} ${unit}`,
+              statusColor: 'text-rose-600 dark:text-rose-400'
+            })}
+          >
+            <line x1={padX} y1={mapY(minTarget)} x2={width-padX} y2={mapY(minTarget)} stroke="transparent" strokeWidth="14" />
+            <line x1={padX} y1={mapY(minTarget)} x2={width-padX} y2={mapY(minTarget)} className="stroke-rose-600 print:stroke-black" strokeWidth="2.5" strokeDasharray="6,6" />
+          </g>
 
+          {/* Garis Tren Aktual */}
+          {data.length > 1 && (
+            <polyline points={points} fill="none" className="stroke-slate-800 dark:stroke-slate-200 print:stroke-black pointer-events-none" strokeWidth="2.5" />
+          )}
+
+          {/* Titik Data Bulanan */}
           {data.map((val, i) => {
             const cx = data.length > 1 ? padX + i * stepX : padX + stepX
             const cy = mapY(val)
-            const isSafe = val >= minTarget && val <= maxTarget
+            const isOver = val > maxTarget
+            const isUnder = val < minTarget
             
-            const pointClass = isSafe ? "fill-slate-800 dark:fill-slate-300 print:fill-black" : (val > maxTarget ? "fill-rose-600 print:fill-gray-500" : "fill-amber-500 print:fill-gray-300")
-            const labelClass = isSafe ? "fill-slate-600 dark:fill-slate-400 print:fill-black" : (val > maxTarget ? "fill-rose-600 dark:fill-rose-400 print:fill-black" : "fill-amber-600 dark:fill-amber-500 print:fill-black")
+            const pointClass = isOver 
+              ? "fill-orange-500 print:fill-gray-600" 
+              : isUnder 
+              ? "fill-rose-600 print:fill-gray-400" 
+              : "fill-slate-800 dark:fill-slate-200 print:fill-black"
+
+            const statusColor = isOver 
+              ? "text-orange-600 dark:text-orange-400" 
+              : isUnder 
+              ? "text-rose-600 dark:text-rose-400" 
+              : "text-teal-700 dark:text-teal-400"
+
+            const statusTag = isOver ? ' (OVER LIMIT)' : isUnder ? ' (BELOW LIMIT)' : ' (NORMAL)'
 
             return (
-              <g key={i} className="group cursor-pointer">
-                <circle cx={cx} cy={cy} r={isMultiYear ? "4.5" : "6"} className={`${pointClass} stroke-white dark:stroke-[#0b0f19] print:stroke-white`} strokeWidth="1.5" />
-                <text x={cx} y={cy - 12} textAnchor="middle" className={`text-[10px] font-black ${labelClass} opacity-0 group-hover:opacity-100 transition-opacity`}>
-                  {labels[i]}: {formatVal(val)}
-                </text>
+              <g 
+                key={i} 
+                className="cursor-pointer"
+                onMouseEnter={() => setTooltip({
+                  x: cx,
+                  y: cy,
+                  title: `${labels[i]}${statusTag}`,
+                  value: `${formatExact(val)} ${unit}`,
+                  statusColor
+                })}
+              >
+                <circle cx={cx} cy={cy} r="14" fill="transparent" />
+                <circle 
+                  cx={cx} 
+                  cy={cy} 
+                  r={isMultiYear ? "4.5" : "6"} 
+                  className={`${pointClass} stroke-white dark:stroke-[#0b0f19] print:stroke-white transition-transform duration-150 hover:scale-150`} 
+                  strokeWidth="2" 
+                />
               </g>
             )
           })}
         </svg>
+
+        {/* FLOATING TOOLTIP MEKANIKAL */}
+        {tooltip && (
+          <div 
+            className="absolute z-20 pointer-events-none bg-slate-900 dark:bg-slate-950 border border-slate-700 px-3 py-1.5 rounded-[2px] shadow-md -translate-x-1/2 -translate-y-full -mt-3 transition-all duration-75"
+            style={{ 
+              left: `${Math.min(Math.max((tooltip.x / width) * 100, 12), 88)}%`, 
+              top: `${Math.max((tooltip.y / height) * 100, 18)}%` 
+            }}
+          >
+            <span className="block text-[8px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">
+              {tooltip.title}
+            </span>
+            <span className={`block text-xs font-black font-mono whitespace-nowrap ${tooltip.statusColor}`}>
+              {tooltip.value}
+            </span>
+          </div>
+        )}
         
+        {/* Sumbu X (Label Bulan) */}
         <div className="flex justify-between mt-2" style={{ paddingLeft: `${(padX/width)*100}%`, paddingRight: `${(padX/width)*100}%` }}>
           {labels.map((lbl, i) => {
-            // Jika data lebih dari 14 bulan (multi-year), tampilkan label setiap 3 bulan agar tidak bertumpuk
             const showLabel = !isMultiYear || labels.length <= 14 || i % 3 === 0 || i === labels.length - 1
             return (
-              <span key={i} className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest text-center w-10 -ml-5">
+              <span key={i} className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest text-center w-12 -ml-6">
                 {showLabel ? lbl : ''}
               </span>
             )
@@ -121,7 +257,6 @@ export default function KpiDashboardPage() {
   const [mounted, setMounted] = useState(false)
 
   const currentYear = new Date().getFullYear()
-  // Default langsung ke 'ALL' agar rentang 2024 - 2026 langsung terlihat
   const [selectedYear, setSelectedYear] = useState<YearFilter>('ALL')
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>('YTD')
 
@@ -137,7 +272,7 @@ export default function KpiDashboardPage() {
   const [inputIncidents, setInputIncidents] = useState<number | ''>(0)
   const [inputHazards, setInputHazards] = useState<number | ''>(0)
 
-  const [showInfo, setShowInfo] = useState(false)
+  const [activeInfoModal, setActiveInfoModal] = useState<InfoModalType>(null)
 
   const TARGET_TRIR = 1.0
   const TARGET_LTI = 0
@@ -152,6 +287,14 @@ export default function KpiDashboardPage() {
     if (savedData) {
       setRecords(JSON.parse(savedData))
     }
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveInfoModal(null)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   const saveRecords = (newRecords: HseRecord[]) => {
@@ -227,7 +370,6 @@ export default function KpiDashboardPage() {
     setInputManDays(''); setInputManHours(''); setInputLti(0); setInputSpills(0); setInputIncidents(0); setInputHazards(0)
   }
 
-  // Daftar tahun dinamis berdasarkan data yang sudah diinput + rentang 2024-2026
   const availableYears = useMemo(() => {
     const yearsSet = new Set<number>([2024, 2025, 2026, currentYear])
     records.forEach(r => yearsSet.add(r.year))
@@ -259,12 +401,6 @@ export default function KpiDashboardPage() {
     const trirNum = totalManHours > 0 ? ((totalIncidents * 200000) / totalManHours) : 0
     const trir = trirNum.toFixed(2)
 
-    let formattedManHours = '0'
-    if (totalManHours >= 1000000) formattedManHours = (totalManHours / 1000000).toFixed(2) + 'M'
-    else if (totalManHours >= 1000) formattedManHours = (totalManHours / 1000).toFixed(1) + 'K'
-    else formattedManHours = totalManHours.toString()
-
-    // Urutkan kronologis dari tahun terlama ke terbaru, lalu bulan 1 ke 12
     const sortedRecords = filtered.sort((a, b) => a.year - b.year || a.month - b.month)
     
     const chartLabels = sortedRecords.map(r => {
@@ -276,7 +412,7 @@ export default function KpiDashboardPage() {
     const chartManDays = sortedRecords.map(r => r.manDays || 0)
 
     return { 
-      totalLti, totalSpills, totalManDays, totalManHours, formattedManHours, 
+      totalLti, totalSpills, totalManDays, totalManHours, 
       trir, trirNum, chartLabels, chartManHours, chartManDays, periodTargetManHours, periodTargetManDays
     }
   }, [records, selectedYear, selectedPeriod, lang])
@@ -321,17 +457,26 @@ export default function KpiDashboardPage() {
       sign_hse: "Dianalisa Oleh (HSE Supervisor):",
       sign_gm: "Diketahui Oleh (Director):",
 
-      info_title: "Panduan Metrik & Batas Toleransi",
-      info_q1: "1. Mengapa Ada Batas Atas dan Bawah di Grafik?",
-      info_a1_1: "Garis Bawah (Lower Bound): Menandakan target minimum agar operasional dianggap produktif. Jika grafik jatuh ke bawah batas ini (warna kuning), itu menandakan tingginya absensi karyawan, mesin mati (downtime), atau kurangnya hari kerja produktif.",
-      info_a1_2: "Garis Atas (Upper Bound): Menandakan ambang batas aman kelelahan (Fatigue Limit). Jika grafik menembus batas atas ini (warna merah), itu menandakan terjadinya lembur ekstrem (overtime). Pekerja yang kelelahan berisiko sangat tinggi mengalami kecelakaan kerja fatal.",
-      info_a1_3: "Kotak Hijau (Safe Zone): Area ideal di mana produktivitas terjaga dan risiko kelelahan minim.",
-      info_q2: "2. Bagaimana Cara Menentukan Angkanya?",
-      info_a2_desc: "Target ini bukan ditebak, melainkan dihitung secara matematis berdasarkan jumlah karyawan Anda (Manpower).",
-      info_a2_f1: "Rumus Man-Days (Hari Kerja Bulanan):",
-      info_a2_f1_c: "Jumlah Karyawan x Jumlah Hari Kerja Efektif. (Contoh: 60 orang x 25 hari = 1.500 Man-Days). Beri toleransi ±10% untuk batas atas dan bawah.",
-      info_a2_f2: "Rumus Man-Hours (Jam Kerja Bulanan):",
-      info_a2_f2_c: "Jumlah Karyawan x Jam Kerja Per Hari x Jumlah Hari Kerja Efektif. (Contoh: 60 orang x 8 Jam x 25 hari = 12.000 Man-Hours). Beri toleransi ±10% untuk batas atas dan bawah.",
+      // Panduan Spesifik: MAN-HOURS
+      info_hours_title: "Panduan Tren Jam Kerja (Man-Hours) & Toleransi",
+      info_hours_q1: "1. Relevansi Man-Hours dengan K3L & Batas Toleransi",
+      info_hours_b1: "Indikator Eksposur Risiko (Denominator TRIR): Semakin besar jam kerja, semakin lama pekerja terpapar risiko di lapangan. 1 insiden dalam 1,000 jam kerja sangat buruk, namun 1 insiden dalam 1,000,000 jam kerja menunjukkan tingkat keselamatan tinggi.",
+      info_hours_b2: "Batas Atas Oranye (Fatigue & Overtime Limit): Jika grafik menembus batas atas oranye, artinya terjadi lembur ekstrem. Pekerja yang mengalami kelelahan fisik berisiko sangat tinggi mengalami kecelakaan kerja.",
+      info_hours_b3: "Batas Bawah Merah (Downtime & Absenteeism): Jika grafik jatuh di bawah garis merah, menandakan tingginya absensi pekerja atau terhentinya jam operasional mesin.",
+      info_hours_q2: "2. Rumus Penentuan Target Man-Hours",
+      info_hours_formula: "Jumlah Karyawan x Jam Kerja Per Hari x Hari Kerja Efektif Sebulan",
+      info_hours_ex: "Contoh: 60 karyawan x 8 jam x 25 hari kerja = 12,000 Man-Hours (dengan toleransi ±10% untuk batas bawah 10,800 dan batas atas 13,200).",
+
+      // Panduan Spesifik: MAN-DAYS
+      info_days_title: "Panduan Tren Hari Kerja (Man-Days) & Toleransi",
+      info_days_q1: "1. Relevansi Man-Days dengan K3L & Batas Toleransi",
+      info_days_b1: "Kepadatan Kehadiran Lapangan: Mengukur total akumulasi hari kerja aktif seluruh personel dalam satu bulan untuk memantau konsistensi kehadiran operasional.",
+      info_days_b2: "Batas Atas Oranye (Over-Scheduling / Masuk Hari Libur): Jika grafik menembus garis oranye, menandakan banyak pekerja yang masuk pada hari libur atau shift tambahan tanpa waktu istirahat memadai.",
+      info_days_b3: "Batas Bawah Merah (High Absenteeism / Cuti Massal): Jika grafik jatuh di bawah garis merah, menandakan tingkat ketidakhadiran (sakit/izin/alfa) yang tinggi atau penghentian operasi pabrik.",
+      info_days_q2: "2. Rumus Penentuan Target Man-Days",
+      info_days_formula: "Jumlah Karyawan x Jumlah Hari Kerja Efektif Sebulan",
+      info_days_ex: "Contoh: 60 karyawan x 25 hari kerja = 1,500 Man-Days (dengan toleransi ±10% untuk batas bawah 1,350 dan batas atas 1,650).",
+
       btn_close: "Tutup Panduan"
     },
     EN: {
@@ -369,17 +514,26 @@ export default function KpiDashboardPage() {
       sign_hse: "Analyzed By (HSE Supervisor):",
       sign_gm: "Acknowledged By (Director):",
 
-      info_title: "Productivity Metrics & Tolerance Guide",
-      info_q1: "1. Why Are There Upper and Lower Bounds?",
-      info_a1_1: "Lower Bound (Minimum Target): Ensures operations remain productive. If the graph falls below this line (yellow), it indicates high absenteeism, machine downtime, or a lack of productive working days.",
-      info_a1_2: "Upper Bound (Fatigue Limit): Marks the safe limit for physical exhaustion. If the graph breaches this line (red), it signifies extreme overtime. Exhausted workers have a significantly higher risk of fatal workplace accidents.",
-      info_a1_3: "Green Box (Safe Zone): The ideal operational area where productivity is maintained and fatigue risks are minimized.",
-      info_q2: "2. How to Determine the Targets?",
-      info_a2_desc: "These targets are calculated mathematically based on your total headcount (Manpower).",
-      info_a2_f1: "Target Man-Days (Monthly Working Days) Formula:",
-      info_a2_f1_c: "Total Employees x Effective Working Days. (Example: 60 people x 25 days = 1,500 Man-Days). Apply a ±10% tolerance for upper and lower bounds.",
-      info_a2_f2: "Target Man-Hours (Monthly Working Hours) Formula:",
-      info_a2_f2_c: "Total Employees x Working Hours per Day x Effective Working Days. (Example: 60 people x 8 Hours x 25 days = 12,000 Man-Hours). Apply a ±10% tolerance.",
+      // Guide: MAN-HOURS
+      info_hours_title: "Man-Hours Trend & Tolerance Guide",
+      info_hours_q1: "1. Relevance to HSE & Tolerance Limits",
+      info_hours_b1: "Risk Exposure Denominator: Higher working hours mean longer exposure to field hazards. 1 incident in 1,000 hours is critical, whereas 1 incident in 1,000,000 hours demonstrates strong safety performance.",
+      info_hours_b2: "Orange Upper Limit (Fatigue & Overtime): Breaching this line indicates extreme overtime. Physically exhausted workers face a significantly elevated risk of workplace accidents.",
+      info_hours_b3: "Red Lower Limit (Downtime & Absenteeism): Falling below this line signals high absenteeism or unplanned machinery/operational downtime.",
+      info_hours_q2: "2. Man-Hours Target Formula",
+      info_hours_formula: "Total Employees x Working Hours per Day x Effective Working Days",
+      info_hours_ex: "Example: 60 employees x 8 hours x 25 days = 12,000 Man-Hours (±10% tolerance sets lower bound at 10,800 and upper bound at 13,200).",
+
+      // Guide: MAN-DAYS
+      info_days_title: "Man-Days Trend & Tolerance Guide",
+      info_days_q1: "1. Relevance to HSE & Tolerance Limits",
+      info_days_b1: "Workforce Presence Density: Tracks total active working days across all personnel per month to monitor operational attendance consistency.",
+      info_days_b2: "Orange Upper Limit (Rest-Day Work): Breaching this line indicates personnel working on scheduled off-days or double shifts without adequate recovery.",
+      info_days_b3: "Red Lower Limit (High Absenteeism): Falling below this line indicates elevated sick leave, absence rates, or plant shutdowns.",
+      info_days_q2: "2. Man-Days Target Formula",
+      info_days_formula: "Total Employees x Effective Working Days per Month",
+      info_days_ex: "Example: 60 employees x 25 days = 1,500 Man-Days (±10% tolerance sets lower bound at 1,350 and upper bound at 1,650).",
+
       btn_close: "Close Guide"
     }
   }
@@ -437,7 +591,7 @@ export default function KpiDashboardPage() {
             </div>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-relaxed max-w-2xl">{t.subtitle}</p>
           </div>
-          <button onClick={() => window.print()} className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm shrink-0">
+          <button onClick={() => window.print()} className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm shrink-0 cursor-pointer">
             {t.btn_print}
           </button>
         </div>
@@ -456,22 +610,20 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
+      {/* LAGGING INDICATORS (ANGKA UTUH TANPA K) */}
       <div>
         <div className="flex items-center gap-2 border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-4 print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
             {t.sect_lagging}
           </h2>
-          <button onClick={() => setShowInfo(true)} aria-label="Informasi Metrik" className="text-slate-400 hover:text-teal-600 transition-colors print:hidden">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          </button>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4 print:gap-4">
           <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.trirNum > TARGET_TRIR ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_1}</p>
             <div className="flex items-end gap-2">
-              <span className={`text-4xl font-black print:text-black ${filteredData.trirNum > TARGET_TRIR ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.trir}</span>
-              <span className="text-[9px] font-bold text-slate-400 mb-1.5">/ 200K HRS</span>
+              <span className={`text-3xl xl:text-4xl font-black font-mono print:text-black ${filteredData.trirNum > TARGET_TRIR ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.trir}</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1">/ 200,000 HRS</span>
             </div>
             <p className={`text-[8px] font-black uppercase tracking-widest mt-3 pt-2 border-t print:border-black print:text-black ${filteredData.trirNum > TARGET_TRIR ? 'text-rose-500 border-rose-200 dark:border-rose-800' : 'text-slate-400 border-slate-100 dark:border-slate-800'}`}>
               TARGET: &lt; {TARGET_TRIR.toFixed(1)} {filteredData.trirNum > TARGET_TRIR && '(OFF TRACK)'}
@@ -481,8 +633,8 @@ export default function KpiDashboardPage() {
           <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.totalLti > TARGET_LTI ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'}`}>
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_2}</p>
             <div className="flex items-end gap-2">
-              <span className={`text-4xl font-black print:text-black ${filteredData.totalLti > TARGET_LTI ? 'text-rose-600 dark:text-rose-500' : 'text-emerald-600 dark:text-emerald-500'}`}>{filteredData.totalLti}</span>
-              <span className="text-[9px] font-bold text-slate-400 mb-1.5">CASES</span>
+              <span className={`text-3xl xl:text-4xl font-black font-mono print:text-black ${filteredData.totalLti > TARGET_LTI ? 'text-rose-600 dark:text-rose-500' : 'text-emerald-600 dark:text-emerald-500'}`}>{filteredData.totalLti}</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1">CASES</span>
             </div>
             <p className={`text-[8px] font-black uppercase tracking-widest mt-3 pt-2 border-t print:border-black print:text-black ${filteredData.totalLti > TARGET_LTI ? 'text-rose-500 border-rose-200 dark:border-rose-800' : 'text-emerald-600 dark:text-emerald-500 border-emerald-200 dark:border-emerald-800'}`}>
               TARGET: {TARGET_LTI} CASES {filteredData.totalLti > TARGET_LTI && '(OFF TRACK)'}
@@ -492,27 +644,28 @@ export default function KpiDashboardPage() {
           <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black print:bg-transparent transition-colors">
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_3}</p>
             <div className="flex items-end gap-2">
-              <span className="text-4xl font-black text-slate-900 dark:text-white print:text-black">{filteredData.totalManDays.toLocaleString()}</span>
-              <span className="text-[9px] font-bold text-slate-400 mb-1.5">DAYS</span>
+              <span className="text-3xl xl:text-4xl font-black font-mono text-slate-900 dark:text-white print:text-black">{filteredData.totalManDays.toLocaleString('en-US')}</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1">DAYS</span>
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:text-black">
-              MIN. BASELINE: &gt; {(filteredData.periodTargetManDays).toLocaleString()} DAYS
+              MIN. BASELINE: &gt; {filteredData.periodTargetManDays.toLocaleString('en-US')} DAYS
             </p>
           </div>
 
           <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black print:bg-transparent transition-colors">
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_4}</p>
             <div className="flex items-end gap-2">
-              <span className="text-4xl font-black text-slate-900 dark:text-white print:text-black">{filteredData.formattedManHours}</span>
-              <span className="text-[9px] font-bold text-slate-400 mb-1.5">HOURS</span>
+              <span className="text-3xl xl:text-4xl font-black font-mono text-slate-900 dark:text-white print:text-black">{filteredData.totalManHours.toLocaleString('en-US')}</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1">HOURS</span>
             </div>
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:text-black">
-              MIN. BASELINE: &gt; {(filteredData.periodTargetManHours / 1000).toFixed(0)}K HRS
+              MIN. BASELINE: &gt; {filteredData.periodTargetManHours.toLocaleString('en-US')} HRS
             </p>
           </div>
         </div>
       </div>
 
+      {/* LEADING INDICATORS */}
       <div className="mt-8 relative group opacity-60 hover:opacity-100 transition-opacity duration-500">
         <div className="flex justify-between items-end border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-4 print:text-black print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 print:text-black">
@@ -550,6 +703,7 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
+      {/* DUA GRAFIK TREN TERPISAH DENGAN PANDUAN SPESIFIK */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
         <TrendLineChart 
           title={t.chart_title_mhrs} 
@@ -559,6 +713,8 @@ export default function KpiDashboardPage() {
           maxTarget={TARGET_MAN_HOURS_MAX}
           unit="HRS"
           isMultiYear={selectedYear === 'ALL'}
+          onOpenInfo={() => setActiveInfoModal('HOURS')}
+          lang={lang}
         />
         <TrendLineChart 
           title={t.chart_title_mdys} 
@@ -568,9 +724,12 @@ export default function KpiDashboardPage() {
           maxTarget={TARGET_MAN_DAYS_MAX}
           unit="DAYS"
           isMultiYear={selectedYear === 'ALL'}
+          onOpenInfo={() => setActiveInfoModal('DAYS')}
+          lang={lang}
         />
       </div>
 
+      {/* PRINT SIGNATURES */}
       <div className="hidden print:grid grid-cols-2 gap-12 pt-12 mt-12 border-t-4 border-black text-black">
         <div className="text-center border-2 border-black p-4">
           <p className="text-[9px] font-black uppercase tracking-widest mb-20">{t.sign_hse}</p>
@@ -584,6 +743,7 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
+      {/* DATABASE INPUT & LOGS */}
       <div className="mt-12 print:hidden">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
@@ -603,17 +763,17 @@ export default function KpiDashboardPage() {
             </div>
             <div>
               <label htmlFor={`${formId}-m`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_m}</label>
-              <select id={`${formId}-m`} value={inputMonth} onChange={e=>setInputMonth(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500">
+              <select id={`${formId}-m`} value={inputMonth} onChange={e=>setInputMonth(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500 cursor-pointer">
                 {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div>
               <label htmlFor={`${formId}-mdys`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Man-Days</label>
-              <input id={`${formId}-mdys`} type="number" placeholder="1200" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <input id={`${formId}-mdys`} type="number" placeholder="1500" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
               <label htmlFor={`${formId}-hrs`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_hrs}</label>
-              <input id={`${formId}-hrs`} type="number" placeholder="9600" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
+              <input id={`${formId}-hrs`} type="number" placeholder="12000" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
               <label htmlFor={`${formId}-lti`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_lti}</label>
@@ -632,11 +792,11 @@ export default function KpiDashboardPage() {
               <input id={`${formId}-haz`} type="number" min="0" value={inputHazards} onChange={e=>setInputHazards(Number(e.target.value) || (e.target.value==='0'?0:''))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div className="md:col-span-2 flex gap-2">
-              <button type="submit" disabled={inputManHours==='' || inputManDays===''} className={`flex-1 py-1.5 text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] disabled:opacity-50 transition-colors h-[30px] ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-teal-700 dark:bg-teal-600 hover:bg-teal-500'}`}>
+              <button type="submit" disabled={inputManHours==='' || inputManDays===''} className={`flex-1 py-1.5 text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] disabled:opacity-50 transition-colors h-[30px] cursor-pointer disabled:cursor-not-allowed ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-teal-700 dark:bg-teal-600 hover:bg-teal-500'}`}>
                 {editingId ? t.btn_update : t.btn_save}
               </button>
               {editingId && (
-                <button type="button" onClick={handleCancelEdit} className="px-3 py-1.5 bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-[9px] font-black uppercase tracking-widest rounded-[2px] hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors h-[30px]">
+                <button type="button" onClick={handleCancelEdit} className="px-3 py-1.5 bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-[9px] font-black uppercase tracking-widest rounded-[2px] hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors h-[30px] cursor-pointer">
                   {t.btn_cancel}
                 </button>
               )}
@@ -665,14 +825,14 @@ export default function KpiDashboardPage() {
                   [...records].sort((a,b) => b.year - a.year || b.month - a.month).map(r => (
                     <tr key={r.id} className={`transition-colors ${editingId === r.id ? 'bg-amber-50 dark:bg-amber-950/30' : 'hover:bg-white dark:hover:bg-slate-950'}`}>
                       <td className="py-2 px-3">{r.year} - M{r.month.toString().padStart(2, '0')}</td>
-                      <td className="py-2 px-3 font-mono">{(r.manDays || 0).toLocaleString()}</td>
-                      <td className="py-2 px-3 font-mono">{r.manHours.toLocaleString()}</td>
+                      <td className="py-2 px-3 font-mono">{(r.manDays || 0).toLocaleString('en-US')}</td>
+                      <td className="py-2 px-3 font-mono">{r.manHours.toLocaleString('en-US')}</td>
                       <td className="py-2 px-3">{r.lti}</td>
                       <td className="py-2 px-3 text-rose-600 dark:text-rose-400">{r.recordableIncidents}</td>
                       <td className="py-2 px-3 text-teal-600 dark:text-teal-400">{r.hazardReports}</td>
                       <td className="py-2 px-3 text-center flex justify-center gap-1.5">
-                        <button onClick={() => handleEditClick(r)} aria-label="Edit record" className="text-[8px] font-black uppercase text-blue-600 dark:text-blue-500 hover:text-blue-700 border border-transparent hover:border-blue-300 dark:hover:border-blue-800 rounded px-1 transition-colors">EDIT</button>
-                        <button onClick={() => handleDeleteRecord(r.id)} aria-label="Delete record" className="text-[8px] font-black uppercase text-rose-500 hover:text-rose-700 border border-transparent hover:border-rose-300 dark:hover:border-rose-900 rounded px-1 transition-colors">DEL</button>
+                        <button onClick={() => handleEditClick(r)} aria-label="Edit record" className="text-[8px] font-black uppercase text-blue-600 dark:text-blue-500 hover:text-blue-700 border border-transparent hover:border-blue-300 dark:hover:border-blue-800 rounded px-1 transition-colors cursor-pointer">EDIT</button>
+                        <button onClick={() => handleDeleteRecord(r.id)} aria-label="Delete record" className="text-[8px] font-black uppercase text-rose-500 hover:text-rose-700 border border-transparent hover:border-rose-300 dark:hover:border-rose-900 rounded px-1 transition-colors cursor-pointer">DEL</button>
                       </td>
                     </tr>
                   ))
@@ -683,55 +843,79 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {showInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden" onClick={() => setShowInfo(false)}>
-          <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 p-6 rounded-[4px] max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+      {/* MODAL PANDUAN SPESIFIK PER TREND */}
+      {activeInfoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden" onClick={() => setActiveInfoModal(null)}>
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 p-6 rounded-[4px] max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start border-b-2 border-slate-200 dark:border-slate-800 pb-4 mb-4">
               <h3 className="text-sm font-black uppercase tracking-widest text-teal-700 dark:text-teal-500">
-                {t.info_title}
+                {activeInfoModal === 'HOURS' ? t.info_hours_title : t.info_days_title}
               </h3>
-              <button onClick={() => setShowInfo(false)} className="text-slate-400 hover:text-rose-500 transition-colors">
+              <button onClick={() => setActiveInfoModal(null)} aria-label="Close modal" className="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             
-            <div className="space-y-6 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
-              <div>
-                <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-2">{t.info_q1}</h4>
-                <ul className="space-y-3 list-none pl-0">
-                  <li className="flex gap-2">
-                    <span className="text-teal-600 mt-0.5">▪</span>
-                    <span>{t.info_a1_1}</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-teal-600 mt-0.5">▪</span>
-                    <span>{t.info_a1_2}</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-teal-600 mt-0.5">▪</span>
-                    <span>{t.info_a1_3}</span>
-                  </li>
-                </ul>
-              </div>
+            {activeInfoModal === 'HOURS' ? (
+              <div className="space-y-6 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
+                <div>
+                  <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t.info_hours_q1}</h4>
+                  <ul className="space-y-3 list-none pl-0">
+                    <li className="flex gap-2">
+                      <span className="text-teal-600 mt-0.5">▪</span>
+                      <span>{t.info_hours_b1}</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-orange-500 mt-0.5">▪</span>
+                      <span>{t.info_hours_b2}</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-rose-600 mt-0.5">▪</span>
+                      <span>{t.info_hours_b3}</span>
+                    </li>
+                  </ul>
+                </div>
 
-              <div>
-                <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-2">{t.info_q2}</h4>
-                <p className="mb-3">{t.info_a2_desc}</p>
-                
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] mb-3 font-mono">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{t.info_a2_f1}</p>
-                  <p>{t.info_a2_f1_c}</p>
-                </div>
-                
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] mb-3 font-mono">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{t.info_a2_f2}</p>
-                  <p>{t.info_a2_f2_c}</p>
+                <div>
+                  <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-2">{t.info_hours_q2}</h4>
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] font-mono">
+                    <p className="text-[11px] text-slate-900 dark:text-white mb-2">{t.info_hours_formula}</p>
+                    <p className="text-[10px] text-slate-500">{t.info_hours_ex}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-6 text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
+                <div>
+                  <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t.info_days_q1}</h4>
+                  <ul className="space-y-3 list-none pl-0">
+                    <li className="flex gap-2">
+                      <span className="text-teal-600 mt-0.5">▪</span>
+                      <span>{t.info_days_b1}</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-orange-500 mt-0.5">▪</span>
+                      <span>{t.info_days_b2}</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-rose-600 mt-0.5">▪</span>
+                      <span>{t.info_days_b3}</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-slate-900 dark:text-white uppercase tracking-wider mb-2">{t.info_days_q2}</h4>
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] font-mono">
+                    <p className="text-[11px] text-slate-900 dark:text-white mb-2">{t.info_days_formula}</p>
+                    <p className="text-[10px] text-slate-500">{t.info_days_ex}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 pt-4 border-t-2 border-slate-200 dark:border-slate-800 text-right">
-              <button onClick={() => setShowInfo(false)} className="px-6 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] transition-colors">
+              <button onClick={() => setActiveInfoModal(null)} className="px-6 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-[9px] font-black uppercase tracking-widest rounded-[2px] transition-colors cursor-pointer">
                 {t.btn_close}
               </button>
             </div>
