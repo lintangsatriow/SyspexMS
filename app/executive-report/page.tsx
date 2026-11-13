@@ -43,10 +43,10 @@ export default function KpiDashboardPage() {
   const [inputIncidents, setInputIncidents] = useState<number | ''>(0)
   const [inputHazards, setInputHazards] = useState<number | ''>(0)
 
-  // Nilai Target Baseline (Dapat disesuaikan sesuai regulasi perusahaan)
+  // Nilai Target Baseline (Dapat disesuaikan)
   const TARGET_TRIR = 1.0
   const TARGET_LTI = 0
-  const TARGET_SPILLS = 0
+  const TARGET_MAN_DAYS_PER_MONTH = 1500
   const TARGET_MAN_HOURS_PER_MONTH = 12000 
 
   useEffect(() => {
@@ -155,6 +155,7 @@ export default function KpiDashboardPage() {
     const totalIncidents = filtered.reduce((sum, r) => sum + r.recordableIncidents, 0)
 
     const numMonths = filtered.length || 1
+    const periodTargetManDays = TARGET_MAN_DAYS_PER_MONTH * numMonths
     const periodTargetManHours = TARGET_MAN_HOURS_PER_MONTH * numMonths
 
     const trirNum = totalManHours > 0 ? ((totalIncidents * 200000) / totalManHours) : 0
@@ -172,12 +173,11 @@ export default function KpiDashboardPage() {
     }))
 
     const rawMaxManHours = chartData.length > 0 ? Math.max(...chartData.map(d => d.manHours)) : 0
-    // Pastikan batas atas chart setidaknya menampung garis target bulanan
     const maxManHours = Math.max(rawMaxManHours, TARGET_MAN_HOURS_PER_MONTH + 2000)
 
     return { 
       totalLti, totalSpills, totalManDays, totalManHours, formattedManHours, 
-      trir, trirNum, chartData, maxManHours, periodTargetManHours 
+      trir, trirNum, chartData, maxManHours, periodTargetManHours, periodTargetManDays
     }
   }, [records, selectedYear, selectedPeriod, lang])
 
@@ -322,7 +322,6 @@ export default function KpiDashboardPage() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4 print:gap-4">
           
-          {/* TRIR CARD WITH TARGET */}
           <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.trirNum > TARGET_TRIR ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_1}</p>
             <div className="flex items-end gap-2">
@@ -334,7 +333,6 @@ export default function KpiDashboardPage() {
             </p>
           </div>
 
-          {/* LTI CARD WITH TARGET */}
           <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.totalLti > TARGET_LTI ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'}`}>
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_2}</p>
             <div className="flex items-end gap-2">
@@ -346,19 +344,17 @@ export default function KpiDashboardPage() {
             </p>
           </div>
 
-          {/* SPILLS CARD WITH TARGET */}
-          <div className={`p-5 rounded-[4px] border-2 print:border-black print:bg-transparent transition-colors ${filteredData.totalSpills > TARGET_SPILLS ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
+          <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black print:bg-transparent transition-colors">
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_3}</p>
             <div className="flex items-end gap-2">
-              <span className={`text-4xl font-black print:text-black ${filteredData.totalSpills > TARGET_SPILLS ? 'text-amber-600 dark:text-amber-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.totalSpills}</span>
-              <span className="text-[9px] font-bold text-slate-400 mb-1.5">EVENTS</span>
+              <span className="text-4xl font-black text-slate-900 dark:text-white print:text-black">{filteredData.totalManDays.toLocaleString()}</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1.5">DAYS</span>
             </div>
-            <p className={`text-[8px] font-black uppercase tracking-widest mt-3 pt-2 border-t print:border-black print:text-black ${filteredData.totalSpills > TARGET_SPILLS ? 'text-amber-600 dark:text-amber-500 border-amber-200 dark:border-amber-800' : 'text-slate-400 border-slate-100 dark:border-slate-800'}`}>
-              TARGET: {TARGET_SPILLS} EVENTS {filteredData.totalSpills > TARGET_SPILLS && '(OFF TRACK)'}
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:text-black">
+              TARGET: &gt; {(filteredData.periodTargetManDays).toLocaleString()} DAYS
             </p>
           </div>
 
-          {/* MAN-HOURS CARD WITH TARGET */}
           <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black print:bg-transparent transition-colors">
             <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 print:text-black">{t.lag_4}</p>
             <div className="flex items-end gap-2">
@@ -422,10 +418,8 @@ export default function KpiDashboardPage() {
           </div>
         </div>
 
-        {/* CSS Grid Bar Chart with Target Threshold Line */}
         <div className="flex items-end gap-2 sm:gap-6 h-56 pt-4 relative">
           
-          {/* TARGET THRESHOLD LINE (DASHED) */}
           {filteredData.maxManHours > 0 && (
             <div 
               className="absolute left-0 w-full border-t-2 border-dashed border-slate-400 dark:border-slate-600 z-0 pointer-events-none flex justify-start items-center opacity-70"
@@ -444,7 +438,6 @@ export default function KpiDashboardPage() {
           ) : (
             filteredData.chartData.map((data, idx) => {
               const barHeight = filteredData.maxManHours > 0 ? (data.manHours / filteredData.maxManHours) * 100 : 0
-              // Beri tanda merah (off track) jika dibawah target
               const isBelowTarget = data.manHours > 0 && data.manHours < TARGET_MAN_HOURS_PER_MONTH
 
               return (
@@ -504,7 +497,7 @@ export default function KpiDashboardPage() {
               </select>
             </div>
             <div>
-              <label htmlFor={`${formId}-mdys`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Man-Days</label>
+              <label htmlFor={`${formId}-mdys`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.form_mdys}</label>
               <input id={`${formId}-mdys`} type="number" placeholder="1200" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500" />
             </div>
             <div>
