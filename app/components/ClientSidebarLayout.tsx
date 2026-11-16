@@ -37,8 +37,8 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
   const t = dict[lang as keyof typeof dict] || dict.EN
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* FLOATING TRIGGER BUTTON (Desktop) */}
+    <>
+      {/* FLOATING TRIGGER BUTTON */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
@@ -68,10 +68,11 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
           <div className="space-y-1">
             <Link href="/" className="block px-3 py-2 text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-200 dark:hover:text-white dark:hover:bg-slate-800/50 rounded-[4px] transition-colors">{t.hub}</Link>
             <Link href="/executive-report" className="block px-3 py-2 text-[11px] font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/50 rounded-[4px] transition-colors">{t.kpi}</Link>
-            <div className="flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-cyan-700/50 dark:text-cyan-300/50 border border-transparent rounded-[4px]">{t.ai} <span className="text-[8px]">(Soon)</span></div>
+            <div className="flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-cyan-700/50 dark:text-cyan-300/50 bg-transparent border border-transparent rounded-[4px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-600/50 dark:bg-cyan-500/50"></span> {t.ai} <span className="text-[8px]">(Soon)</span>
+            </div>
           </div>
 
-          {/* FOLDER: OPERATIONS */}
           <div className="space-y-2">
             <button onClick={() => setOpsOpen(!opsOpen)} aria-expanded={opsOpen} className="w-full flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-widest px-2 py-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               <span>{t.cat_ops}</span>
@@ -89,7 +90,6 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             )}
           </div>
 
-          {/* FOLDER: TECHNICAL */}
           <div className="space-y-2">
             <button onClick={() => setTechOpen(!techOpen)} aria-expanded={techOpen} className="w-full flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-widest px-2 py-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               <span>{t.cat_tech}</span>
@@ -105,7 +105,6 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             )}
           </div>
 
-          {/* FOLDER: MANAGEMENT */}
           <div className="space-y-2">
             <button onClick={() => setMgmtOpen(!mgmtOpen)} aria-expanded={mgmtOpen} className="w-full flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-widest px-2 py-1 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               <span>{t.cat_mgmt}</span>
@@ -137,7 +136,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             <LogoutButton />
           </div>
 
-          <div className="text-center text-[9px] font-black uppercase tracking-widest text-slate-400 mt-2">SYSPEX MS</div>
+          <div className="text-center text-[9px] font-black uppercase tracking-widest text-slate-400 mt-2">SYSPEX MANAGEMENT SYSTEM</div>
         </div>
       </aside>
 
@@ -178,11 +177,10 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
         </>
       )}
 
-      {/* KEMBALIKAN MAIN VIEWPORT DI SINI AGAR DASHBOARD BISA MUNCUL */}
-      <main className="flex-1 min-h-screen flex flex-col justify-start px-4 sm:px-8 py-6 lg:py-8 pt-20 lg:pt-8 overflow-y-auto bg-white dark:bg-[#020617] relative z-0">
+      {/* MAIN VIEWPORT */}
+      <main className="flex-1 min-h-screen flex flex-col justify-start px-4 sm:px-8 py-6 lg:py-8 pt-20 lg:pt-8 overflow-hidden transition-all duration-300 bg-white dark:bg-[#020617]">
         {children}
       </main>
-
-    </div>
+    </>
   )
 }
