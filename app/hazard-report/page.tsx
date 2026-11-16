@@ -60,10 +60,8 @@ export default function HazardReportPage() {
   const [todayDate, setTodayDate] = useState<string>('')
   const [hazards, setHazards] = useState<HazardItem[]>([])
 
-  // Filter Status di Tabel
   const [statusFilter, setStatusFilter] = useState<'ALL' | Status>('ALL')
 
-  // Form States
   const [newCategory, setNewCategory] = useState<ReportCategory>('UNSAFE_CONDITION')
   const [newLoc, setNewLoc] = useState('')
   const [newDesc, setNewDesc] = useState('')
@@ -74,7 +72,6 @@ export default function HazardReportPage() {
   const [photoError, setPhotoError] = useState<string>('')
   const [previewPhotoModal, setPreviewPhotoModal] = useState<string | null>(null)
 
-  // State Edit Catatan Tindak Lanjut HSE
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState<string>('')
 
@@ -104,7 +101,6 @@ export default function HazardReportPage() {
   const saveHazards = (updated: HazardItem[]) => {
     setHazards(updated)
     localStorage.setItem('syspex_hazard_db', JSON.stringify(updated))
-    // Memicu event agar tab Dasbor KPI yang terbuka ikut ter-update otomatis
     window.dispatchEvent(new Event('syspex_hse_sync'))
   }
 
@@ -187,10 +183,10 @@ export default function HazardReportPage() {
     ID: {
       breadcrumb: "Keselamatan Lapangan",
       title: "Hazard & Near-Miss Report",
-      subtitle: "Sistem pelaporan lapangan terintegrasi dengan Dasbor KPI & pelacakan CAPA HSE.",
+      subtitle: "Portal pelaporan lapangan terintegrasi dengan Dasbor KPI dan pelacakan CAPA HSE.",
       btn_print: "Cetak Log Pelaporan",
       
-      p1_title: "1. Formulir Pelaporan Temuan Baru (QR Field Input)",
+      p1_title: "1. Formulir Pelaporan Temuan Baru",
       p1_cat: "Kategori Temuan",
       cat_uc: "HAZARD: Unsafe Condition (Kondisi Tidak Aman)",
       cat_ua: "HAZARD: Unsafe Act (Tindakan Tidak Aman)",
@@ -208,9 +204,9 @@ export default function HazardReportPage() {
       p1_desc_ph: "Jelaskan kondisi atau kejadian secara singkat...",
       p1_action: "Saran Tindakan Perbaikan Awal",
       p1_action_ph: "Tindakan pengamanan awal di lokasi...",
-      btn_add: "Kirim Laporan & Sinkron ke Dasbor",
+      btn_add: "Kirim Laporan Temuan",
       
-      p2_title: "2. Register & Kontrol Tindak Lanjut HSE (CAPA Tracker)",
+      p2_title: "2. Register & Kontrol Tindak Lanjut HSE",
       th_id: "ID / Waktu",
       th_cat: "Kategori",
       th_photo: "Foto",
@@ -235,10 +231,10 @@ export default function HazardReportPage() {
     EN: {
       breadcrumb: "Field Safety",
       title: "Hazard & Near-Miss Report",
-      subtitle: "Field reporting system live-synced with Executive KPI Dashboard & HSE CAPA tracking.",
+      subtitle: "Field reporting portal live-synced with Executive KPI Dashboard and HSE CAPA tracking.",
       btn_print: "Print Hazard Log",
       
-      p1_title: "1. New Field Finding Form (QR Field Input)",
+      p1_title: "1. New Field Finding Form",
       p1_cat: "Finding Category",
       cat_uc: "HAZARD: Unsafe Condition",
       cat_ua: "HAZARD: Unsafe Act",
@@ -254,9 +250,9 @@ export default function HazardReportPage() {
       btn_remove_photo: "Remove",
       p1_desc: "Field Finding Description",
       p1_desc_ph: "Briefly describe the hazard or near-miss...",
-      p1_action: "Initial Containment / Suggested CAPA",
+      p1_action: "Immediate Action / Suggested CAPA",
       p1_action_ph: "Immediate containment or corrective action...",
-      btn_add: "Submit & Sync to Dashboard",
+      btn_add: "Submit Finding Report",
       
       p2_title: "2. Hazard Register & HSE Follow-Up Control",
       th_id: "ID / Time",
@@ -312,7 +308,7 @@ export default function HazardReportPage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-16 w-full">
       
       {/* HEADER WEB */}
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
@@ -323,13 +319,8 @@ export default function HazardReportPage() {
         </div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{t.title}</h1>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 bg-teal-100 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-800 rounded-[2px] text-[8px] font-black text-teal-800 dark:text-teal-400 tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span> LIVE SYNC TO KPI
-              </span>
-            </div>
-            <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest leading-relaxed max-w-2xl">{t.subtitle}</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{t.title}</h1>
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed max-w-2xl">{t.subtitle}</p>
           </div>
           <button
             type="button"
@@ -342,7 +333,7 @@ export default function HazardReportPage() {
         </div>
       </div>
 
-      {/* HEADER CETAK DOKUMEN (PRINT) */}
+      {/* HEADER CETAK DOKUMEN */}
       <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
@@ -356,39 +347,66 @@ export default function HazardReportPage() {
         </div>
       </div>
 
-      {/* RINGKASAN STATUS CAPA (LANGSUNG TERIKAT KE KPI) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:hidden">
-        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-rose-200 dark:border-rose-900/60 rounded-[4px]">
-          <span className="block text-[8px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">OPEN (BUTUH TINDAKAN)</span>
-          <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1 block">{openCount}</span>
-        </div>
-        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-amber-200 dark:border-amber-900/60 rounded-[4px]">
-          <span className="block text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">ON PROGRESS (DITANGANI)</span>
+      {/* HIERARCHICAL CAPA STATUS SUMMARY: OPEN SEBAGAI FOCAL POINT UTAMA */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 print:hidden">
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'OPEN' ? 'ALL' : 'OPEN')}
+          className={`col-span-2 text-left p-4 rounded-[4px] border-2 transition-colors ${
+            openCount > 0
+              ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-400 dark:border-rose-800'
+              : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'
+          }`}
+        >
+          <div className="flex justify-between items-start">
+            <span className="block text-[9px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-400">
+              OPEN (BUTUH TINDAKAN SEGERA)
+            </span>
+            <span className="text-[8px] font-bold text-slate-400 uppercase">KLIK FILTER</span>
+          </div>
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-3xl font-black font-mono text-rose-600 dark:text-rose-400">{openCount}</span>
+            <span className="text-[10px] font-bold text-slate-500">TEMUAN BARU</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'ON_PROGRESS' ? 'ALL' : 'ON_PROGRESS')}
+          className="text-left p-4 bg-white dark:bg-[#0b0f19] border-2 border-amber-200 dark:border-amber-900/60 rounded-[4px] hover:border-amber-400 transition-colors"
+        >
+          <span className="block text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">ON PROGRESS</span>
           <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1 block">{progressCount}</span>
-        </div>
-        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-emerald-200 dark:border-emerald-900/60 rounded-[4px]">
-          <span className="block text-[8px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">CLOSED (SELESAI)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'CLOSED' ? 'ALL' : 'CLOSED')}
+          className="text-left p-4 bg-white dark:bg-[#0b0f19] border-2 border-emerald-200 dark:border-emerald-900/60 rounded-[4px] hover:border-emerald-400 transition-colors"
+        >
+          <span className="block text-[8px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">CLOSED</span>
           <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1 block">{closedCount}</span>
-        </div>
-        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 rounded-[4px]">
-          <span className="block text-[8px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">CAPA CLOSURE RATE</span>
+        </button>
+
+        <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-[4px]">
+          <span className="block text-[8px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400">CLOSURE RATE</span>
           <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1 block">{closureRate}%</span>
         </div>
       </div>
 
       {/* 1. FORMULIR INPUT BAHAYA & NEAR-MISS */}
       <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[4px] p-5 sm:p-6 space-y-4 print:hidden transition-colors">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <h2 className="text-xs font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2">
           {t.p1_title}
         </h2>
         <form onSubmit={handleAddHazard} className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
-            <label htmlFor={`${formId}-cat`} className="block text-[9px] font-black text-teal-700 dark:text-teal-400 uppercase tracking-widest mb-1.5">{t.p1_cat} *</label>
+            <label htmlFor={`${formId}-cat`} className="block text-[10px] font-bold text-teal-700 dark:text-teal-400 mb-1.5">{t.p1_cat} *</label>
             <select
               id={`${formId}-cat`}
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value as ReportCategory)}
-              className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 rounded-[4px] text-xs font-black text-slate-900 dark:text-white focus:outline-none focus:border-teal-500"
+              className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500"
             >
               <option value="UNSAFE_CONDITION">{t.cat_uc}</option>
               <option value="UNSAFE_ACT">{t.cat_ua}</option>
@@ -397,7 +415,7 @@ export default function HazardReportPage() {
           </div>
 
           <div className="md:col-span-1">
-            <label htmlFor={`${formId}-risk`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_risk}</label>
+            <label htmlFor={`${formId}-risk`} className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t.p1_risk}</label>
             <select id={`${formId}-risk`} value={newRisk} onChange={(e) => setNewRisk(e.target.value as RiskLevel)} className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500">
               <option value="LOW">LOW</option>
               <option value="MEDIUM">MEDIUM</option>
@@ -407,17 +425,17 @@ export default function HazardReportPage() {
           </div>
 
           <div className="md:col-span-1">
-            <label htmlFor={`${formId}-reporter`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_reporter}</label>
+            <label htmlFor={`${formId}-reporter`} className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t.p1_reporter}</label>
             <input id={`${formId}-reporter`} type="text" placeholder={t.p1_reporter_ph} value={newReporter} onChange={(e) => setNewReporter(e.target.value)} className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
           </div>
 
           <div className="md:col-span-2">
-            <label htmlFor={`${formId}-loc`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_loc} *</label>
+            <label htmlFor={`${formId}-loc`} className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t.p1_loc} *</label>
             <input id={`${formId}-loc`} type="text" required placeholder={t.p1_loc_ph} value={newLoc} onChange={(e) => setNewLoc(e.target.value)} className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
           </div>
 
           <div className="md:col-span-2">
-            <span className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_photo}</span>
+            <span className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t.p1_photo}</span>
             <input
               ref={fileInputRef}
               type="file"
@@ -431,7 +449,7 @@ export default function HazardReportPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full min-h-[44px] px-4 py-2 bg-white dark:bg-slate-950 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-600 dark:hover:border-teal-500 rounded-[4px] text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-colors"
+                className="w-full min-h-[44px] px-4 py-2 bg-white dark:bg-slate-950 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-600 dark:hover:border-teal-500 rounded-[4px] text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-colors"
               >
                 <svg aria-hidden="true" className="w-4 h-4 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -444,24 +462,24 @@ export default function HazardReportPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={newPhoto} alt="Preview temuan lapangan" width={56} height={44} className="w-14 h-11 object-cover rounded-[2px] border border-slate-300 dark:border-slate-700 shrink-0" />
                 <div className="flex-1 flex gap-2">
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 min-h-[36px] bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[9px] font-black uppercase tracking-widest rounded-[2px]">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 min-h-[36px] bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[9px] font-black uppercase tracking-wider rounded-[2px]">
                     {t.btn_retake}
                   </button>
-                  <button type="button" onClick={() => setNewPhoto(null)} className="px-3 py-2 min-h-[36px] border border-rose-300 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-widest rounded-[2px]">
+                  <button type="button" onClick={() => setNewPhoto(null)} className="px-3 py-2 min-h-[36px] border border-rose-300 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-wider rounded-[2px]">
                     {t.btn_remove_photo}
                   </button>
                 </div>
               </div>
             )}
-            {photoError && <p className="text-[9px] font-black text-rose-600 mt-1">{photoError}</p>}
+            {photoError && <p className="text-[10px] font-bold text-rose-600 mt-1">{photoError}</p>}
           </div>
           
           <div className="md:col-span-2">
-            <label htmlFor={`${formId}-desc`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_desc} *</label>
+            <label htmlFor={`${formId}-desc`} className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t.p1_desc} *</label>
             <textarea id={`${formId}-desc`} required rows={2} placeholder={t.p1_desc_ph} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 resize-none" />
           </div>
           <div className="md:col-span-2">
-            <label htmlFor={`${formId}-action`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_action}</label>
+            <label htmlFor={`${formId}-action`} className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1.5">{t.p1_action}</label>
             <textarea id={`${formId}-action`} rows={2} placeholder={t.p1_action_ph} value={newAction} onChange={(e) => setNewAction(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 resize-none" />
           </div>
           
@@ -476,18 +494,17 @@ export default function HazardReportPage() {
       {/* 2. TABEL REGISTER BAHAYA & KONTROL HSE */}
       <div className="bg-white dark:bg-[#0b0f19] rounded-[4px] p-5 sm:p-6 border border-slate-200 dark:border-slate-800 print:border-none print:p-0 space-y-4 transition-colors">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3 print:border-black">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
+          <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white print:text-black">
             {t.p2_title}
           </h2>
           
-          {/* FILTER STATUS UNTUK HSE */}
           <div className="flex flex-wrap gap-1.5 print:hidden">
             {(['ALL', 'OPEN', 'ON_PROGRESS', 'CLOSED'] as const).map(st => (
               <button
                 key={st}
                 type="button"
                 onClick={() => setStatusFilter(st)}
-                className={`px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-[2px] border transition-colors ${
+                className={`px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-[2px] border transition-colors ${
                   statusFilter === st
                     ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100'
                     : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800 hover:border-slate-400'
@@ -501,7 +518,7 @@ export default function HazardReportPage() {
 
         <div className="overflow-x-auto border-2 border-slate-200 dark:border-slate-800 print:border-black rounded-[4px] print:rounded-none">
           <table className="w-full text-left text-xs min-w-[980px] print:min-w-0">
-            <thead className="bg-slate-100 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 print:bg-white print:border-black print:text-black transition-colors">
+            <thead className="bg-slate-100 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 print:bg-white print:border-black print:text-black transition-colors">
               <tr>
                 <th className="py-3 px-3 w-28">{t.th_id}</th>
                 <th className="py-3 px-3 w-28 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_cat}</th>
@@ -517,8 +534,8 @@ export default function HazardReportPage() {
             <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800/50 text-slate-900 dark:text-slate-100 print:divide-black transition-colors">
               {displayedHazards.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    NO HAZARD RECORDS MATCHING THIS STATUS
+                  <td colSpan={9} className="py-8 text-center text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    {lang === 'ID' ? 'TIDAK ADA DATA TEMUAN PADA FILTER STATUS INI' : 'NO HAZARD RECORDS MATCHING THIS STATUS'}
                   </td>
                 </tr>
               ) : (
@@ -530,7 +547,7 @@ export default function HazardReportPage() {
                         {hz.id} <br/> <span className="font-bold">{hz.date} {hz.time}</span>
                       </td>
                       <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
-                        <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-widest inline-block border print:border-black print:bg-transparent print:text-black ${catBadge.cls}`}>
+                        <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-wider inline-block border print:border-black print:bg-transparent print:text-black ${catBadge.cls}`}>
                           {catBadge.label}
                         </span>
                       </td>
@@ -544,18 +561,18 @@ export default function HazardReportPage() {
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={hz.photoDataUrl} alt={`Bukti ${hz.location}`} width={48} height={36} className="w-12 h-9 object-cover" />
-                            <span className="block bg-slate-900/80 text-white text-[7px] font-black tracking-widest py-0.5">{t.view_photo}</span>
+                            <span className="block bg-slate-900/80 text-white text-[7px] font-black tracking-wider py-0.5">{t.view_photo}</span>
                           </button>
                         ) : (
-                          <span className="text-[8px] font-black text-slate-400 tracking-widest">{t.no_photo}</span>
+                          <span className="text-[8px] font-black text-slate-400 tracking-wider">{t.no_photo}</span>
                         )}
                       </td>
                       <td className="py-3 px-3 leading-relaxed border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black print:text-[10px]">
                         <p className="font-black text-slate-900 dark:text-white print:text-black uppercase">{hz.location}</p>
-                        <p className="text-[10px] font-medium text-slate-700 dark:text-slate-300 print:text-black mt-1">{hz.description}</p>
+                        <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300 print:text-black mt-1">{hz.description}</p>
                       </td>
                       <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
-                        <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-widest inline-block print:border print:border-black print:bg-transparent print:text-black ${
+                        <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-wider inline-block print:border print:border-black print:bg-transparent print:text-black ${
                           hz.riskLevel === 'CRITICAL' ? 'bg-rose-900 text-rose-100' :
                           hz.riskLevel === 'HIGH' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-400 dark:border dark:border-rose-900' :
                           hz.riskLevel === 'MEDIUM' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 dark:border dark:border-amber-900' :
@@ -564,37 +581,37 @@ export default function HazardReportPage() {
                           {hz.riskLevel}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-medium text-[10px] leading-relaxed border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black space-y-2">
+                      <td className="py-3 px-3 font-medium text-[11px] leading-relaxed border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black space-y-2">
                         <p>{hz.suggestedAction}</p>
                         
-                        {/* CATATAN TINDAK LANJUT HSE */}
                         {editingNoteId === hz.id ? (
                           <div className="pt-1 space-y-1.5 print:hidden">
                             <input
                               type="text"
+                              aria-label="Catatan progres tindak lanjut HSE"
                               autoFocus
                               value={noteDraft}
                               onChange={e => setNoteDraft(e.target.value)}
                               onKeyDown={e => e.key === 'Enter' && saveHseNote(hz.id)}
                               placeholder="Tulis progres penanganan / PIC..."
-                              className="w-full px-2 py-1 text-[10px] font-bold bg-white dark:bg-slate-950 border border-teal-500 rounded-[2px]"
+                              className="w-full px-2 py-1 text-[10px] font-bold bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-teal-500 rounded-[2px]"
                             />
                             <div className="flex gap-1.5">
-                              <button type="button" onClick={() => saveHseNote(hz.id)} className="px-2 py-1 bg-teal-700 text-white text-[8px] font-black uppercase tracking-widest rounded-[2px]">{t.save_note}</button>
-                              <button type="button" onClick={() => setEditingNoteId(null)} className="px-2 py-1 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[8px] font-black uppercase tracking-widest rounded-[2px]">Batal</button>
+                              <button type="button" onClick={() => saveHseNote(hz.id)} className="px-2 py-1 bg-teal-700 text-white text-[8px] font-black uppercase tracking-wider rounded-[2px]">{t.save_note}</button>
+                              <button type="button" onClick={() => setEditingNoteId(null)} className="px-2 py-1 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[8px] font-black uppercase tracking-wider rounded-[2px]">Batal</button>
                             </div>
                           </div>
                         ) : (
                           <div className="pt-1 border-t border-slate-100 dark:border-slate-800/80">
                             {hz.hseNotes && (
-                              <p className="text-[9px] font-bold text-teal-700 dark:text-teal-400">
+                              <p className="text-[10px] font-bold text-teal-700 dark:text-teal-400">
                                 HSE LOG: {hz.hseNotes}
                               </p>
                             )}
                             <button
                               type="button"
                               onClick={() => startEditNote(hz)}
-                              className="mt-1 text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 print:hidden"
+                              className="mt-1 text-[9px] font-bold text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 print:hidden"
                             >
                               {hz.hseNotes ? 'Edit Catatan HSE' : t.add_note}
                             </button>
@@ -602,13 +619,12 @@ export default function HazardReportPage() {
                         )}
                       </td>
 
-                      {/* DROPDOWN UBAH STATUS LANGSUNG (OPEN / ON PROGRESS / CLOSED) */}
                       <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
                         <select
                           aria-label={`Ubah status CAPA untuk ${hz.id}`}
                           value={hz.status}
                           onChange={(e) => handleChangeStatus(hz.id, e.target.value as Status)}
-                          className={`print:hidden w-full px-2 py-1.5 rounded-[2px] text-[8px] font-black uppercase tracking-widest border focus:outline-none ${
+                          className={`print:hidden w-full px-2 py-1.5 rounded-[2px] text-[8px] font-black uppercase tracking-wider border focus:outline-none ${
                             hz.status === 'OPEN'
                               ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-400 text-rose-700 dark:text-rose-400'
                               : hz.status === 'ON_PROGRESS'
@@ -629,7 +645,7 @@ export default function HazardReportPage() {
                         {hz.reporter}
                       </td>
                       <td className="py-3 px-3 border-l-2 border-slate-100 dark:border-slate-800/50 print:hidden text-center">
-                        <button type="button" aria-label={`Delete ${hz.id}`} onClick={() => handleDelete(hz.id)} className="w-full text-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-black px-1.5 py-1.5 text-[8px] uppercase tracking-widest border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/60 rounded-[2px] transition-colors">
+                        <button type="button" aria-label={`Delete ${hz.id}`} onClick={() => handleDelete(hz.id)} className="w-full text-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-black px-1.5 py-1.5 text-[8px] uppercase tracking-wider border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/60 rounded-[2px] transition-colors">
                           {t.btn_delete}
                         </button>
                       </td>
@@ -641,7 +657,6 @@ export default function HazardReportPage() {
           </table>
         </div>
 
-        {/* TANDA TANGAN DOKUMEN CETAK */}
         <div className="hidden print:grid grid-cols-2 gap-12 pt-12 mt-12 border-t-4 border-black">
           <div className="text-center border-2 border-black p-4">
             <p className="text-[9px] font-black text-black uppercase tracking-widest mb-20">{t.sign_hse}</p>
