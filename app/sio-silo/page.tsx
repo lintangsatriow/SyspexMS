@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx'
 import { useLanguage } from '../LanguageContext'
 
 type PermitType = 'SIO' | 'SKP_AHLI' | 'BNSP' | 'SILO_SUKET' | 'RIKSA_UJI'
-type ComputedStatus = 'VALID' | 'EXPIRING_SOON' | 'EXPIRED'
+type ComputedStatus = 'VALID' | 'WARNING_90' | 'CRITICAL_60' | 'EXPIRED'
 
 interface K3ComplianceRecord {
   id: string
@@ -18,6 +18,9 @@ interface K3ComplianceRecord {
   expiryDate: string // 'YYYY-MM-DD' atau 'LIFETIME'
   issuer: string
 }
+
+const WARNING_DAYS = 90  // Oranye: Mulai persiapan administrasi PJK3 (<= 90 hari)
+const CRITICAL_DAYS = 60 // Merah: Kritis birokrasi Kemnaker (<= 60 hari)
 
 const PERMIT_LABELS: Record<PermitType, { short: string; full: string; badgeCls: string }> = {
   SIO: {
@@ -65,7 +68,7 @@ const INITIAL_RECORDS: K3ComplianceRecord[] = [
     holderOrAssetName: 'Forklift Counterbalance Toyota #01',
     equipmentClass: 'Pesawat Angkat & Angkut (3.5 Ton)',
     department: 'Operation',
-    expiryDate: new Date(Date.now() + 18 * 86400000).toISOString().split('T')[0],
+    expiryDate: new Date(Date.now() + 45 * 86400000).toISOString().split('T')[0],
     issuer: 'Disnakertrans Banten'
   }
 ]
@@ -139,7 +142,6 @@ const parseExcelExpiryDate = (rawVal: unknown): string => {
   return 'LIFETIME'
 }
 
-// Klasifikasi otomatis 5 kategori K3 saat import Excel
 const detectPermitCategory = (rawType: string, eqClass: string, holderName: string, issuer: string): PermitType => {
   const combined = `${rawType} ${eqClass} ${holderName} ${issuer}`.toLowerCase()
 
@@ -189,7 +191,8 @@ const getPermitStatus = (expiryDateStr: string): { status: ComputedStatus; daysL
   const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
   if (daysLeft < 0) return { status: 'EXPIRED', daysLeft }
-  if (daysLeft <= 30) return { status: 'EXPIRING_SOON', daysLeft }
+  if (daysLeft <= CRITICAL_DAYS) return { status: 'CRITICAL_60', daysLeft }
+  if (daysLeft <= WARNING_DAYS) return { status: 'WARNING_90', daysLeft }
   return { status: 'VALID', daysLeft }
 }
 
@@ -214,13 +217,15 @@ export default function K3ComplianceRegisterPage() {
   const [expiryDate, setExpiryDate] = useState('')
   const [issuer, setIssuer] = useState('Kemnaker RI')
 
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState<K3ComplianceRecord | null>(null)
+
   useEffect(() => {
     setMounted(true)
     setTodayDate(new Date().toISOString().split('T')[0])
     const saved = localStorage.getItem('syspex_sio_db')
     if (saved) {
       const parsed: K3ComplianceRecord[] = JSON.parse(saved)
-      // Migrasi aman jika ada record lama bertipe 'SILO'
       const normalized = parsed.map(item => ({
         ...item,
         permitType: (item.permitType as string) === 'SILO' ? 'SILO_SUKET' : item.permitType
@@ -230,6 +235,15 @@ export default function K3ComplianceRegisterPage() {
       setRecords(INITIAL_RECORDS)
       localStorage.setItem('syspex_sio_db', JSON.stringify(INITIAL_RECORDS))
     }
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setEditingId(null)
+        setEditDraft(null)
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
   }, [])
 
   const saveRecords = (updated: K3ComplianceRecord[]) => {
@@ -360,6 +374,8 @@ export default function K3ComplianceRegisterPage() {
       if (importedItems.length === 0) throw new Error('Tidak ada baris valid')
 
       saveRecords(importedItems)
+      setEditingId(null)
+      setEditDraft(null)
       setTypeFilter('ALL')
       setStatusFilter('ALL')
       setSearchQuery('')
@@ -403,7 +419,37 @@ export default function K3ComplianceRegisterPage() {
     setExpiryDate('')
   }
 
+  const startRowEdit = (rec: K3ComplianceRecord) => {
+    setEditingId(rec.id)
+    setEditDraft({ ...rec })
+  }
+
+  const cancelRowEdit = () => {
+    setEditingId(null)
+    setEditDraft(null)
+  }
+
+  const saveRowEdit = () => {
+    if (!editDraft || !editDraft.holderOrAssetName.trim()) return
+    const cleanedDraft: K3ComplianceRecord = {
+      ...editDraft,
+      certificateNo: editDraft.certificateNo.trim() || '-',
+      holderOrAssetName: editDraft.holderOrAssetName.trim(),
+      equipmentClass: editDraft.equipmentClass.trim() || '-',
+      department: editDraft.department.trim() || 'Technical',
+      issuer: editDraft.issuer.trim() || 'Kemnaker RI',
+      expiryDate: editDraft.expiryDate ? editDraft.expiryDate : 'LIFETIME'
+    }
+    saveRecords(records.map(r => (r.id === cleanedDraft.id ? cleanedDraft : r)))
+    setEditingId(null)
+    setEditDraft(null)
+  }
+
   const handleDelete = (id: string) => {
+    if (editingId === id) {
+      setEditingId(null)
+      setEditDraft(null)
+    }
     saveRecords(records.filter(r => r.id !== id))
   }
 
@@ -417,10 +463,12 @@ export default function K3ComplianceRegisterPage() {
   const stats = useMemo(() => {
     const total = enrichedRecords.length
     const valid = enrichedRecords.filter(r => r.computedStatus === 'VALID').length
-    const expiring = enrichedRecords.filter(r => r.computedStatus === 'EXPIRING_SOON').length
+    const warning90 = enrichedRecords.filter(r => r.computedStatus === 'WARNING_90').length
+    const critical60 = enrichedRecords.filter(r => r.computedStatus === 'CRITICAL_60').length
     const expired = enrichedRecords.filter(r => r.computedStatus === 'EXPIRED').length
-    const validityPct = total > 0 ? Math.round(((valid + expiring) / total) * 100) : 100
-    return { total, valid, expiring, expired, validityPct }
+    const activeCount = valid + warning90 + critical60
+    const validityPct = total > 0 ? Math.round((activeCount / total) * 100) : 100
+    return { total, valid, warning90, critical60, expired, activeCount, validityPct }
   }, [enrichedRecords])
 
   const filteredRecords = useMemo(() => {
@@ -445,7 +493,7 @@ export default function K3ComplianceRegisterPage() {
     ID: {
       breadcrumb: "Manajemen & ISO / SMK3",
       title: "Register Lisensi K3 & Riksa Uji",
-      subtitle: "Pemantauan terpadu SIO Operator, SKP Ahli/Pengawas, Sertifikat BNSP, SILO/Suket K3, dan Hasil Riksa Uji PJK3 (PP 50/2012).",
+      subtitle: "Pemantauan terpadu SIO Operator, SKP Ahli/Pengawas, Sertifikat BNSP, SILO/Suket K3, dan Hasil Riksa Uji PJK3 (Oranye ≤90 Hari • Merah ≤60 Hari).",
       btn_import: "Import Excel (.xlsx)",
       btn_template: "Template Excel",
       btn_print: "Cetak Register",
@@ -454,7 +502,6 @@ export default function K3ComplianceRegisterPage() {
       f_cert: "No. Sertifikat / LHP",
       f_name: "Nama Personel / Unit Alat *",
       f_class: "Kompetensi / Objek Uji",
-      f_issuer: "Instansi / PJK3",
       f_exp: "Berlaku Hingga (Kosong = Seumur Hidup)",
       btn_save: "Simpan & Sinkron KPI",
       reg_title: "2. Register Kepatuhan Lisensi K3 & Hasil Riksa Uji",
@@ -465,7 +512,11 @@ export default function K3ComplianceRegisterPage() {
       th_class: "Kompetensi / Klasifikasi",
       th_exp: "Masa Berlaku",
       th_status: "Status Legal",
-      th_del: "Hapus",
+      th_action: "Aksi",
+      btn_edit: "Edit",
+      btn_update: "Simpan",
+      btn_cancel: "Batal",
+      btn_lifetime: "Seumur Hidup",
       print_doc: "REGISTER KEPATUHAN LISENSI PERSONEL K3 & HASIL RIKSA UJI PERALATAN • SYSPEX HSE",
       sign_hse: "Diperiksa Oleh (HSE Officer):",
       sign_mgr: "Disetujui Oleh (Plant / Ops Manager):"
@@ -473,7 +524,7 @@ export default function K3ComplianceRegisterPage() {
     EN: {
       breadcrumb: "Management & ISO / SMK3",
       title: "K3 Licenses & Riksa Uji Register",
-      subtitle: "Unified tracking for Operator SIO, K3 Specialist SKP, BNSP Certificates, Equipment SILO/Suket, and PJK3 Inspection Reports.",
+      subtitle: "Unified tracking for Operator SIO, K3 Specialist SKP, BNSP Certificates, Equipment SILO/Suket, and PJK3 Inspection Reports (Orange ≤90D • Red ≤60D).",
       btn_import: "Import Excel (.xlsx)",
       btn_template: "Excel Template",
       btn_print: "Print Register",
@@ -482,7 +533,6 @@ export default function K3ComplianceRegisterPage() {
       f_cert: "Certificate / Report No.",
       f_name: "Personnel Name / Equipment Unit *",
       f_class: "Competency / Inspected Object",
-      f_issuer: "Issuer / PJK3",
       f_exp: "Valid Until (Blank = Lifetime)",
       btn_save: "Save & Sync KPI",
       reg_title: "2. K3 Licenses & Inspection Compliance Register",
@@ -493,7 +543,11 @@ export default function K3ComplianceRegisterPage() {
       th_class: "Competency / Classification",
       th_exp: "Expiry Date",
       th_status: "Legal Status",
-      th_del: "Del",
+      th_action: "Action",
+      btn_edit: "Edit",
+      btn_update: "Save",
+      btn_cancel: "Cancel",
+      btn_lifetime: "Lifetime",
       print_doc: "OFFICIAL K3 PERSONNEL LICENSES & EQUIPMENT INSPECTION REGISTER • SYSPEX HSE",
       sign_hse: "Verified By (HSE Officer):",
       sign_mgr: "Approved By (Plant / Ops Manager):"
@@ -574,25 +628,74 @@ export default function K3ComplianceRegisterPage() {
         </div>
       </div>
 
-      {/* KARTU INDIKATOR KEPATUHAN */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:grid-cols-4">
+      {/* 5 KARTU INDIKATOR KEPATUHAN (VALID / ORANGE <=90D / RED <=60D / EXPIRED) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 print:grid-cols-5">
         <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 rounded-[4px] print:border-black">
           <span className="block text-[8px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 print:text-black">COMPLIANCE VALIDITY</span>
           <span className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white print:text-black mt-1 block">{stats.validityPct}%</span>
-          <span className="text-[8px] font-bold text-slate-400 uppercase">{stats.valid + stats.expiring} / {stats.total} AKTIF</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase">{stats.activeCount} / {stats.total} AKTIF</span>
         </div>
-        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-emerald-200 dark:border-emerald-900/60 rounded-[4px] print:border-black">
-          <span className="block text-[8px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 print:text-black">VALID (&gt; 30 HARI)</span>
+
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'VALID' ? 'ALL' : 'VALID')}
+          className={`text-left p-4 bg-white dark:bg-[#0b0f19] border-2 rounded-[4px] print:border-black transition-colors ${statusFilter === 'VALID' ? 'border-emerald-600 ring-1 ring-emerald-600' : 'border-emerald-200 dark:border-emerald-900/60 hover:border-emerald-400'}`}
+        >
+          <span className="block text-[8px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 print:text-black">SAFE / VALID (&gt; {WARNING_DAYS}D)</span>
           <span className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white print:text-black mt-1 block">{stats.valid}</span>
-        </div>
-        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-amber-200 dark:border-amber-900/60 rounded-[4px] print:border-black">
-          <span className="block text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 print:text-black">EXPIRING SOON (&le; 30 HARI)</span>
-          <span className="text-2xl sm:text-3xl font-black font-mono text-amber-600 dark:text-amber-400 print:text-black mt-1 block">{stats.expiring}</span>
-        </div>
-        <div className={`p-4 border-2 rounded-[4px] print:border-black ${stats.expired > 0 ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
-          <span className="block text-[8px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 print:text-black">EXPIRED (PERLU PERPANJANGAN)</span>
-          <span className="text-2xl sm:text-3xl font-black font-mono text-rose-600 dark:text-rose-400 print:text-black mt-1 block">{stats.expired}</span>
-        </div>
+          <span className="text-[8px] font-bold text-slate-400 uppercase">KLIK UNTUK FILTER</span>
+        </button>
+
+        {/* ORANGE WARNING: 61 - 90 HARI */}
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'WARNING_90' ? 'ALL' : 'WARNING_90')}
+          className={`text-left p-4 border-2 rounded-[4px] print:border-black transition-colors ${
+            statusFilter === 'WARNING_90'
+              ? 'bg-orange-100/80 dark:bg-orange-950/50 border-orange-600 ring-1 ring-orange-600'
+              : stats.warning90 > 0
+              ? 'bg-orange-50/70 dark:bg-orange-950/25 border-orange-300 dark:border-orange-800 hover:border-orange-500'
+              : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'
+          }`}
+        >
+          <span className="block text-[8px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 print:text-black">WARNING (61–{WARNING_DAYS} HARI)</span>
+          <span className="text-2xl sm:text-3xl font-black font-mono text-orange-600 dark:text-orange-400 print:text-black mt-1 block">{stats.warning90}</span>
+          <span className="text-[8px] font-bold text-orange-700/70 dark:text-orange-300/70 uppercase">SIAPKAN BERKAS PJK3</span>
+        </button>
+
+        {/* RED CRITICAL: <= 60 HARI */}
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'CRITICAL_60' ? 'ALL' : 'CRITICAL_60')}
+          className={`text-left p-4 border-2 rounded-[4px] print:border-black transition-colors ${
+            statusFilter === 'CRITICAL_60'
+              ? 'bg-rose-100 dark:bg-rose-950/60 border-rose-600 ring-1 ring-rose-600'
+              : stats.critical60 > 0
+              ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 hover:border-rose-500'
+              : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'
+          }`}
+        >
+          <span className="block text-[8px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 print:text-black">CRITICAL (&le; {CRITICAL_DAYS} HARI)</span>
+          <span className="text-2xl sm:text-3xl font-black font-mono text-rose-600 dark:text-rose-400 print:text-black mt-1 block">{stats.critical60}</span>
+          <span className="text-[8px] font-bold text-rose-700/80 dark:text-rose-300/80 uppercase">PROSES SEGERA</span>
+        </button>
+
+        {/* EXPIRED: <= 0 HARI */}
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === 'EXPIRED' ? 'ALL' : 'EXPIRED')}
+          className={`col-span-2 sm:col-span-1 text-left p-4 border-2 rounded-[4px] print:border-black transition-colors ${
+            statusFilter === 'EXPIRED'
+              ? 'bg-red-200 dark:bg-red-950 border-red-700 ring-1 ring-red-700'
+              : stats.expired > 0
+              ? 'bg-red-100/80 dark:bg-red-950/50 border-red-400 dark:border-red-800 hover:border-red-600'
+              : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'
+          }`}
+        >
+          <span className="block text-[8px] font-black uppercase tracking-widest text-red-700 dark:text-red-400 print:text-black">EXPIRED (KEDALUWARSA)</span>
+          <span className="text-2xl sm:text-3xl font-black font-mono text-red-700 dark:text-red-400 print:text-black mt-1 block">{stats.expired}</span>
+          <span className="text-[8px] font-bold text-red-700/80 dark:text-red-300/80 uppercase">WAJIB PERPANJANG</span>
+        </button>
       </div>
 
       {/* 1. FORM INPUT MANUAL */}
@@ -635,7 +738,7 @@ export default function K3ComplianceRegisterPage() {
         </form>
       </div>
 
-      {/* 2. TABEL REGISTER */}
+      {/* 2. TABEL REGISTER DENGAN MODE EDIT LANGSUNG */}
       <div className="bg-white dark:bg-[#0b0f19] rounded-[4px] p-5 border border-slate-200 dark:border-slate-800 print:border-none print:p-0 space-y-4">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3 print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
@@ -671,24 +774,25 @@ export default function K3ComplianceRegisterPage() {
               className="px-2.5 py-1.5 text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2px]"
             >
               <option value="ALL">ALL STATUS</option>
-              <option value="VALID">VALID</option>
-              <option value="EXPIRING_SOON">EXPIRING SOON</option>
+              <option value="VALID">VALID (&gt; {WARNING_DAYS}D)</option>
+              <option value="WARNING_90">ORANGE (61–{WARNING_DAYS}D)</option>
+              <option value="CRITICAL_60">RED (&le; {CRITICAL_DAYS}D)</option>
               <option value="EXPIRED">EXPIRED</option>
             </select>
           </div>
         </div>
 
         <div className="overflow-x-auto border-2 border-slate-200 dark:border-slate-800 print:border-black rounded-[4px] print:rounded-none">
-          <table className="w-full text-left text-xs min-w-[880px] print:min-w-0">
+          <table className="w-full text-left text-xs min-w-[960px] print:min-w-0">
             <thead className="bg-slate-100 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 print:bg-white print:border-black print:text-black">
               <tr>
-                <th className="py-3 px-3 w-28 text-center">{t.th_type}</th>
+                <th className="py-3 px-3 w-32 text-center">{t.th_type}</th>
                 <th className="py-3 px-3 w-40 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_cert}</th>
                 <th className="py-3 px-3 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_name}</th>
                 <th className="py-3 px-3 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_class}</th>
-                <th className="py-3 px-3 w-32 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_exp}</th>
-                <th className="py-3 px-3 w-44 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_status}</th>
-                <th className="py-3 px-3 w-16 text-center border-l-2 border-slate-200 dark:border-slate-800 print:hidden">{t.th_del}</th>
+                <th className="py-3 px-3 w-36 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_exp}</th>
+                <th className="py-3 px-3 w-48 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_status}</th>
+                <th className="py-3 px-3 w-28 text-center border-l-2 border-slate-200 dark:border-slate-800 print:hidden">{t.th_action}</th>
               </tr>
             </thead>
             <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800/50 text-slate-900 dark:text-slate-100 print:divide-black">
@@ -700,13 +804,121 @@ export default function K3ComplianceRegisterPage() {
                 </tr>
               ) : (
                 filteredRecords.map(rec => {
+                  const isEditing = editingId === rec.id && editDraft !== null
+
+                  if (isEditing && editDraft) {
+                    return (
+                      <tr key={rec.id} className="bg-teal-50/60 dark:bg-teal-950/30 align-top">
+                        <td className="py-2.5 px-2">
+                          <select
+                            aria-label="Edit kategori dokumen"
+                            value={editDraft.permitType}
+                            onChange={e => setEditDraft({ ...editDraft, permitType: e.target.value as PermitType })}
+                            className="w-full px-1.5 py-1.5 text-[9px] font-black bg-white dark:bg-slate-950 border border-teal-500 rounded-[2px]"
+                          >
+                            <option value="SIO">SIO</option>
+                            <option value="SKP_AHLI">SKP / AHLI</option>
+                            <option value="BNSP">BNSP</option>
+                            <option value="SILO_SUKET">SILO / SUKET</option>
+                            <option value="RIKSA_UJI">RIKSA UJI</option>
+                          </select>
+                        </td>
+                        <td className="py-2.5 px-2 border-l-2 border-teal-200 dark:border-teal-900">
+                          <input
+                            type="text"
+                            aria-label="Edit nomor sertifikat"
+                            value={editDraft.certificateNo === '-' ? '' : editDraft.certificateNo}
+                            placeholder="No. Sertifikat"
+                            onChange={e => setEditDraft({ ...editDraft, certificateNo: e.target.value })}
+                            className="w-full px-2 py-1.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-950 border border-teal-500 rounded-[2px]"
+                          />
+                        </td>
+                        <td className="py-2.5 px-2 border-l-2 border-teal-200 dark:border-teal-900 space-y-1.5">
+                          <input
+                            type="text"
+                            aria-label="Edit nama personel atau unit"
+                            value={editDraft.holderOrAssetName}
+                            onChange={e => setEditDraft({ ...editDraft, holderOrAssetName: e.target.value })}
+                            className="w-full px-2 py-1 text-[10px] font-black bg-white dark:bg-slate-950 border border-teal-500 rounded-[2px]"
+                          />
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              aria-label="Edit departemen"
+                              value={editDraft.department}
+                              placeholder="Dept"
+                              onChange={e => setEditDraft({ ...editDraft, department: e.target.value })}
+                              className="w-1/2 px-1.5 py-1 text-[9px] font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]"
+                            />
+                            <input
+                              type="text"
+                              aria-label="Edit instansi penerbit"
+                              value={editDraft.issuer}
+                              placeholder="Penerbit"
+                              onChange={e => setEditDraft({ ...editDraft, issuer: e.target.value })}
+                              className="w-1/2 px-1.5 py-1 text-[9px] font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]"
+                            />
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-2 border-l-2 border-teal-200 dark:border-teal-900">
+                          <input
+                            type="text"
+                            aria-label="Edit klasifikasi kompetensi"
+                            value={editDraft.equipmentClass}
+                            onChange={e => setEditDraft({ ...editDraft, equipmentClass: e.target.value })}
+                            className="w-full px-2 py-1.5 text-[10px] font-bold bg-white dark:bg-slate-950 border border-teal-500 rounded-[2px]"
+                          />
+                        </td>
+                        <td className="py-2.5 px-2 border-l-2 border-teal-200 dark:border-teal-900 space-y-1">
+                          <input
+                            type="date"
+                            aria-label="Edit tanggal berlaku"
+                            value={editDraft.expiryDate === 'LIFETIME' ? '' : editDraft.expiryDate}
+                            onChange={e => setEditDraft({ ...editDraft, expiryDate: e.target.value || 'LIFETIME' })}
+                            className="w-full px-1.5 py-1 text-[10px] font-mono font-bold bg-white dark:bg-slate-950 border border-teal-500 rounded-[2px]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEditDraft({ ...editDraft, expiryDate: 'LIFETIME' })}
+                            className="w-full py-0.5 text-[8px] font-black uppercase bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-[2px]"
+                          >
+                            Set {t.btn_lifetime}
+                          </button>
+                        </td>
+                        <td className="py-2.5 px-2 text-center border-l-2 border-teal-200 dark:border-teal-900">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400">
+                            EDITING MODE
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 text-center border-l-2 border-teal-200 dark:border-teal-900 space-y-1">
+                          <button
+                            type="button"
+                            onClick={saveRowEdit}
+                            className="block w-full py-1 bg-teal-700 hover:bg-teal-600 text-white text-[8px] font-black uppercase tracking-widest rounded-[2px]"
+                          >
+                            {t.btn_update}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelRowEdit}
+                            className="block w-full py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[8px] font-black uppercase tracking-widest rounded-[2px]"
+                          >
+                            {t.btn_cancel}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  }
+
                   const isLifetime = rec.expiryDate === 'LIFETIME'
                   const catInfo = PERMIT_LABELS[rec.permitType] || PERMIT_LABELS.SIO
                   const statusBadge =
                     rec.computedStatus === 'EXPIRED'
-                      ? { label: `EXPIRED (${Math.abs(rec.daysLeft)}D AGO)`, cls: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800' }
-                      : rec.computedStatus === 'EXPIRING_SOON'
-                      ? { label: `EXPIRING (${rec.daysLeft}D LEFT)`, cls: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800' }
+                      ? { label: `EXPIRED (${Math.abs(rec.daysLeft)}D AGO)`, cls: 'bg-red-700 text-white border-red-800 dark:bg-red-900 dark:text-red-100 dark:border-red-700' }
+                      : rec.computedStatus === 'CRITICAL_60'
+                      ? { label: `CRITICAL (${rec.daysLeft}D LEFT)`, cls: 'bg-rose-100 text-rose-800 border-rose-400 dark:bg-rose-950/70 dark:text-rose-400 dark:border-rose-800' }
+                      : rec.computedStatus === 'WARNING_90'
+                      ? { label: `WARNING (${rec.daysLeft}D LEFT)`, cls: 'bg-orange-100 text-orange-800 border-orange-400 dark:bg-orange-950/70 dark:text-orange-400 dark:border-orange-800' }
                       : isLifetime
                       ? { label: 'PERMANENT / LIFETIME', cls: 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/60 dark:text-teal-400 dark:border-teal-800' }
                       : { label: `VALID (${rec.daysLeft}D)`, cls: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800' }
@@ -737,9 +949,24 @@ export default function K3ComplianceRegisterPage() {
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:hidden">
-                        <button type="button" aria-label={`Hapus ${rec.holderOrAssetName}`} onClick={() => handleDelete(rec.id)} className="text-slate-400 hover:text-rose-600 font-black px-2 py-1">
-                          [X]
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            aria-label={`Edit ${rec.holderOrAssetName}`}
+                            onClick={() => startRowEdit(rec)}
+                            className="px-2 py-1 text-[8px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 hover:bg-teal-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-[2px] transition-colors"
+                          >
+                            {t.btn_edit}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Hapus ${rec.holderOrAssetName}`}
+                            onClick={() => handleDelete(rec.id)}
+                            className="px-1.5 py-1 text-[8px] font-black text-slate-400 hover:text-rose-600 border border-transparent hover:border-rose-200 dark:hover:border-rose-900 rounded-[2px] transition-colors"
+                          >
+                            [X]
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
