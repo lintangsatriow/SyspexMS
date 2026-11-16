@@ -1,154 +1,281 @@
 "use client"
 
-import { useState, useId, useEffect } from 'react'
+import { useState, useId, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '../LanguageContext'
 
+type ReportCategory = 'UNSAFE_CONDITION' | 'UNSAFE_ACT' | 'NEAR_MISS'
 type RiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
-type Status = 'OPEN' | 'CLOSED'
+type Status = 'OPEN' | 'ON_PROGRESS' | 'CLOSED'
 
 interface HazardItem {
   id: string
   date: string
+  time: string
+  category: ReportCategory
   location: string
   description: string
   riskLevel: RiskLevel
   suggestedAction: string
+  hseNotes?: string
   reporter: string
+  photoDataUrl?: string
   status: Status
 }
+
+const INITIAL_HAZARDS: HazardItem[] = [
+  {
+    id: 'HZD-8831A',
+    date: new Date().toISOString().split('T')[0],
+    time: '09:15',
+    category: 'UNSAFE_CONDITION',
+    location: 'Loading Dock Area B',
+    description: 'Tumpahan oli hidrolik dari forklift tidak dibersihkan, lantai sangat licin.',
+    riskLevel: 'HIGH',
+    suggestedAction: 'Tutup area dengan barikade, gunakan spill kit, panggil tim maintenance.',
+    hseNotes: 'Area sudah dipasang safety cone, menunggu tim maintenance cek seal hidrolik.',
+    reporter: 'Budi Prakoso',
+    status: 'ON_PROGRESS'
+  },
+  {
+    id: 'HZD-9912C',
+    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+    time: '14:30',
+    category: 'NEAR_MISS',
+    location: 'Rak Penyimpanan Lorong C',
+    description: 'Palet nyaris jatuh saat manuver reach truck karena baut pengunci kaki rak lepas.',
+    riskLevel: 'MEDIUM',
+    suggestedAction: 'Ganti baut dynabolt dan pasang kembali karet pelindung.',
+    hseNotes: 'Dynabolt baru sudah terpasang dan dikencangkan oleh tim GA.',
+    reporter: 'Siti Aminah',
+    status: 'CLOSED'
+  }
+]
 
 export default function HazardReportPage() {
   const { lang } = useLanguage()
   const formId = useId()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [mounted, setMounted] = useState(false)
   const [todayDate, setTodayDate] = useState<string>('')
-  
-  const [hazards, setHazards] = useState<HazardItem[]>([
-    {
-      id: 'HZD-8831A',
-      date: new Date().toISOString().split('T')[0],
-      location: 'Loading Dock Area B',
-      description: 'Tumpahan oli hidrolik dari forklift tidak dibersihkan, lantai sangat licin.',
-      riskLevel: 'HIGH',
-      suggestedAction: 'Tutup area dengan barikade, gunakan spill kit, panggil tim maintenance.',
-      reporter: 'Budi Prakoso',
-      status: 'OPEN'
-    },
-    {
-      id: 'HZD-9912C',
-      date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-      location: 'Rak Penyimpanan Lorong C',
-      description: 'Karet pelindung kaki rak (column guard) lepas dan baut pengunci hilang.',
-      riskLevel: 'MEDIUM',
-      suggestedAction: 'Ganti baut dynabolt dan pasang kembali karet pelindung.',
-      reporter: 'Siti Aminah',
-      status: 'CLOSED'
-    }
-  ])
+  const [hazards, setHazards] = useState<HazardItem[]>([])
 
+  // Filter Status di Tabel
+  const [statusFilter, setStatusFilter] = useState<'ALL' | Status>('ALL')
+
+  // Form States
+  const [newCategory, setNewCategory] = useState<ReportCategory>('UNSAFE_CONDITION')
   const [newLoc, setNewLoc] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newRisk, setNewRisk] = useState<RiskLevel>('MEDIUM')
   const [newAction, setNewAction] = useState('')
   const [newReporter, setNewReporter] = useState('')
+  const [newPhoto, setNewPhoto] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string>('')
+  const [previewPhotoModal, setPreviewPhotoModal] = useState<string | null>(null)
+
+  // State Edit Catatan Tindak Lanjut HSE
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [noteDraft, setNoteDraft] = useState<string>('')
 
   useEffect(() => {
+    setMounted(true)
     setTodayDate(new Date().toISOString().split('T')[0])
+    const saved = localStorage.getItem('syspex_hazard_db')
+    if (saved) {
+      setHazards(JSON.parse(saved))
+    } else {
+      setHazards(INITIAL_HAZARDS)
+      localStorage.setItem('syspex_hazard_db', JSON.stringify(INITIAL_HAZARDS))
+    }
   }, [])
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPreviewPhotoModal(null)
+        setEditingNoteId(null)
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [])
+
+  const saveHazards = (updated: HazardItem[]) => {
+    setHazards(updated)
+    localStorage.setItem('syspex_hazard_db', JSON.stringify(updated))
+    // Memicu event agar tab Dasbor KPI yang terbuka ikut ter-update otomatis
+    window.dispatchEvent(new Event('syspex_hse_sync'))
+  }
+
+  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoError('')
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX_WIDTH = 800
+        const scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1
+        canvas.width = img.width * scale
+        canvas.height = img.height * scale
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          setNewPhoto(canvas.toDataURL('image/jpeg', 0.72))
+        }
+      }
+      img.onerror = () => setPhotoError(lang === 'ID' ? 'Gagal memproses gambar.' : 'Failed to process image.')
+      if (event.target?.result) img.src = event.target.result as string
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   const handleAddHazard = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newLoc.trim() || !newDesc.trim()) return
 
+    const nowTime = new Date().toTimeString().slice(0, 5)
     const newItem: HazardItem = {
       id: `HZD-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-      date: todayDate,
-      location: newLoc,
-      description: newDesc,
+      date: todayDate || new Date().toISOString().split('T')[0],
+      time: nowTime,
+      category: newCategory,
+      location: newLoc.trim(),
+      description: newDesc.trim(),
       riskLevel: newRisk,
-      suggestedAction: newAction || 'Menunggu peninjauan tim HSE',
-      reporter: newReporter || 'Anonim',
+      suggestedAction: newAction.trim() || (lang === 'ID' ? 'Menunggu peninjauan tim HSE' : 'Pending HSE review'),
+      hseNotes: '',
+      reporter: newReporter.trim() || 'Anonim',
+      photoDataUrl: newPhoto || undefined,
       status: 'OPEN'
     }
 
-    setHazards([newItem, ...hazards])
-    setNewLoc(''); setNewDesc(''); setNewAction(''); setNewReporter(''); setNewRisk('MEDIUM')
+    saveHazards([newItem, ...hazards])
+    setNewLoc('')
+    setNewDesc('')
+    setNewAction('')
+    setNewReporter('')
+    setNewRisk('MEDIUM')
+    setNewCategory('UNSAFE_CONDITION')
+    setNewPhoto(null)
   }
 
   const handleDelete = (id: string) => {
-    setHazards(hazards.filter(h => h.id !== id))
+    saveHazards(hazards.filter(h => h.id !== id))
   }
 
-  const handleToggleStatus = (id: string) => {
-    setHazards(hazards.map(h => {
-      if (h.id === id) {
-        return { ...h, status: h.status === 'OPEN' ? 'CLOSED' : 'OPEN' }
-      }
-      return h
-    }))
+  const handleChangeStatus = (id: string, newStatus: Status) => {
+    saveHazards(hazards.map(h => (h.id === id ? { ...h, status: newStatus } : h)))
+  }
+
+  const startEditNote = (item: HazardItem) => {
+    setEditingNoteId(item.id)
+    setNoteDraft(item.hseNotes || '')
+  }
+
+  const saveHseNote = (id: string) => {
+    saveHazards(hazards.map(h => (h.id === id ? { ...h, hseNotes: noteDraft.trim() } : h)))
+    setEditingNoteId(null)
   }
 
   const dict = {
     ID: {
       breadcrumb: "Keselamatan Lapangan",
-      title: "Hazard Report Log",
-      subtitle: "Sistem pelaporan kondisi tidak aman (Unsafe Condition) dan tindakan tidak aman (Unsafe Act).",
+      title: "Hazard & Near-Miss Report",
+      subtitle: "Sistem pelaporan lapangan terintegrasi dengan Dasbor KPI & pelacakan CAPA HSE.",
       btn_print: "Cetak Log Pelaporan",
       
-      p1_title: "1. Formulir Pelaporan Bahaya Baru",
+      p1_title: "1. Formulir Pelaporan Temuan Baru (QR Field Input)",
+      p1_cat: "Kategori Temuan",
+      cat_uc: "HAZARD: Unsafe Condition (Kondisi Tidak Aman)",
+      cat_ua: "HAZARD: Unsafe Act (Tindakan Tidak Aman)",
+      cat_nm: "NEAR-MISS (Hampir Celaka)",
       p1_loc: "Lokasi Penemuan",
+      p1_loc_ph: "Contoh: Warehouse B / Area Mesin Press",
       p1_risk: "Tingkat Keparahan",
+      p1_reporter: "Nama Pelapor / Dept",
+      p1_reporter_ph: "Nama Anda (Opsional)",
+      p1_photo: "Bukti Foto Lokasi (Kamera / Galeri)",
+      btn_capture: "Ambil Foto / Upload Bukti",
+      btn_retake: "Ganti Foto",
+      btn_remove_photo: "Hapus",
       p1_desc: "Deskripsi Temuan Lapangan",
-      p1_action: "Saran Tindakan Perbaikan (CAPA)",
-      p1_reporter: "Nama Pelapor",
-      btn_add: "Submit Laporan Bahaya",
+      p1_desc_ph: "Jelaskan kondisi atau kejadian secara singkat...",
+      p1_action: "Saran Tindakan Perbaikan Awal",
+      p1_action_ph: "Tindakan pengamanan awal di lokasi...",
+      btn_add: "Kirim Laporan & Sinkron ke Dasbor",
       
-      p2_title: "2. Register Pelaporan Bahaya (Hazard Log)",
-      th_id: "ID / Tanggal",
-      th_loc_desc: "Lokasi & Deskripsi Bahaya",
+      p2_title: "2. Register & Kontrol Tindak Lanjut HSE (CAPA Tracker)",
+      th_id: "ID / Waktu",
+      th_cat: "Kategori",
+      th_photo: "Foto",
+      th_loc_desc: "Lokasi & Deskripsi Temuan",
       th_risk: "Risiko",
-      th_action: "Tindakan Perbaikan (CAPA)",
-      th_status: "Status",
+      th_action: "Rencana & Progres Tindak Lanjut HSE",
+      th_status: "Status CAPA",
       th_reporter: "Pelapor",
-      th_manage: "Kelola",
+      th_manage: "Aksi",
       
-      btn_close: "Tutup",
-      btn_open: "Buka",
       btn_delete: "Hapus",
+      no_photo: "TANPA FOTO",
+      view_photo: "LIHAT",
+      add_note: "+ Catatan Progres HSE",
+      save_note: "Simpan Catatan",
 
-      print_doc_type: "DOKUMEN RESMI REGISTER PELAPORAN BAHAYA • SYSPEX HSE",
+      print_doc_type: "DOKUMEN RESMI REGISTER PELAPORAN BAHAYA & NEAR-MISS • SYSPEX HSE",
       print_reg: "Nomor Registrasi:",
       sign_hse: "Ditinjau & Disetujui (HSE Officer):",
       sign_mgr: "Mengetahui (Plant Manager):"
     },
     EN: {
       breadcrumb: "Field Safety",
-      title: "Hazard Report Log",
-      subtitle: "Reporting system for Unsafe Conditions and Unsafe Acts in the operational area.",
+      title: "Hazard & Near-Miss Report",
+      subtitle: "Field reporting system live-synced with Executive KPI Dashboard & HSE CAPA tracking.",
       btn_print: "Print Hazard Log",
       
-      p1_title: "1. New Hazard Report Form",
+      p1_title: "1. New Field Finding Form (QR Field Input)",
+      p1_cat: "Finding Category",
+      cat_uc: "HAZARD: Unsafe Condition",
+      cat_ua: "HAZARD: Unsafe Act",
+      cat_nm: "NEAR-MISS (Close Call)",
       p1_loc: "Discovery Location",
+      p1_loc_ph: "e.g. Warehouse B / Press Machine Area",
       p1_risk: "Severity Level",
+      p1_reporter: "Reporter Name / Dept",
+      p1_reporter_ph: "Your Name (Optional)",
+      p1_photo: "Location Photo Evidence (Camera / Gallery)",
+      btn_capture: "Capture Photo / Upload",
+      btn_retake: "Change Photo",
+      btn_remove_photo: "Remove",
       p1_desc: "Field Finding Description",
-      p1_action: "Suggested Corrective Action (CAPA)",
-      p1_reporter: "Reporter Name",
-      btn_add: "Submit Hazard Report",
+      p1_desc_ph: "Briefly describe the hazard or near-miss...",
+      p1_action: "Initial Containment / Suggested CAPA",
+      p1_action_ph: "Immediate containment or corrective action...",
+      btn_add: "Submit & Sync to Dashboard",
       
-      p2_title: "2. Hazard Reporting Register",
-      th_id: "ID / Date",
+      p2_title: "2. Hazard Register & HSE Follow-Up Control",
+      th_id: "ID / Time",
+      th_cat: "Category",
+      th_photo: "Photo",
       th_loc_desc: "Location & Description",
       th_risk: "Risk",
-      th_action: "Corrective Action (CAPA)",
-      th_status: "Status",
+      th_action: "CAPA & HSE Follow-Up Notes",
+      th_status: "CAPA Status",
       th_reporter: "Reporter",
-      th_manage: "Manage",
+      th_manage: "Action",
       
-      btn_close: "Close",
-      btn_open: "Open",
       btn_delete: "Del",
+      no_photo: "NO PHOTO",
+      view_photo: "VIEW",
+      add_note: "+ HSE Follow-Up Note",
+      save_note: "Save Note",
 
-      print_doc_type: "OFFICIAL HAZARD REPORT REGISTER DOCUMENT • SYSPEX HSE",
+      print_doc_type: "OFFICIAL HAZARD & NEAR-MISS REGISTER DOCUMENT • SYSPEX HSE",
       print_reg: "Registration No:",
       sign_hse: "Reviewed & Approved (HSE Officer):",
       sign_mgr: "Acknowledged By (Plant Manager):"
@@ -156,6 +283,33 @@ export default function HazardReportPage() {
   }
 
   const t = dict[lang]
+  if (!mounted) return null
+
+  const openCount = hazards.filter(h => h.status === 'OPEN').length
+  const progressCount = hazards.filter(h => h.status === 'ON_PROGRESS').length
+  const closedCount = hazards.filter(h => h.status === 'CLOSED').length
+  const closureRate = hazards.length > 0 ? Math.round((closedCount / hazards.length) * 100) : 100
+
+  const displayedHazards = statusFilter === 'ALL' ? hazards : hazards.filter(h => h.status === statusFilter)
+
+  const getCategoryBadge = (cat: ReportCategory) => {
+    if (cat === 'NEAR_MISS') {
+      return {
+        label: 'NEAR-MISS',
+        cls: 'bg-cyan-100 text-cyan-900 border-cyan-300 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800'
+      }
+    }
+    if (cat === 'UNSAFE_ACT') {
+      return {
+        label: 'UNSAFE ACT',
+        cls: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800'
+      }
+    }
+    return {
+      label: 'UNSAFE COND.',
+      cls: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+    }
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
@@ -169,13 +323,19 @@ export default function HazardReportPage() {
         </div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{t.title}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{t.title}</h1>
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 bg-teal-100 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-800 rounded-[2px] text-[8px] font-black text-teal-800 dark:text-teal-400 tracking-widest">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span> LIVE SYNC TO KPI
+              </span>
+            </div>
             <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest leading-relaxed max-w-2xl">{t.subtitle}</p>
           </div>
           <button
+            type="button"
             onClick={() => window.print()}
             disabled={hazards.length === 0}
-            className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm disabled:opacity-50 shrink-0"
+            className="px-6 py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm disabled:opacity-50 shrink-0 min-h-[44px]"
           >
             {t.btn_print}
           </button>
@@ -186,7 +346,7 @@ export default function HazardReportPage() {
       <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-black text-black uppercase tracking-tight">Hazard Report Register</h1>
+            <h1 className="text-3xl font-black text-black uppercase tracking-tight">Hazard & Near-Miss Register</h1>
             <p className="text-[10px] text-black font-black uppercase tracking-widest mt-1">{t.print_doc_type}</p>
           </div>
           <div className="text-right border-2 border-black p-2">
@@ -196,116 +356,287 @@ export default function HazardReportPage() {
         </div>
       </div>
 
-      {/* 1. FORMULIR INPUT BAHAYA (HIDE ON PRINT) */}
-      <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[4px] p-6 space-y-4 print:hidden transition-colors">
+      {/* RINGKASAN STATUS CAPA (LANGSUNG TERIKAT KE KPI) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:hidden">
+        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-rose-200 dark:border-rose-900/60 rounded-[4px]">
+          <span className="block text-[8px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">OPEN (BUTUH TINDAKAN)</span>
+          <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1 block">{openCount}</span>
+        </div>
+        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-amber-200 dark:border-amber-900/60 rounded-[4px]">
+          <span className="block text-[8px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">ON PROGRESS (DITANGANI)</span>
+          <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1 block">{progressCount}</span>
+        </div>
+        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-emerald-200 dark:border-emerald-900/60 rounded-[4px]">
+          <span className="block text-[8px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">CLOSED (SELESAI)</span>
+          <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1 block">{closedCount}</span>
+        </div>
+        <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 rounded-[4px]">
+          <span className="block text-[8px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">CAPA CLOSURE RATE</span>
+          <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1 block">{closureRate}%</span>
+        </div>
+      </div>
+
+      {/* 1. FORMULIR INPUT BAHAYA & NEAR-MISS */}
+      <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[4px] p-5 sm:p-6 space-y-4 print:hidden transition-colors">
         <h2 className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2">
           {t.p1_title}
         </h2>
         <form onSubmit={handleAddHazard} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-1">
-            <label htmlFor={`${formId}-loc`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t.p1_loc}</label>
-            <input id={`${formId}-loc`} type="text" value={newLoc} onChange={(e) => setNewLoc(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+          <div className="md:col-span-2">
+            <label htmlFor={`${formId}-cat`} className="block text-[9px] font-black text-teal-700 dark:text-teal-400 uppercase tracking-widest mb-1.5">{t.p1_cat} *</label>
+            <select
+              id={`${formId}-cat`}
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value as ReportCategory)}
+              className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 rounded-[4px] text-xs font-black text-slate-900 dark:text-white focus:outline-none focus:border-teal-500"
+            >
+              <option value="UNSAFE_CONDITION">{t.cat_uc}</option>
+              <option value="UNSAFE_ACT">{t.cat_ua}</option>
+              <option value="NEAR_MISS">{t.cat_nm}</option>
+            </select>
           </div>
+
           <div className="md:col-span-1">
-            <label htmlFor={`${formId}-risk`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t.p1_risk}</label>
-            <select id={`${formId}-risk`} value={newRisk} onChange={(e) => setNewRisk(e.target.value as RiskLevel)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500">
+            <label htmlFor={`${formId}-risk`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_risk}</label>
+            <select id={`${formId}-risk`} value={newRisk} onChange={(e) => setNewRisk(e.target.value as RiskLevel)} className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500">
               <option value="LOW">LOW</option>
               <option value="MEDIUM">MEDIUM</option>
               <option value="HIGH">HIGH</option>
               <option value="CRITICAL">CRITICAL</option>
             </select>
           </div>
+
+          <div className="md:col-span-1">
+            <label htmlFor={`${formId}-reporter`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_reporter}</label>
+            <input id={`${formId}-reporter`} type="text" placeholder={t.p1_reporter_ph} value={newReporter} onChange={(e) => setNewReporter(e.target.value)} className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+          </div>
+
           <div className="md:col-span-2">
-            <label htmlFor={`${formId}-reporter`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t.p1_reporter}</label>
-            <input id={`${formId}-reporter`} type="text" value={newReporter} onChange={(e) => setNewReporter(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+            <label htmlFor={`${formId}-loc`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_loc} *</label>
+            <input id={`${formId}-loc`} type="text" required placeholder={t.p1_loc_ph} value={newLoc} onChange={(e) => setNewLoc(e.target.value)} className="w-full px-3 py-2.5 min-h-[44px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500" />
+          </div>
+
+          <div className="md:col-span-2">
+            <span className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_photo}</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handlePhotoCapture}
+              className="hidden"
+              aria-label={t.p1_photo}
+            />
+            {!newPhoto ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full min-h-[44px] px-4 py-2 bg-white dark:bg-slate-950 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-600 dark:hover:border-teal-500 rounded-[4px] text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-colors"
+              >
+                <svg aria-hidden="true" className="w-4 h-4 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {t.btn_capture}
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 p-2 bg-white dark:bg-slate-950 border border-teal-600/60 rounded-[4px]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={newPhoto} alt="Preview temuan lapangan" width={56} height={44} className="w-14 h-11 object-cover rounded-[2px] border border-slate-300 dark:border-slate-700 shrink-0" />
+                <div className="flex-1 flex gap-2">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 min-h-[36px] bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[9px] font-black uppercase tracking-widest rounded-[2px]">
+                    {t.btn_retake}
+                  </button>
+                  <button type="button" onClick={() => setNewPhoto(null)} className="px-3 py-2 min-h-[36px] border border-rose-300 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-widest rounded-[2px]">
+                    {t.btn_remove_photo}
+                  </button>
+                </div>
+              </div>
+            )}
+            {photoError && <p className="text-[9px] font-black text-rose-600 mt-1">{photoError}</p>}
           </div>
           
           <div className="md:col-span-2">
-            <label htmlFor={`${formId}-desc`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t.p1_desc}</label>
-            <textarea id={`${formId}-desc`} rows={2} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 resize-none" />
+            <label htmlFor={`${formId}-desc`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_desc} *</label>
+            <textarea id={`${formId}-desc`} required rows={2} placeholder={t.p1_desc_ph} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 resize-none" />
           </div>
           <div className="md:col-span-2">
-            <label htmlFor={`${formId}-action`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t.p1_action}</label>
-            <textarea id={`${formId}-action`} rows={2} value={newAction} onChange={(e) => setNewAction(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 resize-none" />
+            <label htmlFor={`${formId}-action`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">{t.p1_action}</label>
+            <textarea id={`${formId}-action`} rows={2} placeholder={t.p1_action_ph} value={newAction} onChange={(e) => setNewAction(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 resize-none" />
           </div>
           
           <div className="md:col-span-4 flex justify-end">
-            <button type="submit" disabled={!newLoc.trim() || !newDesc.trim()} className="px-8 py-2.5 bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors">
+            <button type="submit" disabled={!newLoc.trim() || !newDesc.trim()} className="w-full sm:w-auto px-8 py-3 min-h-[44px] bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors">
               {t.btn_add}
             </button>
           </div>
         </form>
       </div>
 
-      {/* 2. TABEL REGISTER BAHAYA */}
-      <div className="bg-white dark:bg-[#0b0f19] rounded-[4px] p-6 border border-slate-200 dark:border-slate-800 print:border-none print:p-0 space-y-4 transition-colors">
-        <div className="flex justify-between items-end border-b border-slate-200 dark:border-slate-800 pb-2 print:border-black">
+      {/* 2. TABEL REGISTER BAHAYA & KONTROL HSE */}
+      <div className="bg-white dark:bg-[#0b0f19] rounded-[4px] p-5 sm:p-6 border border-slate-200 dark:border-slate-800 print:border-none print:p-0 space-y-4 transition-colors">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3 print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
             {t.p2_title}
           </h2>
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest print:hidden">
-            TOTAL: {hazards.length} RECORD
-          </span>
+          
+          {/* FILTER STATUS UNTUK HSE */}
+          <div className="flex flex-wrap gap-1.5 print:hidden">
+            {(['ALL', 'OPEN', 'ON_PROGRESS', 'CLOSED'] as const).map(st => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setStatusFilter(st)}
+                className={`px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-[2px] border transition-colors ${
+                  statusFilter === st
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100'
+                    : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800 hover:border-slate-400'
+                }`}
+              >
+                {st.replace('_', ' ')}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="overflow-x-auto border-2 border-slate-200 dark:border-slate-800 print:border-black rounded-[4px] print:rounded-none">
-          <table className="w-full text-left text-xs min-w-[800px] print:min-w-0">
+          <table className="w-full text-left text-xs min-w-[980px] print:min-w-0">
             <thead className="bg-slate-100 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 print:bg-white print:border-black print:text-black transition-colors">
               <tr>
                 <th className="py-3 px-3 w-28">{t.th_id}</th>
-                <th className="py-3 px-3 w-1/3 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_loc_desc}</th>
-                <th className="py-3 px-3 w-24 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_risk}</th>
-                <th className="py-3 px-3 w-1/4 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_action}</th>
-                <th className="py-3 px-3 w-20 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_status}</th>
+                <th className="py-3 px-3 w-28 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_cat}</th>
+                <th className="py-3 px-3 w-20 text-center border-l-2 border-slate-200 dark:border-slate-800 print:hidden">{t.th_photo}</th>
+                <th className="py-3 px-3 w-1/4 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_loc_desc}</th>
+                <th className="py-3 px-3 w-20 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_risk}</th>
+                <th className="py-3 px-3 w-1/3 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_action}</th>
+                <th className="py-3 px-3 w-36 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_status}</th>
                 <th className="py-3 px-3 w-24 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_reporter}</th>
-                <th className="py-3 px-3 text-center w-24 border-l-2 border-slate-200 dark:border-slate-800 print:hidden">{t.th_manage}</th>
+                <th className="py-3 px-3 text-center w-16 border-l-2 border-slate-200 dark:border-slate-800 print:hidden">{t.th_manage}</th>
               </tr>
             </thead>
             <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800/50 text-slate-900 dark:text-slate-100 print:divide-black transition-colors">
-              {hazards.map((hz) => (
-                <tr key={hz.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 print:hover:bg-white">
-                  <td className="py-3 px-3 font-mono text-[9px] font-black text-slate-500 dark:text-slate-400 print:text-black">
-                    {hz.id} <br/> <span className="font-bold">{hz.date}</span>
-                  </td>
-                  <td className="py-3 px-3 leading-relaxed border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black print:text-[10px]">
-                    <p className="font-black text-slate-900 dark:text-white print:text-black uppercase">{hz.location}</p>
-                    <p className="text-[10px] font-medium text-slate-700 dark:text-slate-300 print:text-black mt-1">{hz.description}</p>
-                  </td>
-                  <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
-                    <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-widest inline-block print:border print:border-black print:bg-transparent print:text-black ${
-                      hz.riskLevel === 'CRITICAL' ? 'bg-rose-900 text-rose-100' :
-                      hz.riskLevel === 'HIGH' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-400 dark:border dark:border-rose-900' :
-                      hz.riskLevel === 'MEDIUM' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 dark:border dark:border-amber-900' :
-                      'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border dark:border-emerald-900'
-                    }`}>
-                      {hz.riskLevel}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 font-medium text-[10px] leading-relaxed border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
-                    {hz.suggestedAction}
-                  </td>
-                  <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
-                    <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-widest inline-block border print:bg-transparent print:border-black print:text-black ${
-                      hz.status === 'OPEN' ? 'bg-white dark:bg-slate-950 border-amber-500 text-amber-600 dark:text-amber-500' : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'
-                    }`}>
-                      {hz.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 font-bold text-[9px] uppercase border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
-                    {hz.reporter}
-                  </td>
-                  <td className="py-3 px-3 border-l-2 border-slate-100 dark:border-slate-800/50 print:hidden space-y-2">
-                    <button aria-label={`Toggle status for ${hz.id}`} onClick={() => handleToggleStatus(hz.id)} className={`block w-full text-center font-black px-1.5 py-1 text-[8px] uppercase tracking-widest border rounded-[2px] transition-colors ${
-                      hz.status === 'OPEN' ? 'text-emerald-600 dark:text-emerald-500 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30' : 'text-amber-600 dark:text-amber-500 border-amber-200 dark:border-amber-800/60 hover:bg-amber-50 dark:hover:bg-amber-950/30'
-                    }`}>
-                      {hz.status === 'OPEN' ? t.btn_close : t.btn_open}
-                    </button>
-                    <button aria-label={`Delete ${hz.id}`} onClick={() => handleDelete(hz.id)} className="block w-full text-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-black px-1.5 py-1 text-[8px] uppercase tracking-widest border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/60 rounded-[2px] transition-colors">
-                      {t.btn_delete}
-                    </button>
+              {displayedHazards.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-8 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    NO HAZARD RECORDS MATCHING THIS STATUS
                   </td>
                 </tr>
-              ))}
+              ) : (
+                displayedHazards.map((hz) => {
+                  const catBadge = getCategoryBadge(hz.category)
+                  return (
+                    <tr key={hz.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 print:hover:bg-white align-top">
+                      <td className="py-3 px-3 font-mono text-[9px] font-black text-slate-500 dark:text-slate-400 print:text-black">
+                        {hz.id} <br/> <span className="font-bold">{hz.date} {hz.time}</span>
+                      </td>
+                      <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
+                        <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-widest inline-block border print:border-black print:bg-transparent print:text-black ${catBadge.cls}`}>
+                          {catBadge.label}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:hidden">
+                        {hz.photoDataUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewPhotoModal(hz.photoDataUrl!)}
+                            aria-label={`Lihat foto bukti ${hz.id}`}
+                            className="group relative inline-block border border-slate-300 dark:border-slate-700 rounded-[2px] overflow-hidden"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={hz.photoDataUrl} alt={`Bukti ${hz.location}`} width={48} height={36} className="w-12 h-9 object-cover" />
+                            <span className="block bg-slate-900/80 text-white text-[7px] font-black tracking-widest py-0.5">{t.view_photo}</span>
+                          </button>
+                        ) : (
+                          <span className="text-[8px] font-black text-slate-400 tracking-widest">{t.no_photo}</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 leading-relaxed border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black print:text-[10px]">
+                        <p className="font-black text-slate-900 dark:text-white print:text-black uppercase">{hz.location}</p>
+                        <p className="text-[10px] font-medium text-slate-700 dark:text-slate-300 print:text-black mt-1">{hz.description}</p>
+                      </td>
+                      <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
+                        <span className={`px-2 py-1 rounded-[2px] text-[8px] font-black uppercase tracking-widest inline-block print:border print:border-black print:bg-transparent print:text-black ${
+                          hz.riskLevel === 'CRITICAL' ? 'bg-rose-900 text-rose-100' :
+                          hz.riskLevel === 'HIGH' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-400 dark:border dark:border-rose-900' :
+                          hz.riskLevel === 'MEDIUM' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 dark:border dark:border-amber-900' :
+                          'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border dark:border-emerald-900'
+                        }`}>
+                          {hz.riskLevel}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 font-medium text-[10px] leading-relaxed border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black space-y-2">
+                        <p>{hz.suggestedAction}</p>
+                        
+                        {/* CATATAN TINDAK LANJUT HSE */}
+                        {editingNoteId === hz.id ? (
+                          <div className="pt-1 space-y-1.5 print:hidden">
+                            <input
+                              type="text"
+                              autoFocus
+                              value={noteDraft}
+                              onChange={e => setNoteDraft(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && saveHseNote(hz.id)}
+                              placeholder="Tulis progres penanganan / PIC..."
+                              className="w-full px-2 py-1 text-[10px] font-bold bg-white dark:bg-slate-950 border border-teal-500 rounded-[2px]"
+                            />
+                            <div className="flex gap-1.5">
+                              <button type="button" onClick={() => saveHseNote(hz.id)} className="px-2 py-1 bg-teal-700 text-white text-[8px] font-black uppercase tracking-widest rounded-[2px]">{t.save_note}</button>
+                              <button type="button" onClick={() => setEditingNoteId(null)} className="px-2 py-1 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[8px] font-black uppercase tracking-widest rounded-[2px]">Batal</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                            {hz.hseNotes && (
+                              <p className="text-[9px] font-bold text-teal-700 dark:text-teal-400">
+                                HSE LOG: {hz.hseNotes}
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => startEditNote(hz)}
+                              className="mt-1 text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 print:hidden"
+                            >
+                              {hz.hseNotes ? 'Edit Catatan HSE' : t.add_note}
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* DROPDOWN UBAH STATUS LANGSUNG (OPEN / ON PROGRESS / CLOSED) */}
+                      <td className="py-3 px-3 text-center border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
+                        <select
+                          aria-label={`Ubah status CAPA untuk ${hz.id}`}
+                          value={hz.status}
+                          onChange={(e) => handleChangeStatus(hz.id, e.target.value as Status)}
+                          className={`print:hidden w-full px-2 py-1.5 rounded-[2px] text-[8px] font-black uppercase tracking-widest border focus:outline-none ${
+                            hz.status === 'OPEN'
+                              ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-400 text-rose-700 dark:text-rose-400'
+                              : hz.status === 'ON_PROGRESS'
+                              ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 text-amber-700 dark:text-amber-400'
+                              : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 text-emerald-700 dark:text-emerald-400'
+                          }`}
+                        >
+                          <option value="OPEN">OPEN</option>
+                          <option value="ON_PROGRESS">ON PROGRESS</option>
+                          <option value="CLOSED">CLOSED</option>
+                        </select>
+                        <span className="hidden print:inline-block px-2 py-1 border border-black text-[8px] font-black uppercase">
+                          {hz.status.replace('_', ' ')}
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-3 font-bold text-[9px] uppercase border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
+                        {hz.reporter}
+                      </td>
+                      <td className="py-3 px-3 border-l-2 border-slate-100 dark:border-slate-800/50 print:hidden text-center">
+                        <button type="button" aria-label={`Delete ${hz.id}`} onClick={() => handleDelete(hz.id)} className="w-full text-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-black px-1.5 py-1.5 text-[8px] uppercase tracking-widest border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/60 rounded-[2px] transition-colors">
+                          {t.btn_delete}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -323,8 +654,22 @@ export default function HazardReportPage() {
             <p className="text-[10px] font-black mt-2 uppercase">Plant Manager</p>
           </div>
         </div>
-
       </div>
+
+      {/* MODAL LIGHTBOX FOTO BUKTI */}
+      {previewPhotoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 print:hidden" onClick={() => setPreviewPhotoModal(null)}>
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-700 p-3 rounded-[4px] max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">BUKTI FOTO LAPANGAN</span>
+              <button type="button" onClick={() => setPreviewPhotoModal(null)} aria-label="Tutup foto" className="text-xs font-black text-slate-400 hover:text-rose-500 px-2 py-1">[X]</button>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewPhotoModal} alt="Bukti foto temuan" className="w-full max-h-[75vh] object-contain rounded-[2px]" />
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
