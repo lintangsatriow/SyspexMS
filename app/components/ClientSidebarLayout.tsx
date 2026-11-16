@@ -1,7 +1,7 @@
 "use client"
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLanguage } from '../LanguageContext'
 import { useTheme } from '../ThemeContext'
 import LogoutButton from './LogoutButton'
@@ -12,12 +12,29 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
   
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isQrMode, setIsQrMode] = useState(false)
   
   const [mgmtOpen, setMgmtOpen] = useState(true)
   const [techOpen, setTechOpen] = useState(false)
   const [opsOpen, setOpsOpen] = useState(true)
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      setIsQrMode(params.get('mode') === 'qr')
+    }
+  }, [])
+
   const closeMobile = () => setMobileOpen(false)
+
+  // MODE QR PUBLIK: Tanpa sidebar & tanpa menu navigasi admin agar fokus murni ke form pelaporan
+  if (isQrMode) {
+    return (
+      <main className="w-full min-h-screen px-4 py-6 bg-slate-50 dark:bg-[#020617]">
+        {children}
+      </main>
+    )
+  }
 
   const dict = {
     EN: {
@@ -180,7 +197,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
         </>
       )}
 
-      {/* MAIN VIEWPORT: min-w-0 w-full mencegah terpotong saat sidebar terbuka & meregang penuh saat ditutup */}
+      {/* MAIN VIEWPORT */}
       <main className={`flex-1 min-w-0 w-full min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pt-20 lg:pt-8 transition-all duration-300 bg-white dark:bg-[#020617] ${!sidebarOpen ? 'lg:pl-14' : ''}`}>
         <div className="w-full max-w-7xl mx-auto">
           {children}
