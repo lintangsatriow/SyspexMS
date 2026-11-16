@@ -34,7 +34,7 @@ export default function LoginPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 bg-teal-500 animate-pulse"></div>
-            <h1 className="text-xs font-black uppercase tracking-widest text-teal-500">SYSPEX.MS</h1>
+            <h1 className="text-xs font-black uppercase tracking-widest text-teal-500">SYSPEX MANAGEMENT SYSTEM</h1>
           </div>
           <h2 className="text-2xl font-black text-white uppercase tracking-tight">System Access</h2>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Authorized Personnel Only</p>
