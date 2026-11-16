@@ -37,7 +37,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
   const t = dict[lang as keyof typeof dict] || dict.EN
 
   return (
-    <>
+    <div className="flex h-screen overflow-hidden">
       {/* FLOATING TRIGGER BUTTON (Desktop) */}
       {!sidebarOpen && (
         <button
@@ -177,6 +177,12 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
           </div>
         </>
       )}
-    </>
+
+      {/* KEMBALIKAN MAIN VIEWPORT DI SINI AGAR DASHBOARD BISA MUNCUL */}
+      <main className="flex-1 min-h-screen flex flex-col justify-start px-4 sm:px-8 py-6 lg:py-8 pt-20 lg:pt-8 overflow-y-auto bg-white dark:bg-[#020617] relative z-0">
+        {children}
+      </main>
+
+    </div>
   )
 }
