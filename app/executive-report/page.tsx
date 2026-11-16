@@ -32,6 +32,11 @@ interface LiveHazardSummary {
   status: 'OPEN' | 'ON_PROGRESS' | 'CLOSED'
 }
 
+interface LiveSioSummary {
+  id: string
+  expiryDate: string
+}
+
 type PeriodFilter = 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
 type YearFilter = number | 'ALL'
 type InfoModalType = 'HOURS' | 'AVG_PERSONNEL' | 'DAILY_INTENSITY' | 'TRIR' | null
@@ -262,6 +267,7 @@ export default function KpiDashboardPage() {
 
   const [records, setRecords] = useState<HseRecord[]>([])
   const [liveHazards, setLiveHazards] = useState<LiveHazardSummary[]>([])
+  const [liveSioRecords, setLiveSioRecords] = useState<LiveSioSummary[]>([])
   const [targets, setTargets] = useState<TargetConfig>(DEFAULT_TARGETS)
   const [showTargetConfig, setShowTargetConfig] = useState(false)
   const [importStatus, setImportStatus] = useState<{ type: 'SUCCESS' | 'ERROR'; text: string } | null>(null)
@@ -299,16 +305,20 @@ export default function KpiDashboardPage() {
     const savedTargets = localStorage.getItem('syspex_hse_targets')
     if (savedTargets) setTargets({ ...DEFAULT_TARGETS, ...JSON.parse(savedTargets) })
 
-    // Live Sync dengan Modul Hazard & Near-Miss Report
-    const syncHazards = () => {
+    // Live Sync dengan Modul Hazard Report & SIO/SILO Tracker
+    const syncOperationalModules = () => {
       const savedHazards = localStorage.getItem('syspex_hazard_db')
       if (savedHazards) {
         setLiveHazards(JSON.parse(savedHazards))
       }
+      const savedSio = localStorage.getItem('syspex_sio_db')
+      if (savedSio) {
+        setLiveSioRecords(JSON.parse(savedSio))
+      }
     }
-    syncHazards()
-    window.addEventListener('storage', syncHazards)
-    window.addEventListener('syspex_hse_sync', syncHazards)
+    syncOperationalModules()
+    window.addEventListener('storage', syncOperationalModules)
+    window.addEventListener('syspex_hse_sync', syncOperationalModules)
 
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -320,8 +330,8 @@ export default function KpiDashboardPage() {
     window.addEventListener('keydown', handleEsc)
 
     return () => {
-      window.removeEventListener('storage', syncHazards)
-      window.removeEventListener('syspex_hse_sync', syncHazards)
+      window.removeEventListener('storage', syncOperationalModules)
+      window.removeEventListener('syspex_hse_sync', syncOperationalModules)
       window.removeEventListener('keydown', handleEsc)
     }
   }, [])
@@ -527,9 +537,18 @@ export default function KpiDashboardPage() {
     }
   }, [processedRecords, selectedYear, selectedPeriod, targets, lang])
 
+  // Kalkulasi Live Leading Indicators (Hazard Report & SIO/SILO)
   const activeOpenHazards = liveHazards.filter(h => h.status === 'OPEN' || h.status === 'ON_PROGRESS').length
   const closedHazardsCount = liveHazards.filter(h => h.status === 'CLOSED').length
   const liveCapaRate = liveHazards.length > 0 ? Math.round((closedHazardsCount / liveHazards.length) * 100) : 100
+
+  const validSioCount = liveSioRecords.filter(s => {
+    const exp = new Date(s.expiryDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return !isNaN(exp.getTime()) && exp.getTime() >= today.getTime()
+  }).length
+  const liveSioValidity = liveSioRecords.length > 0 ? Math.round((validSioCount / liveSioRecords.length) * 100) : 100
 
   const tableYearRecords = useMemo(() => records.filter(r => r.year === tableYearTab && (selectedDeptFilter === 'ALL' || r.department === selectedDeptFilter)).sort((a, b) => a.month - b.month), [records, tableYearTab, selectedDeptFilter])
   const periodLabel = selectedYear === 'ALL' ? `2024 – ${Math.max(...availableYears)}` : `${selectedPeriod} ${selectedYear}`
@@ -564,7 +583,6 @@ export default function KpiDashboardPage() {
               {t.btn_target}
             </button>
 
-            {/* FILTER DEPARTEMEN */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-900 px-2 py-1.5 border border-slate-300 dark:border-slate-700 rounded-[4px]">
               <label htmlFor={`${formId}-fdept`} className="text-[9px] font-black uppercase text-slate-500 mr-2">Dept:</label>
               <select id={`${formId}-fdept`} value={selectedDeptFilter} onChange={e => setSelectedDeptFilter(e.target.value)} className="bg-transparent text-[10px] font-black text-teal-700 dark:text-teal-400 focus:outline-none">
@@ -691,7 +709,7 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* LEADING INDICATORS (LIVE SYNC DARI MODUL HAZARD REPORT) */}
+      {/* LEADING INDICATORS (LIVE SYNC DARI MODUL HAZARD REPORT & SIO/SILO) */}
       <div className="mt-6">
         <div className="flex justify-between items-center border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-4 print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
@@ -703,29 +721,32 @@ export default function KpiDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4">
-          <div className={`p-5 rounded-[4px] border-2 print:border-black transition-colors ${activeOpenHazards > 0 ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
+          <Link href="/hazard-report" className={`p-5 rounded-[4px] border-2 print:border-black transition-colors block ${activeOpenHazards > 0 ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800 hover:border-amber-500' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800 hover:border-teal-600'}`}>
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Open & On-Progress Hazards</p>
             <div className="flex items-end gap-2">
               <span className={`text-3xl xl:text-4xl font-black font-mono ${activeOpenHazards > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>{activeOpenHazards}</span>
               <span className="text-[9px] font-bold text-slate-400 mb-1">ACTIVE CASES</span>
             </div>
-          </div>
+          </Link>
 
-          <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black">
+          <Link href="/hazard-report" className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 hover:border-teal-600 p-5 rounded-[4px] print:border-black transition-colors block">
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">CAPA Closure Rate</p>
             <div className="flex items-end gap-2">
               <span className="text-3xl xl:text-4xl font-black font-mono text-teal-600 dark:text-teal-400">{liveCapaRate}%</span>
               <span className="text-[9px] font-bold text-slate-400 mb-1">({closedHazardsCount}/{liveHazards.length} CLOSED)</span>
             </div>
-          </div>
+          </Link>
+
+          <Link href="/sio-silo" className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 hover:border-teal-600 p-5 rounded-[4px] print:border-black transition-colors block">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">SIO / SILO Validity</p>
+            <div className="flex items-end gap-2">
+              <span className={`text-3xl xl:text-4xl font-black font-mono ${liveSioValidity < 100 ? 'text-amber-600 dark:text-amber-400' : 'text-teal-600 dark:text-teal-400'}`}>{liveSioValidity}%</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1">({validSioCount}/{liveSioRecords.length} VALID)</span>
+            </div>
+          </Link>
 
           <div className="bg-slate-100 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] opacity-60 print:border-black">
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">TBM Compliance (Coming Soon)</p>
-            <span className="text-3xl font-black font-mono text-slate-400">-%</span>
-          </div>
-
-          <div className="bg-slate-100 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] opacity-60 print:border-black">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">SIO / SILO Validity (Coming Soon)</p>
             <span className="text-3xl font-black font-mono text-slate-400">-%</span>
           </div>
         </div>
