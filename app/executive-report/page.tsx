@@ -738,7 +738,7 @@ export default function KpiDashboardPage() {
           </Link>
 
           <Link href="/sio-silo" className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 hover:border-teal-600 p-5 rounded-[4px] print:border-black transition-colors block">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">SIO / SILO Validity</p>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">K3 Licenses & Riksa Uji</p>
             <div className="flex items-end gap-2">
               <span className={`text-3xl xl:text-4xl font-black font-mono ${liveSioValidity < 100 ? 'text-amber-600 dark:text-amber-400' : 'text-teal-600 dark:text-teal-400'}`}>{liveSioValidity}%</span>
               <span className="text-[9px] font-bold text-slate-400 mb-1">({validSioCount}/{liveSioRecords.length} VALID)</span>
