@@ -5,21 +5,49 @@ import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { useLanguage } from '../LanguageContext'
 
-type PermitType = 'SIO' | 'SILO'
+type PermitType = 'SIO' | 'SKP_AHLI' | 'BNSP' | 'SILO_SUKET' | 'RIKSA_UJI'
 type ComputedStatus = 'VALID' | 'EXPIRING_SOON' | 'EXPIRED'
 
-interface SioSiloRecord {
+interface K3ComplianceRecord {
   id: string
   permitType: PermitType
   certificateNo: string
   holderOrAssetName: string
   equipmentClass: string
   department: string
-  expiryDate: string
+  expiryDate: string // 'YYYY-MM-DD' atau 'LIFETIME'
   issuer: string
 }
 
-const INITIAL_RECORDS: SioSiloRecord[] = [
+const PERMIT_LABELS: Record<PermitType, { short: string; full: string; badgeCls: string }> = {
+  SIO: {
+    short: 'SIO',
+    full: 'SIO (Operator & Teknisi K3)',
+    badgeCls: 'bg-cyan-50 text-cyan-800 border-cyan-300 dark:bg-cyan-950/50 dark:text-cyan-300 dark:border-cyan-800'
+  },
+  SKP_AHLI: {
+    short: 'SKP / AHLI',
+    full: 'SKP & Sertifikat Ahli / Pengawas K3',
+    badgeCls: 'bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800'
+  },
+  BNSP: {
+    short: 'BNSP',
+    full: 'Sertifikat Kompetensi (BNSP)',
+    badgeCls: 'bg-teal-50 text-teal-800 border-teal-300 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800'
+  },
+  SILO_SUKET: {
+    short: 'SILO / SUKET',
+    full: 'SILO / Suket Layak K3 (Disnaker)',
+    badgeCls: 'bg-indigo-50 text-indigo-800 border-indigo-300 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800'
+  },
+  RIKSA_UJI: {
+    short: 'RIKSA UJI',
+    full: 'Laporan Hasil Riksa Uji (PJK3)',
+    badgeCls: 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
+  }
+}
+
+const INITIAL_RECORDS: K3ComplianceRecord[] = [
   {
     id: 'SIO-001',
     permitType: 'SIO',
@@ -32,7 +60,7 @@ const INITIAL_RECORDS: SioSiloRecord[] = [
   },
   {
     id: 'SILO-002',
-    permitType: 'SILO',
+    permitType: 'SILO_SUKET',
     certificateNo: '5/882/AS.02.01/XI/2025',
     holderOrAssetName: 'Forklift Counterbalance Toyota #01',
     equipmentClass: 'Pesawat Angkat & Angkut (3.5 Ton)',
@@ -42,43 +70,120 @@ const INITIAL_RECORDS: SioSiloRecord[] = [
   }
 ]
 
-const parseExcelExpiryDate = (rawVal: unknown): string | null => {
-  if (rawVal === null || rawVal === undefined || rawVal === '') return null
+const MONTH_MAP: Record<string, string> = {
+  jan: '01', january: '01', januari: '01',
+  feb: '02', february: '02', februari: '02',
+  mar: '03', march: '03', maret: '03',
+  apr: '04', april: '04',
+  may: '05', mei: '05',
+  jun: '06', june: '06', juni: '06',
+  jul: '07', july: '07', juli: '07',
+  aug: '08', august: '08', agu: '08', agustus: '08',
+  sep: '09', sept: '09', september: '09',
+  oct: '10', october: '10', okt: '10', oktober: '10',
+  nov: '11', november: '11',
+  dec: '12', december: '12', des: '12', desember: '12'
+}
 
-  if (typeof rawVal === 'number' && rawVal > 20000 && rawVal < 90000) {
+const normalizeYear = (rawYear: number): number => {
+  if (rawYear < 100) return 2000 + rawYear
+  if (rawYear >= 1930 && rawYear <= 1945) return rawYear + 100
+  return rawYear
+}
+
+const parseExcelExpiryDate = (rawVal: unknown): string => {
+  if (rawVal === null || rawVal === undefined || String(rawVal).trim() === '' || String(rawVal).trim() === '-') {
+    return 'LIFETIME'
+  }
+
+  if (typeof rawVal === 'number' && rawVal > 1000 && rawVal < 90000) {
     const parsed = XLSX.SSF.parse_date_code(rawVal)
     if (parsed && parsed.y && parsed.m && parsed.d) {
+      const yr = normalizeYear(parsed.y)
       const mm = String(parsed.m).padStart(2, '0')
       const dd = String(parsed.d).padStart(2, '0')
-      return `${parsed.y}-${mm}-${dd}`
+      return `${yr}-${mm}-${dd}`
     }
   }
 
   if (rawVal instanceof Date && !isNaN(rawVal.getTime())) {
-    return rawVal.toISOString().split('T')[0]
+    const yr = normalizeYear(rawVal.getFullYear())
+    const mm = String(rawVal.getMonth() + 1).padStart(2, '0')
+    const dd = String(rawVal.getDate()).padStart(2, '0')
+    return `${yr}-${mm}-${dd}`
   }
 
   const str = String(rawVal).trim()
+
   const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
   if (isoMatch) {
-    return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`
+    const yr = normalizeYear(Number(isoMatch[1]))
+    return `${yr}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`
   }
 
-  const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/)
+  const textMonthMatch = str.match(/^(\d{1,2})[-/\s]+([a-zA-Z]+)[-/\s]+(\d{2,4})/)
+  if (textMonthMatch) {
+    const dd = textMonthMatch[1].padStart(2, '0')
+    const monKey = textMonthMatch[2].toLowerCase()
+    const mm = MONTH_MAP[monKey]
+    const yr = normalizeYear(Number(textMonthMatch[3]))
+    if (mm) return `${yr}-${mm}-${dd}`
+  }
+
+  const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/)
   if (dmyMatch) {
-    return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, '0')}-${dmyMatch[1].padStart(2, '0')}`
+    const yr = normalizeYear(Number(dmyMatch[3]))
+    return `${yr}-${dmyMatch[2].padStart(2, '0')}-${dmyMatch[1].padStart(2, '0')}`
   }
 
-  return null
+  return 'LIFETIME'
+}
+
+// Klasifikasi otomatis 5 kategori K3 saat import Excel
+const detectPermitCategory = (rawType: string, eqClass: string, holderName: string, issuer: string): PermitType => {
+  const combined = `${rawType} ${eqClass} ${holderName} ${issuer}`.toLowerCase()
+
+  if (rawType.includes('RIKSA') || combined.includes('riksa uji') || combined.includes('pjk3') || combined.includes('pengujian')) {
+    return 'RIKSA_UJI'
+  }
+  if (rawType.includes('SILO') || rawType.includes('SUKET') || combined.includes('suket') || combined.includes('layak operasi')) {
+    return 'SILO_SUKET'
+  }
+  if (rawType.includes('BNSP') || combined.includes('bnsp') || combined.includes('welder') || combined.includes('p3k') || combined.includes('damkar')) {
+    return 'BNSP'
+  }
+  if (
+    rawType.includes('SKP') ||
+    rawType.includes('AHLI') ||
+    combined.includes('k3 umum') ||
+    combined.includes('supervisi') ||
+    combined.includes('pengawas') ||
+    combined.includes('tkbt') ||
+    combined.includes('k3 perancah')
+  ) {
+    return 'SKP_AHLI'
+  }
+  if (
+    holderName.toLowerCase().includes('unit ') ||
+    holderName.toLowerCase().includes('forklift #') ||
+    holderName.toLowerCase().includes('crane #')
+  ) {
+    return 'SILO_SUKET'
+  }
+  return 'SIO'
 }
 
 const getPermitStatus = (expiryDateStr: string): { status: ComputedStatus; daysLeft: number } => {
+  if (!expiryDateStr || expiryDateStr === 'LIFETIME') {
+    return { status: 'VALID', daysLeft: 9999 }
+  }
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const exp = new Date(expiryDateStr)
   exp.setHours(0, 0, 0, 0)
 
-  if (isNaN(exp.getTime())) return { status: 'EXPIRED', daysLeft: -999 }
+  if (isNaN(exp.getTime())) return { status: 'VALID', daysLeft: 9999 }
 
   const diffMs = exp.getTime() - today.getTime()
   const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
@@ -88,13 +193,13 @@ const getPermitStatus = (expiryDateStr: string): { status: ComputedStatus; daysL
   return { status: 'VALID', daysLeft }
 }
 
-export default function SioSiloPage() {
+export default function K3ComplianceRegisterPage() {
   const { lang } = useLanguage()
   const formId = useId()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [mounted, setMounted] = useState(false)
   const [todayDate, setTodayDate] = useState('')
-  const [records, setRecords] = useState<SioSiloRecord[]>([])
+  const [records, setRecords] = useState<K3ComplianceRecord[]>([])
 
   const [typeFilter, setTypeFilter] = useState<'ALL' | PermitType>('ALL')
   const [statusFilter, setStatusFilter] = useState<'ALL' | ComputedStatus>('ALL')
@@ -105,7 +210,7 @@ export default function SioSiloPage() {
   const [certificateNo, setCertificateNo] = useState('')
   const [holderOrAssetName, setHolderOrAssetName] = useState('')
   const [equipmentClass, setEquipmentClass] = useState('')
-  const [department, setDepartment] = useState('Operation')
+  const [department, setDepartment] = useState('Technical')
   const [expiryDate, setExpiryDate] = useState('')
   const [issuer, setIssuer] = useState('Kemnaker RI')
 
@@ -114,14 +219,20 @@ export default function SioSiloPage() {
     setTodayDate(new Date().toISOString().split('T')[0])
     const saved = localStorage.getItem('syspex_sio_db')
     if (saved) {
-      setRecords(JSON.parse(saved))
+      const parsed: K3ComplianceRecord[] = JSON.parse(saved)
+      // Migrasi aman jika ada record lama bertipe 'SILO'
+      const normalized = parsed.map(item => ({
+        ...item,
+        permitType: (item.permitType as string) === 'SILO' ? 'SILO_SUKET' : item.permitType
+      }))
+      setRecords(normalized)
     } else {
       setRecords(INITIAL_RECORDS)
       localStorage.setItem('syspex_sio_db', JSON.stringify(INITIAL_RECORDS))
     }
   }, [])
 
-  const saveRecords = (updated: SioSiloRecord[]) => {
+  const saveRecords = (updated: K3ComplianceRecord[]) => {
     setRecords(updated)
     localStorage.setItem('syspex_sio_db', JSON.stringify(updated))
     window.dispatchEvent(new Event('syspex_hse_sync'))
@@ -130,28 +241,55 @@ export default function SioSiloPage() {
   const handleDownloadTemplate = () => {
     const templateRows = [
       {
-        'Jenis (SIO/SILO)': 'SIO',
+        'Kategori (SIO/SKP_AHLI/BNSP/SILO_SUKET/RIKSA_UJI)': 'SIO',
         'Nomor Lisensi / Sertifikat': '5/1428/AS.02.04/III/2024',
-        'Nama Operator / Nama Unit Alat': 'Budi Prakoso',
-        'Jenis & Kapasitas Alat': 'Operator Forklift Kelas II (< 15 Ton)',
-        'Departemen': 'Operation',
-        'Tanggal Berlaku Hingga (YYYY-MM-DD)': '2029-03-15',
-        'Instansi Penerbit': 'Kemnaker RI'
+        'Nama Personel / Unit Alat': 'Adi Dwi Sandi',
+        'Klasifikasi / Kompetensi / Objek Uji': 'Operator Forklift Kelas II',
+        'Departemen': 'Technical',
+        'Berlaku Hingga (YYYY-MM-DD)': '2029-04-15',
+        'Instansi Penerbit / PJK3': 'Kemnaker RI'
       },
       {
-        'Jenis (SIO/SILO)': 'SILO',
+        'Kategori (SIO/SKP_AHLI/BNSP/SILO_SUKET/RIKSA_UJI)': 'SKP_AHLI',
+        'Nomor Lisensi / Sertifikat': '5/991/AS.01.02/II/2025',
+        'Nama Personel / Unit Alat': 'Asep Jamaludin',
+        'Klasifikasi / Kompetensi / Objek Uji': 'Ahli K3 Umum',
+        'Departemen': 'Technical',
+        'Berlaku Hingga (YYYY-MM-DD)': '2028-02-04',
+        'Instansi Penerbit / PJK3': 'Kemnaker RI'
+      },
+      {
+        'Kategori (SIO/SKP_AHLI/BNSP/SILO_SUKET/RIKSA_UJI)': 'BNSP',
+        'Nomor Lisensi / Sertifikat': 'REG-BNSP-2024-882',
+        'Nama Personel / Unit Alat': 'Sugeng Purnomo',
+        'Klasifikasi / Kompetensi / Objek Uji': 'Welder SMAW 3G',
+        'Departemen': 'Technical',
+        'Berlaku Hingga (YYYY-MM-DD)': '',
+        'Instansi Penerbit / PJK3': 'BNSP'
+      },
+      {
+        'Kategori (SIO/SKP_AHLI/BNSP/SILO_SUKET/RIKSA_UJI)': 'SILO_SUKET',
         'Nomor Lisensi / Sertifikat': '5/882/AS.02.01/XI/2025',
-        'Nama Operator / Nama Unit Alat': 'Forklift Counterbalance Toyota #01',
-        'Jenis & Kapasitas Alat': 'Pesawat Angkat & Angkut (3.5 Ton)',
+        'Nama Personel / Unit Alat': 'Unit Forklift Toyota #01',
+        'Klasifikasi / Kompetensi / Objek Uji': 'Pesawat Angkat & Angkut (3.5 Ton)',
         'Departemen': 'Operation',
-        'Tanggal Berlaku Hingga (YYYY-MM-DD)': '2027-11-20',
-        'Instansi Penerbit': 'Disnakertrans'
+        'Berlaku Hingga (YYYY-MM-DD)': '2027-11-20',
+        'Instansi Penerbit / PJK3': 'Disnakertrans'
+      },
+      {
+        'Kategori (SIO/SKP_AHLI/BNSP/SILO_SUKET/RIKSA_UJI)': 'RIKSA_UJI',
+        'Nomor Lisensi / Sertifikat': 'LHP-PJK3-2026-014',
+        'Nama Personel / Unit Alat': 'Instalasi Racking Warehouse B',
+        'Klasifikasi / Kompetensi / Objek Uji': 'Hasil Riksa Uji Berkala Tahunan',
+        'Departemen': 'Operation',
+        'Berlaku Hingga (YYYY-MM-DD)': '2027-06-30',
+        'Instansi Penerbit / PJK3': 'PT PJK3 Mitra Inspeksi'
       }
     ]
     const ws = XLSX.utils.json_to_sheet(templateRows)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Template_SIO_SILO')
-    XLSX.writeFile(wb, 'Template_Import_SIO_SILO_Syspex.xlsx')
+    XLSX.utils.book_append_sheet(wb, ws, 'Register_Lisensi_RiksaUji')
+    XLSX.writeFile(wb, 'Template_Lisensi_K3_RiksaUji_Syspex.xlsx')
   }
 
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,48 +310,44 @@ export default function SioSiloPage() {
         if (!Array.isArray(row)) continue
         const norm = row.map(c => String(c).trim().toLowerCase())
 
-        const nameIdx = norm.findIndex(c => c.includes('nama') || c.includes('operator') || c.includes('unit') || c.includes('alat') || c.includes('holder'))
+        const nameIdx = norm.findIndex(c => c.includes('nama') || c.includes('personel') || c.includes('operator') || c.includes('unit') || c.includes('alat') || c.includes('holder'))
         const expIdx = norm.findIndex(c => c.includes('berlaku') || c.includes('expired') || c.includes('expiry') || c.includes('tanggal') || c.includes('date'))
 
         if (nameIdx !== -1 && expIdx !== -1) {
           headerIdx = i
           colName = nameIdx
           colExp = expIdx
-          colType = norm.findIndex(c => c.includes('jenis (sio') || c === 'jenis' || c === 'type' || c.includes('kategori'))
+          colType = norm.findIndex(c => c.startsWith('kategori') || c.startsWith('jenis (sio') || c === 'jenis' || c === 'type')
           colCert = norm.findIndex(c => c.includes('nomor') || c.includes('no') || c.includes('sertifikat') || c.includes('lisensi') || c.includes('cert'))
-          colClass = norm.findIndex(c => c.includes('kapasitas') || c.includes('kelas') || c.includes('class') || c.includes('spesifikasi'))
+          colClass = norm.findIndex(c => c.includes('klasifikasi') || c.includes('kompetensi') || c.includes('kapasitas') || c.includes('kelas') || c.includes('objek') || c.includes('jenis &'))
           colDept = norm.findIndex(c => c.includes('departemen') || c.includes('dept'))
-          colIssuer = norm.findIndex(c => c.includes('penerbit') || c.includes('instansi') || c.includes('issuer'))
+          colIssuer = norm.findIndex(c => c.includes('penerbit') || c.includes('instansi') || c.includes('pjk3') || c.includes('issuer'))
           break
         }
       }
 
       if (headerIdx === -1) throw new Error('Header tidak ditemukan')
 
-      const importedItems: SioSiloRecord[] = []
+      const importedItems: K3ComplianceRecord[] = []
       for (let r = headerIdx + 1; r < rows.length; r++) {
         const row = rows[r]
         if (!Array.isArray(row)) continue
 
         const holderName = String(row[colName] ?? '').trim()
-        if (!holderName) continue
+        if (!holderName || holderName.toLowerCase() === 'total') continue
 
         const parsedDate = parseExcelExpiryDate(row[colExp])
-        if (!parsedDate) continue
-
         const rawType = colType !== -1 ? String(row[colType]).trim().toUpperCase() : ''
-        const pType: PermitType = rawType.includes('SILO') || holderName.toLowerCase().includes('forklift') || holderName.toLowerCase().includes('crane') || holderName.toLowerCase().includes('hoist')
-          ? 'SILO'
-          : 'SIO'
-
-        const certNo = colCert !== -1 ? String(row[colCert]).trim() : `REG-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
-        const eqClass = colClass !== -1 ? String(row[colClass]).trim() : 'Pesawat Angkat & Angkut'
-        const dept = colDept !== -1 && String(row[colDept]).trim() ? String(row[colDept]).trim() : 'Operation'
+        const certNo = colCert !== -1 ? String(row[colCert]).trim() : ''
+        const eqClass = colClass !== -1 ? String(row[colClass]).trim() : 'Sertifikasi K3'
+        const dept = colDept !== -1 && String(row[colDept]).trim() ? String(row[colDept]).trim() : 'Technical'
         const iss = colIssuer !== -1 && String(row[colIssuer]).trim() ? String(row[colIssuer]).trim() : 'Kemnaker RI'
 
+        const detectedType = detectPermitCategory(rawType, eqClass, holderName, iss)
+
         importedItems.push({
-          id: `${pType}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-          permitType: pType,
+          id: `${detectedType}-${r}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+          permitType: detectedType,
           certificateNo: certNo || '-',
           holderOrAssetName: holderName,
           equipmentClass: eqClass || '-',
@@ -225,7 +359,6 @@ export default function SioSiloPage() {
 
       if (importedItems.length === 0) throw new Error('Tidak ada baris valid')
 
-      // Langsung ganti database dengan data master dari file Excel terbaru agar bersih dari data contoh
       saveRecords(importedItems)
       setTypeFilter('ALL')
       setStatusFilter('ALL')
@@ -233,8 +366,8 @@ export default function SioSiloPage() {
       setImportBanner({
         type: 'SUCCESS',
         text: lang === 'ID'
-          ? `BERHASIL MEMUAT ${importedItems.length} DATA SIO/SILO DARI "${file.name}" & TERSINKRON KE KPI.`
-          : `SUCCESSFULLY LOADED ${importedItems.length} SIO/SILO RECORDS FROM "${file.name}".`
+          ? `BERHASIL MEMUAT ${importedItems.length} DOKUMEN K3 DARI "${file.name}" & DIKLASIFIKASIKAN OTOMATIS KE KPI.`
+          : `SUCCESSFULLY LOADED & CLASSIFIED ${importedItems.length} K3 COMPLIANCE RECORDS FROM "${file.name}".`
       })
     } catch {
       setImportBanner({
@@ -250,16 +383,16 @@ export default function SioSiloPage() {
 
   const handleAddManual = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!holderOrAssetName.trim() || !expiryDate) return
+    if (!holderOrAssetName.trim()) return
 
-    const newItem: SioSiloRecord = {
+    const newItem: K3ComplianceRecord = {
       id: `${permitType}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
       permitType,
       certificateNo: certificateNo.trim() || '-',
       holderOrAssetName: holderOrAssetName.trim(),
       equipmentClass: equipmentClass.trim() || '-',
-      department: department.trim() || 'Operation',
-      expiryDate,
+      department: department.trim() || 'Technical',
+      expiryDate: expiryDate || 'LIFETIME',
       issuer: issuer.trim() || 'Kemnaker RI'
     }
 
@@ -300,7 +433,8 @@ export default function SioSiloPage() {
           r.holderOrAssetName.toLowerCase().includes(q) ||
           r.certificateNo.toLowerCase().includes(q) ||
           r.equipmentClass.toLowerCase().includes(q) ||
-          r.department.toLowerCase().includes(q)
+          r.department.toLowerCase().includes(q) ||
+          r.issuer.toLowerCase().includes(q)
         if (!match) return false
       }
       return true
@@ -310,59 +444,57 @@ export default function SioSiloPage() {
   const dict = {
     ID: {
       breadcrumb: "Manajemen & ISO / SMK3",
-      title: "Database SIO & SILO Tracker",
-      subtitle: "Pemantauan lisensi operator (SIO) dan kelayakan operasi peralatan (SILO) sesuai PP 50/2012 & Permenaker 8/2020.",
+      title: "Register Lisensi K3 & Riksa Uji",
+      subtitle: "Pemantauan terpadu SIO Operator, SKP Ahli/Pengawas, Sertifikat BNSP, SILO/Suket K3, dan Hasil Riksa Uji PJK3 (PP 50/2012).",
       btn_import: "Import Excel (.xlsx)",
       btn_template: "Template Excel",
       btn_print: "Cetak Register",
-      form_title: "1. Tambah Data SIO / SILO Manual",
-      f_type: "Jenis Dokumen",
-      f_cert: "Nomor Lisensi / Sertifikat",
-      f_name: "Nama Operator / Unit Alat *",
-      f_class: "Jenis & Kapasitas Alat",
-      f_dept: "Departemen",
-      f_exp: "Berlaku Hingga *",
-      f_issuer: "Instansi Penerbit",
+      form_title: "1. Tambah Dokumen Lisensi K3 / Riksa Uji Manual",
+      f_type: "Kategori Dokumen",
+      f_cert: "No. Sertifikat / LHP",
+      f_name: "Nama Personel / Unit Alat *",
+      f_class: "Kompetensi / Objek Uji",
+      f_issuer: "Instansi / PJK3",
+      f_exp: "Berlaku Hingga (Kosong = Seumur Hidup)",
       btn_save: "Simpan & Sinkron KPI",
-      reg_title: "2. Register Kepatuhan SIO & SILO",
-      search_ph: "Cari nama operator, unit alat, no sertifikat...",
-      th_type: "Jenis",
-      th_cert: "No. Sertifikat",
-      th_name: "Nama Operator / Unit Alat",
-      th_class: "Klasifikasi & Kapasitas",
+      reg_title: "2. Register Kepatuhan Lisensi K3 & Hasil Riksa Uji",
+      search_ph: "Cari nama, unit alat, kompetensi, PJK3...",
+      th_type: "Kategori",
+      th_cert: "No. Dokumen",
+      th_name: "Personel / Objek Peralatan",
+      th_class: "Kompetensi / Klasifikasi",
       th_exp: "Masa Berlaku",
       th_status: "Status Legal",
       th_del: "Hapus",
-      print_doc: "REGISTER KEPATUHAN LISENSI OPERATOR (SIO) & KELAYAKAN ALAT (SILO) • SYSPEX HSE",
+      print_doc: "REGISTER KEPATUHAN LISENSI PERSONEL K3 & HASIL RIKSA UJI PERALATAN • SYSPEX HSE",
       sign_hse: "Diperiksa Oleh (HSE Officer):",
       sign_mgr: "Disetujui Oleh (Plant / Ops Manager):"
     },
     EN: {
       breadcrumb: "Management & ISO / SMK3",
-      title: "SIO & SILO Compliance Tracker",
-      subtitle: "Operator license (SIO) and equipment operating permit (SILO) validity tracking synced with KPI Dashboard.",
+      title: "K3 Licenses & Riksa Uji Register",
+      subtitle: "Unified tracking for Operator SIO, K3 Specialist SKP, BNSP Certificates, Equipment SILO/Suket, and PJK3 Inspection Reports.",
       btn_import: "Import Excel (.xlsx)",
       btn_template: "Excel Template",
       btn_print: "Print Register",
-      form_title: "1. Add Manual SIO / SILO Record",
-      f_type: "Permit Type",
-      f_cert: "License / Certificate No.",
-      f_name: "Operator Name / Equipment Unit *",
-      f_class: "Equipment Type & Capacity",
-      f_dept: "Department",
-      f_exp: "Valid Until *",
-      f_issuer: "Issuing Authority",
+      form_title: "1. Add Manual K3 License / Riksa Uji Record",
+      f_type: "Document Category",
+      f_cert: "Certificate / Report No.",
+      f_name: "Personnel Name / Equipment Unit *",
+      f_class: "Competency / Inspected Object",
+      f_issuer: "Issuer / PJK3",
+      f_exp: "Valid Until (Blank = Lifetime)",
       btn_save: "Save & Sync KPI",
-      reg_title: "2. SIO & SILO Compliance Register",
-      search_ph: "Search operator, equipment, certificate no...",
-      th_type: "Type",
-      th_cert: "Certificate No.",
-      th_name: "Operator / Equipment Unit",
-      th_class: "Class & Capacity",
+      reg_title: "2. K3 Licenses & Inspection Compliance Register",
+      search_ph: "Search name, equipment, competency, PJK3...",
+      th_type: "Category",
+      th_cert: "Document No.",
+      th_name: "Personnel / Equipment Object",
+      th_class: "Competency / Classification",
       th_exp: "Expiry Date",
       th_status: "Legal Status",
       th_del: "Del",
-      print_doc: "OFFICIAL OPERATOR LICENSE (SIO) & EQUIPMENT PERMIT (SILO) REGISTER • SYSPEX HSE",
+      print_doc: "OFFICIAL K3 PERSONNEL LICENSES & EQUIPMENT INSPECTION REGISTER • SYSPEX HSE",
       sign_hse: "Verified By (HSE Officer):",
       sign_mgr: "Approved By (Plant / Ops Manager):"
     }
@@ -373,7 +505,7 @@ export default function SioSiloPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
-      <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} className="hidden" aria-label="Upload Excel SIO SILO" />
+      <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} className="hidden" aria-label="Upload Excel Lisensi K3" />
 
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-3">
@@ -425,13 +557,14 @@ export default function SioSiloPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span> LIVE SYNC TO KPI
           </span>
         </div>
-        <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest leading-relaxed max-w-3xl">{t.subtitle}</p>
+        <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest leading-relaxed max-w-4xl">{t.subtitle}</p>
       </div>
 
+      {/* HEADER CETAK DOKUMEN */}
       <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-black text-black uppercase tracking-tight">SIO & SILO Compliance Register</h1>
+            <h1 className="text-3xl font-black text-black uppercase tracking-tight">Register Lisensi K3 & Riksa Uji</h1>
             <p className="text-[10px] text-black font-black uppercase tracking-widest mt-1">{t.print_doc}</p>
           </div>
           <div className="text-right border-2 border-black p-2">
@@ -441,9 +574,10 @@ export default function SioSiloPage() {
         </div>
       </div>
 
+      {/* KARTU INDIKATOR KEPATUHAN */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:grid-cols-4">
         <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 rounded-[4px] print:border-black">
-          <span className="block text-[8px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 print:text-black">SIO / SILO VALIDITY</span>
+          <span className="block text-[8px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 print:text-black">COMPLIANCE VALIDITY</span>
           <span className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white print:text-black mt-1 block">{stats.validityPct}%</span>
           <span className="text-[8px] font-bold text-slate-400 uppercase">{stats.valid + stats.expiring} / {stats.total} AKTIF</span>
         </div>
@@ -456,47 +590,52 @@ export default function SioSiloPage() {
           <span className="text-2xl sm:text-3xl font-black font-mono text-amber-600 dark:text-amber-400 print:text-black mt-1 block">{stats.expiring}</span>
         </div>
         <div className={`p-4 border-2 rounded-[4px] print:border-black ${stats.expired > 0 ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
-          <span className="block text-[8px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 print:text-black">EXPIRED (STOP OPERASI)</span>
+          <span className="block text-[8px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 print:text-black">EXPIRED (PERLU PERPANJANGAN)</span>
           <span className="text-2xl sm:text-3xl font-black font-mono text-rose-600 dark:text-rose-400 print:text-black mt-1 block">{stats.expired}</span>
         </div>
       </div>
 
+      {/* 1. FORM INPUT MANUAL */}
       <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[4px] p-5 space-y-4 print:hidden">
         <h2 className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2">
           {t.form_title}
         </h2>
-        <form onSubmit={handleAddManual} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 items-end">
-          <div>
-            <label htmlFor={`${formId}-type`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.f_type}</label>
+        <form onSubmit={handleAddManual} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-3 items-end">
+          <div className="lg:col-span-2">
+            <label htmlFor={`${formId}-type`} className="block text-[8px] font-black text-teal-600 uppercase tracking-widest mb-1">{t.f_type}</label>
             <select id={`${formId}-type`} value={permitType} onChange={e => setPermitType(e.target.value as PermitType)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-black">
-              <option value="SIO">SIO (Operator)</option>
-              <option value="SILO">SILO (Alat)</option>
+              <option value="SIO">SIO (Operator & Teknisi K3)</option>
+              <option value="SKP_AHLI">SKP / Sertifikat Ahli & Pengawas</option>
+              <option value="BNSP">Sertifikat Kompetensi (BNSP)</option>
+              <option value="SILO_SUKET">SILO / Suket Layak K3 (Disnaker)</option>
+              <option value="RIKSA_UJI">Hasil Riksa Uji Berkala (PJK3)</option>
             </select>
           </div>
           <div>
             <label htmlFor={`${formId}-cert`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.f_cert}</label>
-            <input id={`${formId}-cert`} type="text" placeholder="No. Sertifikat" value={certificateNo} onChange={e => setCertificateNo(e.target.value)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-bold" />
+            <input id={`${formId}-cert`} type="text" placeholder="No. Dokumen" value={certificateNo} onChange={e => setCertificateNo(e.target.value)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-bold" />
           </div>
           <div className="lg:col-span-2">
             <label htmlFor={`${formId}-name`} className="block text-[8px] font-black text-teal-600 uppercase tracking-widest mb-1">{t.f_name}</label>
-            <input id={`${formId}-name`} type="text" required placeholder="Nama Karyawan / Unit Forklift" value={holderOrAssetName} onChange={e => setHolderOrAssetName(e.target.value)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-bold" />
+            <input id={`${formId}-name`} type="text" required placeholder="Nama Karyawan / Unit Alat" value={holderOrAssetName} onChange={e => setHolderOrAssetName(e.target.value)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-bold" />
           </div>
           <div>
             <label htmlFor={`${formId}-class`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.f_class}</label>
-            <input id={`${formId}-class`} type="text" placeholder="Kelas / Tonase" value={equipmentClass} onChange={e => setEquipmentClass(e.target.value)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-bold" />
+            <input id={`${formId}-class`} type="text" placeholder="Bidang / Objek" value={equipmentClass} onChange={e => setEquipmentClass(e.target.value)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-bold" />
           </div>
           <div>
-            <label htmlFor={`${formId}-exp`} className="block text-[8px] font-black text-teal-600 uppercase tracking-widest mb-1">{t.f_exp}</label>
-            <input id={`${formId}-exp`} type="date" required value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-bold" />
+            <label htmlFor={`${formId}-exp`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t.f_exp}</label>
+            <input id={`${formId}-exp`} type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="w-full px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px] text-xs font-bold" />
           </div>
           <div>
-            <button type="submit" disabled={!holderOrAssetName.trim() || !expiryDate} className="w-full py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-[2px] text-[9px] font-black uppercase tracking-widest h-[34px] disabled:opacity-40 transition-colors">
+            <button type="submit" disabled={!holderOrAssetName.trim()} className="w-full py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-[2px] text-[9px] font-black uppercase tracking-widest h-[34px] disabled:opacity-40 transition-colors">
               {t.btn_save}
             </button>
           </div>
         </form>
       </div>
 
+      {/* 2. TABEL REGISTER */}
       <div className="bg-white dark:bg-[#0b0f19] rounded-[4px] p-5 border border-slate-200 dark:border-slate-800 print:border-none print:p-0 space-y-4">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3 print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
@@ -513,14 +652,17 @@ export default function SioSiloPage() {
               className="px-3 py-1.5 text-xs font-bold bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2px] flex-1 sm:w-56 focus:outline-none focus:border-teal-500"
             />
             <select
-              aria-label="Filter jenis SIO atau SILO"
+              aria-label="Filter kategori dokumen K3"
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value as 'ALL' | PermitType)}
               className="px-2.5 py-1.5 text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2px]"
             >
-              <option value="ALL">ALL TYPE</option>
+              <option value="ALL">SEMUA KATEGORI (5)</option>
               <option value="SIO">SIO ONLY</option>
-              <option value="SILO">SILO ONLY</option>
+              <option value="SKP_AHLI">SKP / AHLI ONLY</option>
+              <option value="BNSP">BNSP ONLY</option>
+              <option value="SILO_SUKET">SILO / SUKET ONLY</option>
+              <option value="RIKSA_UJI">RIKSA UJI ONLY</option>
             </select>
             <select
               aria-label="Filter status masa berlaku"
@@ -537,15 +679,15 @@ export default function SioSiloPage() {
         </div>
 
         <div className="overflow-x-auto border-2 border-slate-200 dark:border-slate-800 print:border-black rounded-[4px] print:rounded-none">
-          <table className="w-full text-left text-xs min-w-[850px] print:min-w-0">
+          <table className="w-full text-left text-xs min-w-[880px] print:min-w-0">
             <thead className="bg-slate-100 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 print:bg-white print:border-black print:text-black">
               <tr>
-                <th className="py-3 px-3 w-20 text-center">{t.th_type}</th>
-                <th className="py-3 px-3 w-44 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_cert}</th>
+                <th className="py-3 px-3 w-28 text-center">{t.th_type}</th>
+                <th className="py-3 px-3 w-40 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_cert}</th>
                 <th className="py-3 px-3 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_name}</th>
                 <th className="py-3 px-3 border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_class}</th>
                 <th className="py-3 px-3 w-32 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_exp}</th>
-                <th className="py-3 px-3 w-40 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_status}</th>
+                <th className="py-3 px-3 w-44 text-center border-l-2 border-slate-200 dark:border-slate-800 print:border-black">{t.th_status}</th>
                 <th className="py-3 px-3 w-16 text-center border-l-2 border-slate-200 dark:border-slate-800 print:hidden">{t.th_del}</th>
               </tr>
             </thead>
@@ -553,27 +695,27 @@ export default function SioSiloPage() {
               {filteredRecords.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    NO SIO / SILO RECORDS FOUND
+                    NO COMPLIANCE RECORDS FOUND
                   </td>
                 </tr>
               ) : (
                 filteredRecords.map(rec => {
+                  const isLifetime = rec.expiryDate === 'LIFETIME'
+                  const catInfo = PERMIT_LABELS[rec.permitType] || PERMIT_LABELS.SIO
                   const statusBadge =
                     rec.computedStatus === 'EXPIRED'
                       ? { label: `EXPIRED (${Math.abs(rec.daysLeft)}D AGO)`, cls: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800' }
                       : rec.computedStatus === 'EXPIRING_SOON'
                       ? { label: `EXPIRING (${rec.daysLeft}D LEFT)`, cls: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800' }
+                      : isLifetime
+                      ? { label: 'PERMANENT / LIFETIME', cls: 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/60 dark:text-teal-400 dark:border-teal-800' }
                       : { label: `VALID (${rec.daysLeft}D)`, cls: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800' }
 
                   return (
                     <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 print:hover:bg-white">
                       <td className="py-2.5 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-[2px] text-[9px] font-black uppercase tracking-widest border print:border-black print:bg-transparent print:text-black ${
-                          rec.permitType === 'SIO'
-                            ? 'bg-cyan-50 text-cyan-800 border-cyan-300 dark:bg-cyan-950/50 dark:text-cyan-300 dark:border-cyan-800'
-                            : 'bg-indigo-50 text-indigo-800 border-indigo-300 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800'
-                        }`}>
-                          {rec.permitType}
+                        <span className={`px-2 py-0.5 rounded-[2px] text-[8px] font-black uppercase tracking-widest border inline-block whitespace-nowrap print:border-black print:bg-transparent print:text-black ${catInfo.badgeCls}`}>
+                          {catInfo.short}
                         </span>
                       </td>
                       <td className="py-2.5 px-3 font-mono text-[10px] font-bold border-l-2 border-slate-100 dark:border-slate-800/50 print:border-black">
