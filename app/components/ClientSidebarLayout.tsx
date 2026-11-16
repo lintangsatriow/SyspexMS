@@ -24,13 +24,13 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
       hub: "Main Hub", kpi: "KPI Dashboard", ai: "AI Copilot",
       cat_ops: "HSE & Operations", ops_1: "Syspex Safety Rules", ops_2: "Forklift & MHE", ops_3: "LOTO Permit", ops_4: "Toolbox Talk (TBM)", ops_5: "Hazard & Near-Miss", ops_6: "Safety Induction",
       cat_tech: "Technical Calculators", tech_1: "Scaffolding BoQ", tech_2: "Racking SWL", tech_3: "Lifting & Rigging", tech_4: "JSA Builder",
-      cat_mgmt: "Management & ISO", mgmt_1: "ISO 9001 Doc Control", mgmt_2: "ISO 14001 Waste Log", mgmt_3: "SIO / SILO Tracker"
+      cat_mgmt: "Management & ISO", mgmt_1: "ISO 9001 Doc Control", mgmt_2: "ISO 14001 Waste Log", mgmt_3: "K3 Licenses & Riksa Uji"
     },
     ID: {
       hub: "Beranda Utama", kpi: "Dasbor KPI", ai: "AI Copilot",
       cat_ops: "K3L & Operasional", ops_1: "Aturan Keselamatan", ops_2: "Inspeksi Forklift", ops_3: "Izin LOTO", ops_4: "Safety Talk (TBM)", ops_5: "Pelaporan Bahaya", ops_6: "Induksi K3",
       cat_tech: "Kalkulator Teknis", tech_1: "Kalkulasi Scaffolding", tech_2: "Beban Maks. Racking", tech_3: "Rencana Lifting", tech_4: "Pembuat JSA",
-      cat_mgmt: "Manajemen & ISO", mgmt_1: "Kontrol Dokumen", mgmt_2: "Limbah B3 & Lingkungan", mgmt_3: "Database SIO & SILO"
+      cat_mgmt: "Manajemen & ISO", mgmt_1: "Kontrol Dokumen", mgmt_2: "Limbah B3 & Lingkungan", mgmt_3: "Lisensi K3 & Riksa Uji"
     }
   }
 
