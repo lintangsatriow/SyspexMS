@@ -135,7 +135,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             <LogoutButton />
           </div>
 
-          <div className="text-center text-[9px] font-black uppercase tracking-widest text-slate-400 mt-2">SYSPEX MS</div>
+          <div className="text-center text-[9px] font-black uppercase tracking-widest text-slate-400 mt-2">SYSPEX MANAGEMENT SYSTEM</div>
         </div>
       </aside>
 
