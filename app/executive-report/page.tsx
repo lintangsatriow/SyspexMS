@@ -27,6 +27,11 @@ interface TargetConfig {
   hoursPerDay: number
 }
 
+interface LiveHazardSummary {
+  id: string
+  status: 'OPEN' | 'ON_PROGRESS' | 'CLOSED'
+}
+
 type PeriodFilter = 'YTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
 type YearFilter = number | 'ALL'
 type InfoModalType = 'HOURS' | 'AVG_PERSONNEL' | 'DAILY_INTENSITY' | 'TRIR' | null
@@ -53,7 +58,6 @@ const DEFAULT_TARGETS: TargetConfig = {
   hoursPerDay: 9
 }
 
-// Parser Tanggal Excel yang Tahan Banting
 const parseExcelDate = (rawVal: unknown): { year: number; month: number } | null => {
   if (rawVal === null || rawVal === undefined || rawVal === '') return null
   if (typeof rawVal === 'number' && rawVal > 20000 && rawVal < 90000) {
@@ -132,7 +136,7 @@ const TrendLineChart = ({
       <div className="flex justify-between items-start border-b-2 border-slate-100 dark:border-slate-800 print:border-black pb-3 mb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">{title}</h2>
-          <button onClick={onOpenInfo} aria-label="Panduan Metrik" className="text-slate-400 hover:text-teal-600 transition-colors print:hidden cursor-pointer">
+          <button type="button" onClick={onOpenInfo} aria-label="Panduan Metrik" className="text-slate-400 hover:text-teal-600 transition-colors print:hidden">
             <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </button>
         </div>
@@ -257,6 +261,7 @@ export default function KpiDashboardPage() {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('ALL')
 
   const [records, setRecords] = useState<HseRecord[]>([])
+  const [liveHazards, setLiveHazards] = useState<LiveHazardSummary[]>([])
   const [targets, setTargets] = useState<TargetConfig>(DEFAULT_TARGETS)
   const [showTargetConfig, setShowTargetConfig] = useState(false)
   const [importStatus, setImportStatus] = useState<{ type: 'SUCCESS' | 'ERROR'; text: string } | null>(null)
@@ -293,6 +298,32 @@ export default function KpiDashboardPage() {
 
     const savedTargets = localStorage.getItem('syspex_hse_targets')
     if (savedTargets) setTargets({ ...DEFAULT_TARGETS, ...JSON.parse(savedTargets) })
+
+    // Live Sync dengan Modul Hazard & Near-Miss Report
+    const syncHazards = () => {
+      const savedHazards = localStorage.getItem('syspex_hazard_db')
+      if (savedHazards) {
+        setLiveHazards(JSON.parse(savedHazards))
+      }
+    }
+    syncHazards()
+    window.addEventListener('storage', syncHazards)
+    window.addEventListener('syspex_hse_sync', syncHazards)
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveInfoModal(null)
+        setShowTargetConfig(false)
+        setEditingCell(null)
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+
+    return () => {
+      window.removeEventListener('storage', syncHazards)
+      window.removeEventListener('syspex_hse_sync', syncHazards)
+      window.removeEventListener('keydown', handleEsc)
+    }
   }, [])
 
   const saveRecords = (newRecords: HseRecord[]) => {
@@ -300,7 +331,12 @@ export default function KpiDashboardPage() {
     localStorage.setItem('syspex_hse_db_v3', JSON.stringify(newRecords))
   }
 
-  // --- PARSER EXCEL HR (DEPARTEMEN AWARE) ---
+  const updateTargetField = (field: keyof TargetConfig, value: number) => {
+    const updated = { ...targets, [field]: value }
+    setTargets(updated)
+    localStorage.setItem('syspex_hse_targets', JSON.stringify(updated))
+  }
+
   const handleExcelFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -419,7 +455,6 @@ export default function KpiDashboardPage() {
     if (editingCell?.id === id) setEditingCell(null)
   }
 
-  // --- AGREGASI BERDASARKAN FILTER DEPARTEMEN ---
   const processedRecords = useMemo(() => {
     if (selectedDeptFilter !== 'ALL') return records.filter(r => r.department === selectedDeptFilter)
     
@@ -492,9 +527,17 @@ export default function KpiDashboardPage() {
     }
   }, [processedRecords, selectedYear, selectedPeriod, targets, lang])
 
+  const activeOpenHazards = liveHazards.filter(h => h.status === 'OPEN' || h.status === 'ON_PROGRESS').length
+  const closedHazardsCount = liveHazards.filter(h => h.status === 'CLOSED').length
+  const liveCapaRate = liveHazards.length > 0 ? Math.round((closedHazardsCount / liveHazards.length) * 100) : 100
+
   const tableYearRecords = useMemo(() => records.filter(r => r.year === tableYearTab && (selectedDeptFilter === 'ALL' || r.department === selectedDeptFilter)).sort((a, b) => a.month - b.month), [records, tableYearTab, selectedDeptFilter])
   const periodLabel = selectedYear === 'ALL' ? `2024 – ${Math.max(...availableYears)}` : `${selectedPeriod} ${selectedYear}`
-  const t = lang === 'ID' ? { title: "HSE Performance Dashboard", btn_import: "Import Excel HR (.xlsx)" } : { title: "HSE Performance Dashboard", btn_import: "Import HR Excel (.xlsx)" }
+  
+  const t = lang === 'ID' 
+    ? { title: "HSE Performance Dashboard", btn_import: "Import Excel HR (.xlsx)", btn_target: "Parameter Rumus", btn_print: "Cetak Laporan" } 
+    : { title: "HSE Performance Dashboard", btn_import: "Import HR Excel (.xlsx)", btn_target: "Formula Params", btn_print: "Print Report" }
+  
   if (!mounted) return null 
 
   return (
@@ -508,15 +551,23 @@ export default function KpiDashboardPage() {
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5 cursor-pointer">
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5">
               <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" /></svg>
               {t.btn_import}
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => setShowTargetConfig(!showTargetConfig)} 
+              className={`px-3 py-1.5 border rounded-[4px] text-[9px] font-black uppercase tracking-widest transition-colors ${showTargetConfig ? 'bg-teal-700 text-white border-teal-700' : 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-teal-600'}`}
+            >
+              {t.btn_target}
             </button>
 
             {/* FILTER DEPARTEMEN */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-900 px-2 py-1.5 border border-slate-300 dark:border-slate-700 rounded-[4px]">
               <label htmlFor={`${formId}-fdept`} className="text-[9px] font-black uppercase text-slate-500 mr-2">Dept:</label>
-              <select id={`${formId}-fdept`} value={selectedDeptFilter} onChange={e => setSelectedDeptFilter(e.target.value)} className="bg-transparent text-[10px] font-black text-teal-700 dark:text-teal-400 focus:outline-none cursor-pointer">
+              <select id={`${formId}-fdept`} value={selectedDeptFilter} onChange={e => setSelectedDeptFilter(e.target.value)} className="bg-transparent text-[10px] font-black text-teal-700 dark:text-teal-400 focus:outline-none">
                 <option value="ALL">SEMUA DEPARTEMEN</option>
                 {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
@@ -525,7 +576,7 @@ export default function KpiDashboardPage() {
             <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 border border-slate-300 dark:border-slate-700 rounded-[4px]">
               <div className={`flex items-center gap-2 px-2 ${selectedYear !== 'ALL' ? 'border-r border-slate-300 dark:border-slate-700' : ''}`}>
                 <label htmlFor={`${formId}-fyear`} className="text-[9px] font-black uppercase text-slate-500">Year:</label>
-                <select id={`${formId}-fyear`} value={selectedYear} onChange={(e) => setSelectedYear(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
+                <select id={`${formId}-fyear`} value={selectedYear} onChange={(e) => setSelectedYear(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none">
                   <option value="ALL">ALL YEARS</option>
                   {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -533,7 +584,7 @@ export default function KpiDashboardPage() {
               {selectedYear !== 'ALL' && (
                 <div className="flex items-center gap-2 px-2">
                   <label htmlFor={`${formId}-fperiod`} className="text-[9px] font-black uppercase text-slate-500">Period:</label>
-                  <select id={`${formId}-fperiod`} value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value as PeriodFilter)} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none cursor-pointer">
+                  <select id={`${formId}-fperiod`} value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value as PeriodFilter)} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none">
                     <option value="YTD">YTD</option><option value="Q1">Q1</option><option value="Q2">Q2</option><option value="Q3">Q3</option><option value="Q4">Q4</option>
                   </select>
                 </div>
@@ -542,38 +593,141 @@ export default function KpiDashboardPage() {
           </div>
         </div>
 
+        {/* PANEL PARAMETER RUMUS */}
+        {showTargetConfig && (
+          <div className="mb-4 p-4 bg-slate-100 dark:bg-slate-900 border-2 border-teal-600/50 rounded-[4px]">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-[9px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400">
+                PARAMETER KALKULASI EARLY WARNING (100%) & FATIGUE LIMIT (+10%)
+              </span>
+              <button type="button" onClick={() => setShowTargetConfig(false)} className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-900 dark:hover:text-white">
+                [X]
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div>
+                <label htmlFor={`${formId}-t-trir`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">MAX TRIR</label>
+                <input id={`${formId}-t-trir`} type="number" step="0.1" value={targets.trirMax} onChange={e => updateTargetField('trirMax', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+              </div>
+              <div>
+                <label htmlFor={`${formId}-t-lti`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">MAX LTI</label>
+                <input id={`${formId}-t-lti`} type="number" min="0" value={targets.ltiMax} onChange={e => updateTargetField('ltiMax', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+              </div>
+              <div>
+                <label htmlFor={`${formId}-t-wdays`} className="block text-[8px] font-black text-teal-600 uppercase tracking-widest mb-1">HARI KERJA / BULAN</label>
+                <input id={`${formId}-t-wdays`} type="number" min="1" max="31" value={targets.workingDaysPerMonth} onChange={e => updateTargetField('workingDaysPerMonth', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+              </div>
+              <div>
+                <label htmlFor={`${formId}-t-whrs`} className="block text-[8px] font-black text-teal-600 uppercase tracking-widest mb-1">JAM KERJA / HARI</label>
+                <input id={`${formId}-t-whrs`} type="number" min="1" max="24" value={targets.hoursPerDay} onChange={e => updateTargetField('hoursPerDay', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+              </div>
+              <div>
+                <label htmlFor={`${formId}-t-defhc`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">DEFAULT HC (JIKA 0)</label>
+                <input id={`${formId}-t-defhc`} type="number" min="1" value={targets.defaultHeadcount} onChange={e => updateTargetField('defaultHeadcount', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {importStatus && (
           <div className={`mb-4 p-3 border-2 rounded-[4px] flex items-center justify-between gap-4 text-[10px] font-black uppercase tracking-widest ${importStatus.type === 'SUCCESS' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'}`}>
             <span>{importStatus.text}</span>
-            <button onClick={() => setImportStatus(null)} className="cursor-pointer">[X]</button>
+            <button type="button" onClick={() => setImportStatus(null)}>[X]</button>
           </div>
         )}
         
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase mb-1">{t.title}</h1>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-relaxed">
-            Menampilkan Metrik Kinerja Untuk: <span className="text-teal-600 dark:text-teal-400">{selectedDeptFilter === 'ALL' ? 'SELURUH PERUSAHAAN (AGGREGATE)' : `TIM ${selectedDeptFilter.toUpperCase()}`}</span>
-          </p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase mb-1">{t.title}</h1>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-relaxed">
+              Menampilkan Metrik Kinerja Untuk: <span className="text-teal-600 dark:text-teal-400">{selectedDeptFilter === 'ALL' ? 'SELURUH PERUSAHAAN (AGGREGATE)' : `TIM ${selectedDeptFilter.toUpperCase()}`}</span>
+            </p>
+          </div>
+          <button type="button" onClick={() => window.print()} className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm shrink-0">
+            {t.btn_print}
+          </button>
+        </div>
+      </div>
+
+      {/* HEADER CETAK DOKUMEN (PRINT) */}
+      <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-4xl font-black text-black uppercase tracking-tight">{t.title}</h1>
+            <p className="text-[10px] text-black font-black uppercase tracking-widest mt-1">LAPORAN KINERJA K3L • {selectedDeptFilter}</p>
+          </div>
+          <div className="text-right border-2 border-black p-2">
+            <span className="text-[9px] font-black text-black uppercase tracking-widest block">Periode Laporan:</span>
+            <span className="text-sm font-black text-black uppercase">{periodLabel}</span>
+          </div>
         </div>
       </div>
 
       {/* LAGGING INDICATORS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`p-5 rounded-[4px] border-2 transition-colors ${filteredData.trirNum > targets.trirMax ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
-          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">TRIR (Total Recordable Incident Rate)</p>
-          <div className="flex items-end gap-2"><span className={`text-3xl xl:text-4xl font-black font-mono ${filteredData.trirNum > targets.trirMax ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.trir}</span><span className="text-[9px] font-bold text-slate-400 mb-1">/ 200K HRS</span></div>
+      <div>
+        <div className="flex items-center gap-2 border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-4 print:border-black">
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
+            Lagging Indicators (Historical & Exposure Data)
+          </h2>
         </div>
-        <div className={`p-5 rounded-[4px] border-2 transition-colors ${filteredData.totalLti > targets.ltiMax ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'}`}>
-          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Lost Time Injury (LTI)</p>
-          <div className="flex items-end gap-2"><span className={`text-3xl xl:text-4xl font-black font-mono ${filteredData.totalLti > targets.ltiMax ? 'text-rose-600 dark:text-rose-500' : 'text-emerald-600 dark:text-emerald-500'}`}>{filteredData.totalLti}</span><span className="text-[9px] font-bold text-slate-400 mb-1">CASES</span></div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4">
+          <div className={`p-5 rounded-[4px] border-2 print:border-black transition-colors ${filteredData.trirNum > targets.trirMax ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">TRIR (Total Recordable Incident Rate)</p>
+            <div className="flex items-end gap-2"><span className={`text-3xl xl:text-4xl font-black font-mono ${filteredData.trirNum > targets.trirMax ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.trir}</span><span className="text-[9px] font-bold text-slate-400 mb-1">/ 200K HRS</span></div>
+          </div>
+          <div className={`p-5 rounded-[4px] border-2 print:border-black transition-colors ${filteredData.totalLti > targets.ltiMax ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'}`}>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Lost Time Injury (LTI)</p>
+            <div className="flex items-end gap-2"><span className={`text-3xl xl:text-4xl font-black font-mono ${filteredData.totalLti > targets.ltiMax ? 'text-rose-600 dark:text-rose-500' : 'text-emerald-600 dark:text-emerald-500'}`}>{filteredData.totalLti}</span><span className="text-[9px] font-bold text-slate-400 mb-1">CASES</span></div>
+          </div>
+          <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Active Man-Days</p>
+            <div className="flex items-end gap-2"><span className="text-3xl xl:text-4xl font-black font-mono text-slate-900 dark:text-white">{filteredData.totalManDays.toLocaleString('en-US')}</span><span className="text-[9px] font-bold text-slate-400 mb-1">DAYS</span></div>
+          </div>
+          <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Man-Hours</p>
+            <div className="flex items-end gap-2"><span className="text-3xl xl:text-4xl font-black font-mono text-slate-900 dark:text-white">{filteredData.totalManHours.toLocaleString('en-US')}</span><span className="text-[9px] font-bold text-slate-400 mb-1">HOURS</span></div>
+          </div>
         </div>
-        <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px]">
-          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Active Man-Days</p>
-          <div className="flex items-end gap-2"><span className="text-3xl xl:text-4xl font-black font-mono text-slate-900 dark:text-white">{filteredData.totalManDays.toLocaleString('en-US')}</span><span className="text-[9px] font-bold text-slate-400 mb-1">DAYS</span></div>
+      </div>
+
+      {/* LEADING INDICATORS (LIVE SYNC DARI MODUL HAZARD REPORT) */}
+      <div className="mt-6">
+        <div className="flex justify-between items-center border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-4 print:border-black">
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
+            Leading Indicators (Live Field Sync)
+          </h2>
+          <Link href="/hazard-report" className="text-[9px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest hover:underline print:hidden">
+            Buka Register Temuan &rarr;
+          </Link>
         </div>
-        <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px]">
-          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Man-Hours</p>
-          <div className="flex items-end gap-2"><span className="text-3xl xl:text-4xl font-black font-mono text-slate-900 dark:text-white">{filteredData.totalManHours.toLocaleString('en-US')}</span><span className="text-[9px] font-bold text-slate-400 mb-1">HOURS</span></div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4">
+          <div className={`p-5 rounded-[4px] border-2 print:border-black transition-colors ${activeOpenHazards > 0 ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800' : 'bg-white dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800'}`}>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Open & On-Progress Hazards</p>
+            <div className="flex items-end gap-2">
+              <span className={`text-3xl xl:text-4xl font-black font-mono ${activeOpenHazards > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>{activeOpenHazards}</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1">ACTIVE CASES</span>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] print:border-black">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">CAPA Closure Rate</p>
+            <div className="flex items-end gap-2">
+              <span className="text-3xl xl:text-4xl font-black font-mono text-teal-600 dark:text-teal-400">{liveCapaRate}%</span>
+              <span className="text-[9px] font-bold text-slate-400 mb-1">({closedHazardsCount}/{liveHazards.length} CLOSED)</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-100 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] opacity-60 print:border-black">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">TBM Compliance (Coming Soon)</p>
+            <span className="text-3xl font-black font-mono text-slate-400">-%</span>
+          </div>
+
+          <div className="bg-slate-100 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-800 p-5 rounded-[4px] opacity-60 print:border-black">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">SIO / SILO Validity (Coming Soon)</p>
+            <span className="text-3xl font-black font-mono text-slate-400">-%</span>
+          </div>
         </div>
       </div>
 
@@ -585,25 +739,39 @@ export default function KpiDashboardPage() {
         <TrendLineChart title={`4. Rasio Insiden / TRIR (${selectedDeptFilter})`} data={filteredData.chartMonthlyTrir} criticalTargets={filteredData.maxTrirTargets} labels={filteredData.chartLabels} unit="TRIR" decimals={2} limitMode="SINGLE_MAX" isMultiYear={selectedYear === 'ALL'} onOpenInfo={() => setActiveInfoModal('TRIR')} lang={lang} />
       </div>
 
+      {/* PRINT SIGNATURES */}
+      <div className="hidden print:grid grid-cols-2 gap-12 pt-12 mt-12 border-t-4 border-black text-black">
+        <div className="text-center border-2 border-black p-4">
+          <p className="text-[9px] font-black uppercase tracking-widest mb-20">Dianalisa Oleh (HSE Supervisor):</p>
+          <div className="w-3/4 mx-auto border-b-2 border-black"></div>
+          <p className="text-[10px] font-black mt-2 uppercase">HSE Supervisor</p>
+        </div>
+        <div className="text-center border-2 border-black p-4 bg-gray-100">
+          <p className="text-[9px] font-black uppercase tracking-widest mb-20">Diketahui Oleh (Director):</p>
+          <div className="w-3/4 mx-auto border-b-2 border-black"></div>
+          <p className="text-[10px] font-black mt-2 uppercase">Director</p>
+        </div>
+      </div>
+
       {/* INPUT DATABASE & TABEL (RAW DATA) */}
-      <div className="mt-12 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-[4px] p-5">
+      <div className="mt-12 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-[4px] p-5 print:hidden">
         <p className="text-[9px] font-black mb-4 text-slate-700 dark:text-slate-300 uppercase">Input & Log Histori Mentah</p>
         <form onSubmit={handleAddNewRecord} className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-11 gap-3 items-end">
           <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">Tahun</label><input type="number" value={inputYear} onChange={e=>setInputYear(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
           <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">Bulan</label><input type="number" value={inputMonth} min={1} max={12} onChange={e=>setInputMonth(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
-          <div className="col-span-2"><label className="block text-[8px] font-black text-teal-600 uppercase mb-1">Departemen</label><select value={inputDept} onChange={e=>setInputDept(e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px] cursor-pointer">{DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}</select></div>
+          <div className="col-span-2"><label className="block text-[8px] font-black text-teal-600 uppercase mb-1">Departemen</label><select value={inputDept} onChange={e=>setInputDept(e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]">{DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}</select></div>
           <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">H-Count</label><input type="number" value={inputHeadcount} onChange={e=>setInputHeadcount(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
           <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">M-Days</label><input type="number" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
           <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">M-Hours</label><input type="number" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
           <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">LTI</label><input type="number" value={inputLti} onChange={e=>setInputLti(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
           <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">Incidents</label><input type="number" value={inputIncidents} onChange={e=>setInputIncidents(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
           <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">Hazards</label><input type="number" value={inputHazards} onChange={e=>setInputHazards(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
-          <div><button type="submit" disabled={inputManHours==='' || inputManDays==='' || inputHeadcount===''} className="w-full py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-[9px] font-black uppercase rounded-[2px] h-[30px] disabled:opacity-50 cursor-pointer">Save</button></div>
+          <div><button type="submit" disabled={inputManHours==='' || inputManDays==='' || inputHeadcount===''} className="w-full py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-[9px] font-black uppercase rounded-[2px] h-[30px] disabled:opacity-50">Save</button></div>
         </form>
 
         <div className="mt-6 flex gap-1.5 border-b border-slate-300 dark:border-slate-700 pb-2">
           {availableYears.map(yr => (
-            <button key={yr} onClick={() => { setTableYearTab(yr); setEditingCell(null) }} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-[2px] border cursor-pointer ${tableYearTab === yr ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border-slate-300'}`}>{yr}</button>
+            <button type="button" key={yr} onClick={() => { setTableYearTab(yr); setEditingCell(null) }} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-[2px] border ${tableYearTab === yr ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border-slate-300'}`}>{yr}</button>
           ))}
         </div>
 
@@ -628,7 +796,7 @@ export default function KpiDashboardPage() {
                 const renderCell = (field: EditableField, val: number) => {
                   const isEditing = editingCell?.id === r.id && editingCell?.field === field
                   if (isEditing) return <input type="number" autoFocus value={cellDraftValue} onChange={e => setCellDraftValue(e.target.value)} onBlur={commitCellEdit} onKeyDown={e => e.key === 'Enter' && commitCellEdit()} className="w-16 px-1 py-0.5 text-[10px] font-mono border-2 border-teal-500 rounded-[2px]" />
-                  return <button type="button" onClick={() => startCellEdit(r, field)} className="text-left font-mono px-1 py-0.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-[2px] cursor-pointer">{val.toLocaleString('en-US')}</button>
+                  return <button type="button" onClick={() => startCellEdit(r, field)} className="text-left font-mono px-1 py-0.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-[2px]">{val.toLocaleString('en-US')}</button>
                 }
                 return (
                   <tr key={r.id} className="hover:bg-white/60 dark:hover:bg-slate-950/60">
@@ -641,7 +809,7 @@ export default function KpiDashboardPage() {
                     <td className="py-1.5 px-3">{renderCell('spills', r.spills)}</td>
                     <td className="py-1.5 px-3 text-rose-600">{renderCell('recordableIncidents', r.recordableIncidents)}</td>
                     <td className="py-1.5 px-3">{renderCell('hazardReports', r.hazardReports)}</td>
-                    <td className="py-1.5 px-3 text-center"><button type="button" aria-label="Hapus Baris" onClick={() => handleDeleteRecord(r.id)} className="text-slate-400 hover:text-rose-600 cursor-pointer">[X]</button></td>
+                    <td className="py-1.5 px-3 text-center"><button type="button" aria-label="Hapus Baris" onClick={() => handleDeleteRecord(r.id)} className="text-slate-400 hover:text-rose-600">[X]</button></td>
                   </tr>
                 )
               })}
@@ -656,7 +824,7 @@ export default function KpiDashboardPage() {
           <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 p-6 rounded-[4px] max-w-2xl w-full" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start border-b-2 border-slate-200 dark:border-slate-800 pb-4 mb-4">
               <h3 className="text-sm font-black uppercase tracking-widest text-teal-700 dark:text-teal-500">PANDUAN METRIK</h3>
-              <button onClick={() => setActiveInfoModal(null)} aria-label="Tutup Panduan" className="text-slate-400 hover:text-rose-500 cursor-pointer">[X]</button>
+              <button type="button" onClick={() => setActiveInfoModal(null)} aria-label="Tutup Panduan" className="text-slate-400 hover:text-rose-500">[X]</button>
             </div>
             <div className="space-y-4 text-xs font-bold text-slate-700 dark:text-slate-300">
               <p>Grafik menampilkan data spesifik berdasarkan Departemen yang dipilih. Garis peringatan otomatis dihitung menggunakan jumlah orang nyata di departemen tersebut.</p>
