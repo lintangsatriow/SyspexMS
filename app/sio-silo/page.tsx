@@ -19,8 +19,8 @@ interface K3ComplianceRecord {
   issuer: string
 }
 
-const WARNING_DAYS = 90  // Oranye: Mulai persiapan administrasi PJK3 (<= 90 hari)
-const CRITICAL_DAYS = 60 // Merah: Kritis birokrasi Kemnaker (<= 60 hari)
+const WARNING_DAYS = 90
+const CRITICAL_DAYS = 60
 
 const PERMIT_LABELS: Record<PermitType, { short: string; full: string; badgeCls: string }> = {
   SIO: {
@@ -196,6 +196,13 @@ const getPermitStatus = (expiryDateStr: string): { status: ComputedStatus; daysL
   return { status: 'VALID', daysLeft }
 }
 
+const formatIcsDate = (dateObj: Date): string => {
+  const y = dateObj.getFullYear()
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const d = String(dateObj.getDate()).padStart(2, '0')
+  return `${y}${m}${d}`
+}
+
 export default function K3ComplianceRegisterPage() {
   const { lang } = useLanguage()
   const formId = useId()
@@ -250,6 +257,92 @@ export default function K3ComplianceRegisterPage() {
     setRecords(updated)
     localStorage.setItem('syspex_sio_db', JSON.stringify(updated))
     window.dispatchEvent(new Event('syspex_hse_sync'))
+  }
+
+  // --- EXPORT JADWAL REMINDER KE KALENDER (.ICS) ---
+  const handleExportCalendarIcs = () => {
+    const datedRecords = records.filter(r => r.expiryDate && r.expiryDate !== 'LIFETIME')
+    if (datedRecords.length === 0) {
+      setImportBanner({
+        type: 'ERROR',
+        text: lang === 'ID'
+          ? 'Tidak ada dokumen dengan tanggal kedaluwarsa untuk diekspor ke kalender.'
+          : 'No dated permits found to export to calendar.'
+      })
+      return
+    }
+
+    const nowStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const lines: string[] = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Syspex Management System//K3 Compliance Reminder//ID',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH'
+    ]
+
+    datedRecords.forEach(rec => {
+      const exp = new Date(rec.expiryDate)
+      if (isNaN(exp.getTime())) return
+      const catLabel = PERMIT_LABELS[rec.permitType]?.short || rec.permitType
+
+      // Event 1: Peringatan H-90 (Persiapan Berkas PJK3)
+      const warn90Date = new Date(exp.getTime() - 90 * 86400000)
+      const nextWarn90 = new Date(warn90Date.getTime() + 86400000)
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${rec.id}-H90@syspexms.local`,
+        `DTSTAMP:${nowStamp}`,
+        `DTSTART;VALUE=DATE:${formatIcsDate(warn90Date)}`,
+        `DTEND;VALUE=DATE:${formatIcsDate(nextWarn90)}`,
+        `SUMMARY:[H-90 WARNING] Perpanjangan ${catLabel}: ${rec.holderOrAssetName}`,
+        `DESCRIPTION:Persiapan berkas perpanjangan ${catLabel} (${rec.equipmentClass}) milik ${rec.holderOrAssetName}. No Dokumen: ${rec.certificateNo}. Kedaluwarsa pada ${rec.expiryDate}.`,
+        'BEGIN:VALARM',
+        'TRIGGER:-PT9H',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:Reminder H-90 ${catLabel} - ${rec.holderOrAssetName}`,
+        'END:VALARM',
+        'END:VEVENT'
+      )
+
+      // Event 2: Peringatan H-60 (Kritis Birokrasi Kemnaker)
+      const crit60Date = new Date(exp.getTime() - 60 * 86400000)
+      const nextCrit60 = new Date(crit60Date.getTime() + 86400000)
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${rec.id}-H60@syspexms.local`,
+        `DTSTAMP:${nowStamp}`,
+        `DTSTART;VALUE=DATE:${formatIcsDate(crit60Date)}`,
+        `DTEND;VALUE=DATE:${formatIcsDate(nextCrit60)}`,
+        `SUMMARY:[H-60 CRITICAL] Segera Proses ${catLabel}: ${rec.holderOrAssetName}`,
+        `DESCRIPTION:Batas kritis 60 hari sebelum habis masa berlaku (${rec.expiryDate}) untuk ${rec.holderOrAssetName} - ${rec.equipmentClass}.`,
+        'BEGIN:VALARM',
+        'TRIGGER:-PT9H',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:CRITICAL H-60 ${catLabel} - ${rec.holderOrAssetName}`,
+        'END:VALARM',
+        'END:VEVENT'
+      )
+    })
+
+    lines.push('END:VCALENDAR')
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'Syspex_K3_Reminder_Kalender.ics'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    setImportBanner({
+      type: 'SUCCESS',
+      text: lang === 'ID'
+        ? `FILE KALENDER (.ICS) BERISI ${datedRecords.length * 2} ALARM PENGINGAT (H-90 & H-60) BERHASIL DIUNDUH.`
+        : `CALENDAR FILE (.ICS) WITH ${datedRecords.length * 2} ALARMS (H-90 & H-60) DOWNLOADED.`
+    })
   }
 
   const handleDownloadTemplate = () => {
@@ -494,6 +587,7 @@ export default function K3ComplianceRegisterPage() {
       breadcrumb: "Manajemen & ISO / SMK3",
       title: "Register Lisensi K3 & Riksa Uji",
       subtitle: "Pemantauan terpadu SIO Operator, SKP Ahli/Pengawas, Sertifikat BNSP, SILO/Suket K3, dan Hasil Riksa Uji PJK3 (Oranye ≤90 Hari • Merah ≤60 Hari).",
+      btn_calendar: "Alarm Kalender (.ics)",
       btn_import: "Import Excel (.xlsx)",
       btn_template: "Template Excel",
       btn_print: "Cetak Register",
@@ -525,6 +619,7 @@ export default function K3ComplianceRegisterPage() {
       breadcrumb: "Management & ISO / SMK3",
       title: "K3 Licenses & Riksa Uji Register",
       subtitle: "Unified tracking for Operator SIO, K3 Specialist SKP, BNSP Certificates, Equipment SILO/Suket, and PJK3 Inspection Reports (Orange ≤90D • Red ≤60D).",
+      btn_calendar: "Calendar Alarms (.ics)",
       btn_import: "Import Excel (.xlsx)",
       btn_template: "Excel Template",
       btn_print: "Print Register",
@@ -558,7 +653,7 @@ export default function K3ComplianceRegisterPage() {
   if (!mounted) return null
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-16 w-full">
       <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} className="hidden" aria-label="Upload Excel Lisensi K3" />
 
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
@@ -570,6 +665,17 @@ export default function K3ComplianceRegisterPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportCalendarIcs}
+              disabled={records.length === 0}
+              className="px-3 py-2 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-800 rounded-[4px] text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {t.btn_calendar}
+            </button>
             <button
               type="button"
               onClick={handleDownloadTemplate}
@@ -628,7 +734,7 @@ export default function K3ComplianceRegisterPage() {
         </div>
       </div>
 
-      {/* 5 KARTU INDIKATOR KEPATUHAN (VALID / ORANGE <=90D / RED <=60D / EXPIRED) */}
+      {/* 5 KARTU INDIKATOR KEPATUHAN */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 print:grid-cols-5">
         <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 rounded-[4px] print:border-black">
           <span className="block text-[8px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 print:text-black">COMPLIANCE VALIDITY</span>
@@ -646,7 +752,6 @@ export default function K3ComplianceRegisterPage() {
           <span className="text-[8px] font-bold text-slate-400 uppercase">KLIK UNTUK FILTER</span>
         </button>
 
-        {/* ORANGE WARNING: 61 - 90 HARI */}
         <button
           type="button"
           onClick={() => setStatusFilter(statusFilter === 'WARNING_90' ? 'ALL' : 'WARNING_90')}
@@ -663,7 +768,6 @@ export default function K3ComplianceRegisterPage() {
           <span className="text-[8px] font-bold text-orange-700/70 dark:text-orange-300/70 uppercase">SIAPKAN BERKAS PJK3</span>
         </button>
 
-        {/* RED CRITICAL: <= 60 HARI */}
         <button
           type="button"
           onClick={() => setStatusFilter(statusFilter === 'CRITICAL_60' ? 'ALL' : 'CRITICAL_60')}
@@ -680,7 +784,6 @@ export default function K3ComplianceRegisterPage() {
           <span className="text-[8px] font-bold text-rose-700/80 dark:text-rose-300/80 uppercase">PROSES SEGERA</span>
         </button>
 
-        {/* EXPIRED: <= 0 HARI */}
         <button
           type="button"
           onClick={() => setStatusFilter(statusFilter === 'EXPIRED' ? 'ALL' : 'EXPIRED')}
