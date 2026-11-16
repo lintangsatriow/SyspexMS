@@ -85,7 +85,8 @@ export default function HomePage() {
       headline_2: "ZERO-HARM GOVERNANCE.",
       desc: "Integrated workplace governance. Bridging statutory compliance, structural integrity, and executive visibility.",
       btn_kpi: "KPI Dashboard",
-      btn_ai: "AI Copilot",
+      btn_hazard: "Report Hazard",
+      btn_ai: "AI Copilot (Soon)",
       rules_title: "SYSPEX SAFETY RULES",
       alert_title: "HSE ACTION REMINDER",
       alert_sio: "K3 Licenses & Riksa Uji",
@@ -105,7 +106,8 @@ export default function HomePage() {
       headline_2: "TATA KELOLA NIR-INSIDEN.",
       desc: "Tata kelola K3L terintegrasi. Menjembatani kepatuhan regulasi Kemenaker, integritas struktural, dan visibilitas eksekutif.",
       btn_kpi: "Dasbor KPI",
-      btn_ai: "AI Copilot",
+      btn_hazard: "Lapor Bahaya",
+      btn_ai: "AI Copilot (Soon)",
       rules_title: "ATURAN KESELAMATAN INTI SYSPEX",
       alert_title: "PENGINGAT TINDAK LANJUT K3",
       alert_sio: "Lisensi K3 & Riksa Uji",
@@ -127,7 +129,7 @@ export default function HomePage() {
   const icons = [
     <path key={1} strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />,
     <path key={2} strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
-    <path key={3} strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />,
+    <path key={3} strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a1 1 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />,
     <path key={4} strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10M13 8h4.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16h-2" />,
     <path key={5} strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
     <path key={6} strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -152,13 +154,22 @@ export default function HomePage() {
           {t.desc}
         </p>
 
-        <div className="flex flex-wrap items-center gap-4 mt-10">
-          <Link href="/executive-report" className="px-8 py-3 min-h-[44px] bg-teal-600 hover:bg-teal-500 text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] transition-colors flex items-center gap-2 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 mt-10">
+          <Link href="/executive-report" className="px-7 py-3 min-h-[44px] bg-teal-600 hover:bg-teal-500 text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] transition-colors flex items-center gap-2 shadow-sm">
             {t.btn_kpi}
           </Link>
-          <Link href="/ai-assistant" className="px-8 py-3 min-h-[44px] bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] transition-colors flex items-center gap-2 shadow-sm">
-            <span className="w-1.5 h-1.5 bg-cyan-600 dark:bg-cyan-500"></span> {t.btn_ai}
+          <Link href="/hazard-report" className="px-7 py-3 min-h-[44px] bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] transition-colors flex items-center gap-2 shadow-sm">
+            {t.btn_hazard}
           </Link>
+          {/* TODO: Aktifkan tautan ke /ai-assistant setelah modul AI Copilot selesai dibangun */}
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            className="px-6 py-3 min-h-[44px] bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-[4px] flex items-center gap-2 cursor-not-allowed"
+          >
+            <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-600"></span> {t.btn_ai}
+          </button>
         </div>
       </div>
 
