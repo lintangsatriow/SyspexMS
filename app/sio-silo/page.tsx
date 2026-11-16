@@ -15,7 +15,7 @@ interface SioSiloRecord {
   holderOrAssetName: string
   equipmentClass: string
   department: string
-  expiryDate: string // Format: YYYY-MM-DD
+  expiryDate: string
   issuer: string
 }
 
@@ -37,12 +37,11 @@ const INITIAL_RECORDS: SioSiloRecord[] = [
     holderOrAssetName: 'Forklift Counterbalance Toyota #01',
     equipmentClass: 'Pesawat Angkat & Angkut (3.5 Ton)',
     department: 'Operation',
-    expiryDate: new Date(Date.now() + 18 * 86400000).toISOString().split('T')[0], // Simulasi < 30 hari
+    expiryDate: new Date(Date.now() + 18 * 86400000).toISOString().split('T')[0],
     issuer: 'Disnakertrans Banten'
   }
 ]
 
-// Parser Tanggal Excel (Serial Number, ISO YYYY-MM-DD, maupun DD/MM/YYYY)
 const parseExcelExpiryDate = (rawVal: unknown): string | null => {
   if (rawVal === null || rawVal === undefined || rawVal === '') return null
 
@@ -97,13 +96,11 @@ export default function SioSiloPage() {
   const [todayDate, setTodayDate] = useState('')
   const [records, setRecords] = useState<SioSiloRecord[]>([])
 
-  // Filter & Search States
   const [typeFilter, setTypeFilter] = useState<'ALL' | PermitType>('ALL')
   const [statusFilter, setStatusFilter] = useState<'ALL' | ComputedStatus>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [importBanner, setImportBanner] = useState<{ type: 'SUCCESS' | 'ERROR'; text: string } | null>(null)
 
-  // Manual Form States
   const [permitType, setPermitType] = useState<PermitType>('SIO')
   const [certificateNo, setCertificateNo] = useState('')
   const [holderOrAssetName, setHolderOrAssetName] = useState('')
@@ -130,7 +127,6 @@ export default function SioSiloPage() {
     window.dispatchEvent(new Event('syspex_hse_sync'))
   }
 
-  // --- DOWNLOAD TEMPLATE EXCEL ---
   const handleDownloadTemplate = () => {
     const templateRows = [
       {
@@ -158,7 +154,6 @@ export default function SioSiloPage() {
     XLSX.writeFile(wb, 'Template_Import_SIO_SILO_Syspex.xlsx')
   }
 
-  // --- IMPORT EXCEL (.XLSX / .CSV) ---
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -193,9 +188,7 @@ export default function SioSiloPage() {
         }
       }
 
-      if (headerIdx === -1) {
-        throw new Error('Header tidak ditemukan')
-      }
+      if (headerIdx === -1) throw new Error('Header tidak ditemukan')
 
       const importedItems: SioSiloRecord[] = []
       for (let r = headerIdx + 1; r < rows.length; r++) {
@@ -230,25 +223,18 @@ export default function SioSiloPage() {
         })
       }
 
-      if (importedItems.length === 0) {
-        throw new Error('Tidak ada baris valid')
-      }
+      if (importedItems.length === 0) throw new Error('Tidak ada baris valid')
 
-      // Gabungkan berdasarkan Nomor Sertifikat (update jika sudah ada, tambah jika baru)
-      const existingMap = new Map<string, SioSiloRecord>()
-      records.forEach(rec => existingMap.set(`${rec.permitType}-${rec.certificateNo.toLowerCase()}`, rec))
-      importedItems.forEach(imp => {
-        const key = `${imp.permitType}-${imp.certificateNo.toLowerCase()}`
-        const prev = existingMap.get(key)
-        existingMap.set(key, prev ? { ...imp, id: prev.id } : imp)
-      })
-
-      saveRecords(Array.from(existingMap.values()))
+      // Langsung ganti database dengan data master dari file Excel terbaru agar bersih dari data contoh
+      saveRecords(importedItems)
+      setTypeFilter('ALL')
+      setStatusFilter('ALL')
+      setSearchQuery('')
       setImportBanner({
         type: 'SUCCESS',
         text: lang === 'ID'
-          ? `BERHASIL IMPORT ${importedItems.length} DATA SIO/SILO DARI "${file.name}" & TERSINKRON KE KPI.`
-          : `SUCCESSFULLY IMPORTED ${importedItems.length} SIO/SILO RECORDS FROM "${file.name}".`
+          ? `BERHASIL MEMUAT ${importedItems.length} DATA SIO/SILO DARI "${file.name}" & TERSINKRON KE KPI.`
+          : `SUCCESSFULLY LOADED ${importedItems.length} SIO/SILO RECORDS FROM "${file.name}".`
       })
     } catch {
       setImportBanner({
@@ -288,12 +274,11 @@ export default function SioSiloPage() {
     saveRecords(records.filter(r => r.id !== id))
   }
 
-  // Kalkulasi Kepatuhan Real-Time
   const enrichedRecords = useMemo(() => {
     return records.map(r => {
       const { status, daysLeft } = getPermitStatus(r.expiryDate)
       return { ...r, computedStatus: status, daysLeft }
-    }).sort((a, b) => a.daysLeft - b.daysLeft) // Urutkan dari yang paling mendekati kedaluwarsa
+    }).sort((a, b) => a.daysLeft - b.daysLeft)
   }, [records])
 
   const stats = useMemo(() => {
@@ -390,7 +375,6 @@ export default function SioSiloPage() {
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
       <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} className="hidden" aria-label="Upload Excel SIO SILO" />
 
-      {/* HEADER WEB */}
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-3">
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
@@ -444,7 +428,6 @@ export default function SioSiloPage() {
         <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest leading-relaxed max-w-3xl">{t.subtitle}</p>
       </div>
 
-      {/* HEADER CETAK DOKUMEN (PRINT) */}
       <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
@@ -458,7 +441,6 @@ export default function SioSiloPage() {
         </div>
       </div>
 
-      {/* KARTU INDIKATOR KEPATUHAN */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:grid-cols-4">
         <div className="p-4 bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 rounded-[4px] print:border-black">
           <span className="block text-[8px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 print:text-black">SIO / SILO VALIDITY</span>
@@ -479,7 +461,6 @@ export default function SioSiloPage() {
         </div>
       </div>
 
-      {/* 1. FORM INPUT MANUAL */}
       <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[4px] p-5 space-y-4 print:hidden">
         <h2 className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2">
           {t.form_title}
@@ -516,7 +497,6 @@ export default function SioSiloPage() {
         </form>
       </div>
 
-      {/* 2. REGISTER TABEL SIO & SILO */}
       <div className="bg-white dark:bg-[#0b0f19] rounded-[4px] p-5 border border-slate-200 dark:border-slate-800 print:border-none print:p-0 space-y-4">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3 print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
@@ -627,7 +607,6 @@ export default function SioSiloPage() {
           </table>
         </div>
 
-        {/* TANDA TANGAN DOKUMEN CETAK */}
         <div className="hidden print:grid grid-cols-2 gap-12 pt-12 mt-12 border-t-4 border-black">
           <div className="text-center border-2 border-black p-4">
             <p className="text-[9px] font-black text-black uppercase tracking-widest mb-20">{t.sign_hse}</p>
