@@ -57,8 +57,9 @@ export default function HazardReportPage() {
   const formId = useId()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [isQrPublicMode, setIsQrPublicMode] = useState(false)
   const [todayDate, setTodayDate] = useState<string>('')
-  const [publicReportUrl, setPublicReportUrl] = useState<string>('https://syspexms.vercel.app/hazard-report')
+  const [publicReportUrl, setPublicReportUrl] = useState<string>('https://syspexms.vercel.app/hazard-report?mode=qr')
   const [hazards, setHazards] = useState<HazardItem[]>([])
 
   const [statusFilter, setStatusFilter] = useState<'ALL' | Status>('ALL')
@@ -71,7 +72,7 @@ export default function HazardReportPage() {
   const [newReporter, setNewReporter] = useState('')
   const [newPhoto, setNewPhoto] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState<string>('')
-  const [submitSuccessBanner, setSubmitSuccessBanner] = useState<string>('')
+  const [submittedTicket, setSubmittedTicket] = useState<string>('')
   const [previewPhotoModal, setPreviewPhotoModal] = useState<string | null>(null)
   const [showQrModal, setShowQrModal] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
@@ -83,7 +84,9 @@ export default function HazardReportPage() {
     setMounted(true)
     setTodayDate(new Date().toISOString().split('T')[0])
     if (typeof window !== 'undefined') {
-      setPublicReportUrl(`${window.location.origin}/hazard-report`)
+      const params = new URLSearchParams(window.location.search)
+      setIsQrPublicMode(params.get('mode') === 'qr')
+      setPublicReportUrl(`${window.location.origin}/hazard-report?mode=qr`)
     }
     const saved = localStorage.getItem('syspex_hazard_db')
     if (saved) {
@@ -168,11 +171,7 @@ export default function HazardReportPage() {
     setNewRisk('MEDIUM')
     setNewCategory('UNSAFE_CONDITION')
     setNewPhoto(null)
-    setSubmitSuccessBanner(
-      lang === 'ID'
-        ? `Laporan berhasil dikirim dengan Nomor Tiket ${generatedId}. Terima kasih atas partisipasi K3 Anda.`
-        : `Report submitted under Ticket ${generatedId}. Thank you for your safety contribution.`
-    )
+    setSubmittedTicket(generatedId)
   }
 
   const handleCopyQrUrl = async () => {
@@ -213,23 +212,23 @@ export default function HazardReportPage() {
       
       p1_title: "1. Formulir Pelaporan Temuan Baru",
       p1_cat: "Kategori Temuan",
-      cat_uc: "HAZARD: Unsafe Condition (Kondisi Tidak Aman)",
-      cat_ua: "HAZARD: Unsafe Act (Tindakan Tidak Aman)",
-      cat_nm: "NEAR-MISS (Hampir Celaka)",
+      cat_uc: "Unsafe Condition (Kondisi Tidak Aman)",
+      cat_ua: "Unsafe Act (Tindakan Tidak Aman)",
+      cat_nm: "Near-Miss (Hampir Celaka)",
       p1_loc: "Lokasi Penemuan",
       p1_loc_ph: "Contoh: Warehouse B / Area Mesin Press",
-      p1_risk: "Tingkat Keparahan",
-      p1_reporter: "Nama Pelapor / Dept",
-      p1_reporter_ph: "Nama Anda (Opsional)",
-      p1_photo: "Bukti Foto Lokasi (Kamera / Galeri)",
-      btn_capture: "Ambil Foto / Upload Bukti",
+      p1_risk: "Tingkat Bahaya",
+      p1_reporter: "Nama Anda / Dept",
+      p1_reporter_ph: "Boleh dikosongkan (Anonim)",
+      p1_photo: "Bukti Foto Lokasi",
+      btn_capture: "Ambil Foto / Pilih Gambar",
       btn_retake: "Ganti Foto",
       btn_remove_photo: "Hapus",
-      p1_desc: "Deskripsi Temuan Lapangan",
-      p1_desc_ph: "Jelaskan kondisi atau kejadian secara singkat...",
-      p1_action: "Saran Tindakan Perbaikan Awal",
-      p1_action_ph: "Tindakan pengamanan awal di lokasi...",
-      btn_add: "Kirim Laporan Temuan",
+      p1_desc: "Apa yang Anda temukan?",
+      p1_desc_ph: "Jelaskan kondisi tidak aman atau kejadian hampir celaka...",
+      p1_action: "Saran Perbaikan Awal (Opsional)",
+      p1_action_ph: "Contoh: Sudah dipasang pembatas sementara...",
+      btn_add: "Kirim Laporan",
       
       p2_title: "2. Register & Kontrol Tindak Lanjut HSE",
       th_id: "ID / Waktu",
@@ -262,23 +261,23 @@ export default function HazardReportPage() {
       
       p1_title: "1. New Field Finding Form",
       p1_cat: "Finding Category",
-      cat_uc: "HAZARD: Unsafe Condition",
-      cat_ua: "HAZARD: Unsafe Act",
-      cat_nm: "NEAR-MISS (Close Call)",
+      cat_uc: "Unsafe Condition",
+      cat_ua: "Unsafe Act",
+      cat_nm: "Near-Miss (Close Call)",
       p1_loc: "Discovery Location",
       p1_loc_ph: "e.g. Warehouse B / Press Machine Area",
       p1_risk: "Severity Level",
-      p1_reporter: "Reporter Name / Dept",
-      p1_reporter_ph: "Your Name (Optional)",
-      p1_photo: "Location Photo Evidence (Camera / Gallery)",
+      p1_reporter: "Your Name / Dept",
+      p1_reporter_ph: "Optional (Anonymous)",
+      p1_photo: "Location Photo Evidence",
       btn_capture: "Capture Photo / Upload",
       btn_retake: "Change Photo",
       btn_remove_photo: "Remove",
-      p1_desc: "Field Finding Description",
-      p1_desc_ph: "Briefly describe the hazard or near-miss...",
-      p1_action: "Immediate Action / Suggested CAPA",
-      p1_action_ph: "Immediate containment or corrective action...",
-      btn_add: "Submit Finding Report",
+      p1_desc: "What did you observe?",
+      p1_desc_ph: "Briefly describe the unsafe condition or close call...",
+      p1_action: "Immediate Containment (Optional)",
+      p1_action_ph: "e.g. Placed temporary safety cone...",
+      btn_add: "Submit Report",
       
       p2_title: "2. Hazard Register & HSE Follow-Up Control",
       th_id: "ID / Time",
@@ -307,6 +306,217 @@ export default function HazardReportPage() {
   const t = dict[lang]
   if (!mounted) return null
 
+  // =========================================================================
+  // TAMPILAN KHUSUS USER UMUM SAAT SCAN QR CODE (/hazard-report?mode=qr)
+  // Hanya formulir bersih, ramah layar HP, tanpa tabel database perusahaan
+  // =========================================================================
+  if (isQrPublicMode) {
+    return (
+      <div className="max-w-lg mx-auto w-full py-2 pb-12 space-y-5 animate-in fade-in duration-300">
+        <div className="border-b-2 border-teal-600 pb-3">
+          <span className="text-[9px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400">
+            SYSPEX HSE • ZERO HARM
+          </span>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase mt-0.5">
+            {lang === 'ID' ? 'Lapor Bahaya & Near-Miss' : 'Report Hazard & Near-Miss'}
+          </h1>
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1">
+            {lang === 'ID'
+              ? 'Laporkan kondisi tidak aman atau kejadian hampir celaka di area kerja Anda.'
+              : 'Report unsafe conditions or close calls in your work area.'}
+          </p>
+        </div>
+
+        {submittedTicket ? (
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 rounded-[4px] p-6 text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-600 text-white font-black text-lg">
+              OK
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
+                {lang === 'ID' ? 'LAPORAN TERKIRIM' : 'REPORT SUBMITTED'}
+              </p>
+              <h2 className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1">
+                {submittedTicket}
+              </h2>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mt-2 leading-relaxed">
+                {lang === 'ID'
+                  ? 'Terima kasih telah menjaga keselamatan kerja. Tim HSE akan segera menindaklanjuti laporan Anda.'
+                  : 'Thank you for keeping our workplace safe. The HSE team will review your report promptly.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSubmittedTicket('')}
+              className="w-full py-3.5 min-h-[48px] bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-[4px] text-xs font-black uppercase tracking-widest"
+            >
+              {lang === 'ID' ? 'Kirim Laporan Baru' : 'Submit Another Report'}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleAddHazard} className="bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-[4px] p-5 space-y-4 shadow-sm">
+            {/* Tombol Pilihan Kategori Besar (Ramah Jempol HP) */}
+            <div>
+              <span className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2">
+                {t.p1_cat} *
+              </span>
+              <div className="grid grid-cols-1 gap-2">
+                {([
+                  { val: 'UNSAFE_CONDITION', label: t.cat_uc },
+                  { val: 'UNSAFE_ACT', label: t.cat_ua },
+                  { val: 'NEAR_MISS', label: t.cat_nm }
+                ] as const).map(opt => (
+                  <button
+                    key={opt.val}
+                    type="button"
+                    onClick={() => setNewCategory(opt.val)}
+                    className={`w-full text-left px-3.5 py-3 min-h-[44px] rounded-[4px] border-2 text-xs font-bold transition-colors ${
+                      newCategory === opt.val
+                        ? 'bg-teal-50 dark:bg-teal-950/50 border-teal-600 text-teal-900 dark:text-teal-200'
+                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor={`${formId}-qr-loc`} className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t.p1_loc} *
+              </label>
+              <input
+                id={`${formId}-qr-loc`}
+                type="text"
+                required
+                placeholder={t.p1_loc_ph}
+                value={newLoc}
+                onChange={(e) => setNewLoc(e.target.value)}
+                className="w-full px-3.5 py-3 min-h-[46px] bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[4px] text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor={`${formId}-qr-desc`} className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t.p1_desc} *
+              </label>
+              <textarea
+                id={`${formId}-qr-desc`}
+                required
+                rows={3}
+                placeholder={t.p1_desc_ph}
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                className="w-full px-3.5 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[4px] text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 resize-none"
+              />
+            </div>
+
+            {/* Tombol Kamera HP */}
+            <div>
+              <span className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t.p1_photo}
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoCapture}
+                className="hidden"
+                aria-label={t.p1_photo}
+              />
+              {!newPhoto ? (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full min-h-[52px] px-4 py-3 bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-600 rounded-[4px] text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2"
+                >
+                  <svg aria-hidden="true" className="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {t.btn_capture}
+                </button>
+              ) : (
+                <div className="space-y-2 p-2.5 bg-slate-50 dark:bg-slate-900 border border-teal-600 rounded-[4px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={newPhoto} alt="Preview foto lokasi" className="w-full max-h-48 object-cover rounded-[2px]" />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 py-2.5 min-h-[40px] bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[10px] font-black uppercase rounded-[2px]">
+                      {t.btn_retake}
+                    </button>
+                    <button type="button" onClick={() => setNewPhoto(null)} className="px-4 py-2.5 min-h-[40px] border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase rounded-[2px]">
+                      {t.btn_remove_photo}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {photoError && <p className="text-xs font-bold text-rose-600 mt-1">{photoError}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor={`${formId}-qr-risk`} className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t.p1_risk}
+                </label>
+                <select
+                  id={`${formId}-qr-risk`}
+                  value={newRisk}
+                  onChange={(e) => setNewRisk(e.target.value as RiskLevel)}
+                  className="w-full px-3 py-3 min-h-[46px] bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white"
+                >
+                  <option value="LOW">LOW (Rendah)</option>
+                  <option value="MEDIUM">MEDIUM (Sedang)</option>
+                  <option value="HIGH">HIGH (Tinggi)</option>
+                  <option value="CRITICAL">CRITICAL (Kritis)</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor={`${formId}-qr-rep`} className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t.p1_reporter}
+                </label>
+                <input
+                  id={`${formId}-qr-rep`}
+                  type="text"
+                  placeholder={t.p1_reporter_ph}
+                  value={newReporter}
+                  onChange={(e) => setNewReporter(e.target.value)}
+                  className="w-full px-3 py-3 min-h-[46px] bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor={`${formId}-qr-act`} className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t.p1_action}
+              </label>
+              <input
+                id={`${formId}-qr-act`}
+                type="text"
+                placeholder={t.p1_action_ph}
+                value={newAction}
+                onChange={(e) => setNewAction(e.target.value)}
+                className="w-full px-3.5 py-3 min-h-[46px] bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[4px] text-xs font-medium text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={!newLoc.trim() || !newDesc.trim()}
+              className="w-full py-4 min-h-[50px] bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-xs font-black uppercase tracking-widest disabled:opacity-40 transition-colors shadow-sm"
+            >
+              {t.btn_add}
+            </button>
+          </form>
+        )}
+      </div>
+    )
+  }
+
+  // =========================================================================
+  // TAMPILAN ADMIN HSE LENGKAP (REGISTER, CAPA, POSTER QR, CETAK)
+  // =========================================================================
   const openCount = hazards.filter(h => h.status === 'OPEN').length
   const progressCount = hazards.filter(h => h.status === 'ON_PROGRESS').length
   const closedCount = hazards.filter(h => h.status === 'CLOSED').length
@@ -338,7 +548,7 @@ export default function HazardReportPage() {
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 w-full">
       
       {/* HEADER WEB */}
-      <div className={`border-b border-slate-200 dark:border-slate-800 pb-4 transition-colors ${showQrModal ? 'print:hidden' : 'print:hidden'}`}>
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
           <Link href="/" className="hover:text-slate-900 dark:hover:text-white transition">HUB</Link>
           <span>/</span>
@@ -372,7 +582,7 @@ export default function HazardReportPage() {
         </div>
       </div>
 
-      {/* HEADER CETAK DOKUMEN REGISTER (HANYA MUNCUL JIKA BUKAN SEDANG CETAK POSTER QR) */}
+      {/* HEADER CETAK DOKUMEN REGISTER */}
       {!showQrModal && (
         <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
           <div className="flex justify-between items-end">
@@ -388,7 +598,6 @@ export default function HazardReportPage() {
         </div>
       )}
 
-      {/* KONTEN UTAMA HALAMAN (DISEMBUNYIKAN SAAT CETAK POSTER QR) */}
       <div className={showQrModal ? 'print:hidden space-y-6' : 'space-y-6'}>
         {/* HIERARCHICAL CAPA STATUS SUMMARY */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 print:hidden">
@@ -437,15 +646,16 @@ export default function HazardReportPage() {
           </div>
         </div>
 
-        {/* NOTIFIKASI SUKSES KIRIM LAPORAN LAPANGAN */}
-        {submitSuccessBanner && (
+        {submittedTicket && (
           <div role="status" className="p-4 bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-500 rounded-[4px] flex items-center justify-between gap-4 print:hidden">
-            <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">{submitSuccessBanner}</span>
-            <button type="button" onClick={() => setSubmitSuccessBanner('')} aria-label="Tutup pesan sukses" className="text-xs font-black text-emerald-700 dark:text-emerald-300 px-2 py-1">[X]</button>
+            <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+              {lang === 'ID' ? `Laporan berhasil disimpan dengan Nomor Tiket ${submittedTicket}.` : `Report saved under Ticket ${submittedTicket}.`}
+            </span>
+            <button type="button" onClick={() => setSubmittedTicket('')} aria-label="Tutup pesan sukses" className="text-xs font-black text-emerald-700 dark:text-emerald-300 px-2 py-1">[X]</button>
           </div>
         )}
 
-        {/* 1. FORMULIR INPUT BAHAYA & NEAR-MISS */}
+        {/* 1. FORMULIR INPUT ADMIN */}
         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[4px] p-5 sm:p-6 space-y-4 print:hidden transition-colors">
           <h2 className="text-xs font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2">
             {t.p1_title}
