@@ -23,7 +23,6 @@ export default function HazardReportPage() {
   const formId = useId()
   const [todayDate, setTodayDate] = useState<string>('')
   
-  // Dummy Initial Data
   const [hazards, setHazards] = useState<HazardItem[]>([
     {
       id: 'HZD-8831A',
@@ -47,7 +46,6 @@ export default function HazardReportPage() {
     }
   ])
 
-  // Form States
   const [newLoc, setNewLoc] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newRisk, setNewRisk] = useState<RiskLevel>('MEDIUM')
@@ -177,7 +175,7 @@ export default function HazardReportPage() {
           <button
             onClick={() => window.print()}
             disabled={hazards.length === 0}
-            className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed shrink-0"
+            className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition shadow-sm disabled:opacity-50 shrink-0"
           >
             {t.btn_print}
           </button>
@@ -210,7 +208,7 @@ export default function HazardReportPage() {
           </div>
           <div className="md:col-span-1">
             <label htmlFor={`${formId}-risk`} className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t.p1_risk}</label>
-            <select id={`${formId}-risk`} value={newRisk} onChange={(e) => setNewRisk(e.target.value as RiskLevel)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500 cursor-pointer">
+            <select id={`${formId}-risk`} value={newRisk} onChange={(e) => setNewRisk(e.target.value as RiskLevel)} className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-teal-500">
               <option value="LOW">LOW</option>
               <option value="MEDIUM">MEDIUM</option>
               <option value="HIGH">HIGH</option>
@@ -232,7 +230,7 @@ export default function HazardReportPage() {
           </div>
           
           <div className="md:col-span-4 flex justify-end">
-            <button type="submit" disabled={!newLoc.trim() || !newDesc.trim()} className="px-8 py-2.5 bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed">
+            <button type="submit" disabled={!newLoc.trim() || !newDesc.trim()} className="px-8 py-2.5 bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors">
               {t.btn_add}
             </button>
           </div>
@@ -250,7 +248,6 @@ export default function HazardReportPage() {
           </span>
         </div>
 
-        {/* Wrapper overflow-x-auto agar tabel tidak jebol di HP (R-03) */}
         <div className="overflow-x-auto border-2 border-slate-200 dark:border-slate-800 print:border-black rounded-[4px] print:rounded-none">
           <table className="w-full text-left text-xs min-w-[800px] print:min-w-0">
             <thead className="bg-slate-100 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 print:bg-white print:border-black print:text-black transition-colors">
@@ -298,12 +295,12 @@ export default function HazardReportPage() {
                     {hz.reporter}
                   </td>
                   <td className="py-3 px-3 border-l-2 border-slate-100 dark:border-slate-800/50 print:hidden space-y-2">
-                    <button aria-label={`Toggle status for ${hz.id}`} onClick={() => handleToggleStatus(hz.id)} className={`block w-full cursor-pointer text-center font-black px-1.5 py-1 text-[8px] uppercase tracking-widest border rounded-[2px] transition-colors ${
+                    <button aria-label={`Toggle status for ${hz.id}`} onClick={() => handleToggleStatus(hz.id)} className={`block w-full text-center font-black px-1.5 py-1 text-[8px] uppercase tracking-widest border rounded-[2px] transition-colors ${
                       hz.status === 'OPEN' ? 'text-emerald-600 dark:text-emerald-500 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30' : 'text-amber-600 dark:text-amber-500 border-amber-200 dark:border-amber-800/60 hover:bg-amber-50 dark:hover:bg-amber-950/30'
                     }`}>
                       {hz.status === 'OPEN' ? t.btn_close : t.btn_open}
                     </button>
-                    <button aria-label={`Delete ${hz.id}`} onClick={() => handleDelete(hz.id)} className="block w-full cursor-pointer text-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-black px-1.5 py-1 text-[8px] uppercase tracking-widest border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/60 rounded-[2px] transition-colors">
+                    <button aria-label={`Delete ${hz.id}`} onClick={() => handleDelete(hz.id)} className="block w-full text-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-black px-1.5 py-1 text-[8px] uppercase tracking-widest border border-slate-200 dark:border-slate-800 hover:border-rose-200 dark:hover:border-rose-900/60 rounded-[2px] transition-colors">
                       {t.btn_delete}
                     </button>
                   </td>
