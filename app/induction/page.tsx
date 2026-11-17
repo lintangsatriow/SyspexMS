@@ -34,7 +34,6 @@ export default function SafetyInductionPage() {
   const formId = useId()
   const [mounted, setMounted] = useState(false)
   const [isQrMode, setIsQrMode] = useState(false)
-  const [todayDate, setTodayDate] = useState<string>('')
 
   // Inductee Form States
   const [inducteeName, setInducteeName] = useState('')
@@ -91,15 +90,13 @@ export default function SafetyInductionPage() {
 
   useEffect(() => {
     setMounted(true)
-    setTodayDate(new Date().toISOString().split('T')[0])
 
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const qrActive = params.get('mode') === 'qr'
       setIsQrMode(qrActive)
-      setQrUrl(`${window.location.origin}/safety-induction?mode=qr`)
+      setQrUrl(`${window.location.origin}/induction?mode=qr`)
 
-      // Jika bukan mode QR (berarti Admin), muat log peserta dari Firestore
       if (!qrActive) {
         const q = query(collection(db, 'induction_records'), orderBy('createdAt', 'desc'))
         const unsub = onSnapshot(
@@ -141,10 +138,10 @@ export default function SafetyInductionPage() {
   }, [])
 
   const toggleTopic = (id: string) => {
-    setTopics(topics.map((t) => (t.id === id ? { ...t, isChecked: !t.isChecked } : t)))
+    setTopics(topics.map((tp) => (tp.id === id ? { ...tp, isChecked: !tp.isChecked } : tp)))
   }
 
-  const isAllChecked = topics.every((t) => t.isChecked)
+  const isAllChecked = topics.every((tp) => tp.isChecked)
   const isFormValid = Boolean(
     inducteeName.trim() &&
     inducteeId.trim() &&
@@ -295,13 +292,12 @@ export default function SafetyInductionPage() {
       sign_inductee: "Inductee Signature",
       sign_hse: "Verified By (HSE / HR Dept)"
     }
-  }[lang]
+  }
+
+  const t = dict[lang as keyof typeof dict] || dict.EN
 
   if (!mounted) return null
 
-  // =========================================================================
-  // TAMPILAN CETAK BERITA ACARA SATUAN (PRINT)
-  // =========================================================================
   if (printRecord) {
     return (
       <div className="bg-white text-black p-8 min-h-screen">
@@ -383,8 +379,6 @@ export default function SafetyInductionPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16 max-w-5xl mx-auto">
-      
-      {/* HEADER WEB */}
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
         {!isQrMode && (
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
@@ -417,9 +411,6 @@ export default function SafetyInductionPage() {
         </div>
       </div>
 
-      {/* ===================================================================== */}
-      {/* FORMULIR SELF-PACED INDUCTION (UNTUK KARYAWAN BARU / QR SCANNER)       */}
-      {/* ===================================================================== */}
       {submitSuccess ? (
         <div className="bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-600 rounded-[4px] p-6 sm:p-8 text-center space-y-4">
           <span className="inline-block px-3 py-1 bg-emerald-600 text-white text-[10px] font-black font-mono uppercase tracking-widest rounded-[2px]">
@@ -463,7 +454,6 @@ export default function SafetyInductionPage() {
             </div>
           )}
 
-          {/* 1. VIDEO ORIENTASI */}
           <div className="bg-white dark:bg-[#0b0f19] rounded-[4px] p-5 sm:p-6 border border-slate-200 dark:border-slate-800 space-y-4">
             <h2 className="text-[10px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2">
               {t.v_title}
@@ -516,7 +506,6 @@ export default function SafetyInductionPage() {
             </label>
           </div>
 
-          {/* 2. DATA PESERTA */}
           <div className="bg-white dark:bg-[#0b0f19] rounded-[4px] p-5 sm:p-6 border border-slate-200 dark:border-slate-800 space-y-4">
             <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2">
               {t.p1_title}
@@ -577,7 +566,6 @@ export default function SafetyInductionPage() {
             </div>
           </div>
 
-          {/* 3. CHECKLIST PEMAHAMAN MATERI */}
           <div className="bg-slate-50 dark:bg-[#0b0f19] rounded-[4px] p-5 sm:p-6 border border-slate-200 dark:border-slate-800 space-y-4">
             <h2 className="text-[10px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800 pb-2">
               {t.p2_title}
@@ -636,9 +624,6 @@ export default function SafetyInductionPage() {
         </form>
       )}
 
-      {/* ===================================================================== */}
-      {/* REGISTER ADMIN (HANYA TAMPIL JIKA BUKAN MODE QR PUBLIK)                */}
-      {/* ===================================================================== */}
       {!isQrMode && (
         <div className="bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-[4px] overflow-hidden print:hidden">
           <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -729,9 +714,6 @@ export default function SafetyInductionPage() {
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* MODAL POSTER QR ONBOARDING                                            */}
-      {/* ===================================================================== */}
       {showQrModal && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 print:static print:bg-white print:p-0">
           <div className="bg-white text-slate-900 border-4 border-slate-900 rounded-[4px] max-w-md w-full p-6 sm:p-8 text-center space-y-5 shadow-2xl print:border-black print:shadow-none">
