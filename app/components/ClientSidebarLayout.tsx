@@ -119,7 +119,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_1} <span className="text-[8px]">(Soon)</span></div>
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_2} <span className="text-[8px]">(Soon)</span></div>
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_3} <span className="text-[8px]">(Soon)</span></div>
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_4} <span className="text-[8px]">(Soon)</span></div>
+                <Link href="/jsa" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.tech_4}</Link>
               </div>
             )}
           </div>
