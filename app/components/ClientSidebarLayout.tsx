@@ -15,7 +15,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
   const [isQrMode, setIsQrMode] = useState(false)
   
   const [mgmtOpen, setMgmtOpen] = useState(true)
-  const [techOpen, setTechOpen] = useState(false)
+  const [techOpen, setTechOpen] = useState(true)
   const [opsOpen, setOpsOpen] = useState(true)
 
   useEffect(() => {
@@ -181,6 +181,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             <Link href="/executive-report" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.kpi}</Link>
             <Link href="/syspex-safety-rules" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">{t.ops_1}</Link>
             <Link href="/hazard-report" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_5}</Link>
+            <Link href="/jsa" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.tech_4}</Link>
             <Link href="/sio-silo" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.mgmt_3}</Link>
             
             <div className="pt-4 grid grid-cols-2 gap-2">
