@@ -100,7 +100,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             {opsOpen && (
               <div className="space-y-0.5 pl-3 border-l border-slate-300 dark:border-slate-800 ml-2">
                 <Link href="/syspex-safety-rules" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_1}</Link>
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.ops_4} <span className="text-[8px]">(Soon)</span></div>
+                <Link href="/safety-talk" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_4}</Link>
                 <Link href="/hazard-report" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_5}</Link>
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.ops_6} <span className="text-[8px]">(Soon)</span></div>
               </div>
