@@ -40,13 +40,13 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
     EN: {
       hub: "Main Hub", kpi: "KPI Dashboard", ai: "AI Copilot",
       cat_ops: "HSE & Operations", ops_1: "Syspex Safety Rules", ops_4: "Toolbox Talk (TBM)", ops_5: "Hazard & Near-Miss", ops_6: "Safety Induction",
-      cat_tech: "Work Control & Lifting", tech_3: "Lifting & Rigging", tech_4: "JSA Builder",
+      cat_tech: "Work Control & Lifting", tech_3: "Lifting & Rigging",
       cat_mgmt: "Management & ISO", mgmt_1: "ISO 9001 Doc Control", mgmt_2: "ISO 14001 Waste Log", mgmt_3: "K3 Licenses & Riksa Uji"
     },
     ID: {
       hub: "Beranda Utama", kpi: "Dasbor KPI", ai: "AI Copilot",
       cat_ops: "K3L & Operasional", ops_1: "Aturan Keselamatan", ops_4: "Safety Talk (TBM)", ops_5: "Pelaporan Bahaya", ops_6: "Induksi K3",
-      cat_tech: "Kontrol Pekerjaan", tech_3: "Rencana Lifting", tech_4: "Pembuat JSA",
+      cat_tech: "Kontrol Pekerjaan", tech_3: "Rencana Lifting",
       cat_mgmt: "Manajemen & ISO", mgmt_1: "Kontrol Dokumen", mgmt_2: "Limbah B3 & Lingkungan", mgmt_3: "Lisensi K3 & Riksa Uji"
     }
   }
@@ -115,7 +115,6 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             {techOpen && (
               <div className="space-y-0.5 pl-3 border-l border-slate-300 dark:border-slate-800 ml-2">
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_3} <span className="text-[8px]">(Soon)</span></div>
-                <Link href="/jsa" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.tech_4}</Link>
               </div>
             )}
           </div>
@@ -177,7 +176,6 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             <Link href="/executive-report" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.kpi}</Link>
             <Link href="/syspex-safety-rules" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">{t.ops_1}</Link>
             <Link href="/hazard-report" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_5}</Link>
-            <Link href="/jsa" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.tech_4}</Link>
             <Link href="/sio-silo" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.mgmt_3}</Link>
             
             <div className="pt-4 grid grid-cols-2 gap-2">
