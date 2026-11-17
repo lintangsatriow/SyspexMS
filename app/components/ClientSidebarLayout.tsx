@@ -39,14 +39,14 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
   const dict = {
     EN: {
       hub: "Main Hub", kpi: "KPI Dashboard", ai: "AI Copilot",
-      cat_ops: "HSE & Operations", ops_1: "Syspex Safety Rules", ops_2: "Forklift & MHE", ops_3: "LOTO Permit", ops_4: "Toolbox Talk (TBM)", ops_5: "Hazard & Near-Miss", ops_6: "Safety Induction",
-      cat_tech: "Technical Calculators", tech_1: "Scaffolding BoQ", tech_2: "Racking SWL", tech_3: "Lifting & Rigging", tech_4: "JSA Builder",
+      cat_ops: "HSE & Operations", ops_1: "Syspex Safety Rules", ops_4: "Toolbox Talk (TBM)", ops_5: "Hazard & Near-Miss", ops_6: "Safety Induction",
+      cat_tech: "Work Control & Lifting", tech_3: "Lifting & Rigging", tech_4: "JSA Builder",
       cat_mgmt: "Management & ISO", mgmt_1: "ISO 9001 Doc Control", mgmt_2: "ISO 14001 Waste Log", mgmt_3: "K3 Licenses & Riksa Uji"
     },
     ID: {
       hub: "Beranda Utama", kpi: "Dasbor KPI", ai: "AI Copilot",
-      cat_ops: "K3L & Operasional", ops_1: "Aturan Keselamatan", ops_2: "Inspeksi Forklift", ops_3: "Izin LOTO", ops_4: "Safety Talk (TBM)", ops_5: "Pelaporan Bahaya", ops_6: "Induksi K3",
-      cat_tech: "Kalkulator Teknis", tech_1: "Kalkulasi Scaffolding", tech_2: "Beban Maks. Racking", tech_3: "Rencana Lifting", tech_4: "Pembuat JSA",
+      cat_ops: "K3L & Operasional", ops_1: "Aturan Keselamatan", ops_4: "Safety Talk (TBM)", ops_5: "Pelaporan Bahaya", ops_6: "Induksi K3",
+      cat_tech: "Kontrol Pekerjaan", tech_3: "Rencana Lifting", tech_4: "Pembuat JSA",
       cat_mgmt: "Manajemen & ISO", mgmt_1: "Kontrol Dokumen", mgmt_2: "Limbah B3 & Lingkungan", mgmt_3: "Lisensi K3 & Riksa Uji"
     }
   }
@@ -100,8 +100,6 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             {opsOpen && (
               <div className="space-y-0.5 pl-3 border-l border-slate-300 dark:border-slate-800 ml-2">
                 <Link href="/syspex-safety-rules" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_1}</Link>
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.ops_2} <span className="text-[8px]">(Soon)</span></div>
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.ops_3} <span className="text-[8px]">(Soon)</span></div>
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.ops_4} <span className="text-[8px]">(Soon)</span></div>
                 <Link href="/hazard-report" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_5}</Link>
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.ops_6} <span className="text-[8px]">(Soon)</span></div>
@@ -116,10 +114,8 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             </button>
             {techOpen && (
               <div className="space-y-0.5 pl-3 border-l border-slate-300 dark:border-slate-800 ml-2">
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_1} <span className="text-[8px]">(Soon)</span></div>
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_2} <span className="text-[8px]">(Soon)</span></div>
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_3} <span className="text-[8px]">(Soon)</span></div>
-                <Link href="/jsa" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.tech_4}</Link>
+                <Link href="/jsa" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.tech_4}</Link>
               </div>
             )}
           </div>
