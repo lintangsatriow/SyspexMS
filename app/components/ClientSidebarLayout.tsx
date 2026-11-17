@@ -6,6 +6,13 @@ import { useLanguage } from '../LanguageContext'
 import { useTheme } from '../ThemeContext'
 import LogoutButton from './LogoutButton'
 
+interface NavItem {
+  labelEN: string
+  labelID: string
+  href?: string
+  soon?: boolean
+}
+
 export default function ClientSidebarLayout({ children }: { children: React.ReactNode }) {
   const { lang, setLang } = useLanguage()
   const { theme, setTheme } = useTheme()
@@ -35,22 +42,69 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
     )
   }
 
-  const dict = {
+  // =========================================================================
+  // PUSAT KENDALI MENU (OTOMATIS SINKRON KE DESKTOP & MOBILE DRAWER)
+  // =========================================================================
+  const opsMenu: NavItem[] = [
+    { labelEN: "Syspex Safety Rules", labelID: "Aturan Keselamatan", href: "/syspex-safety-rules" },
+    { labelEN: "Toolbox Talk (TBM)", labelID: "Safety Talk (TBM)", href: "/safety-talk" },
+    { labelEN: "Hazard & Near-Miss", labelID: "Pelaporan Bahaya", href: "/hazard-report" },
+    { labelEN: "Safety Induction", labelID: "Induksi K3", href: "/induction" },
+  ]
+
+  const techMenu: NavItem[] = [
+    { labelEN: "Lifting & Rigging", labelID: "Rencana Lifting", href: "/lifting-plan" },
+  ]
+
+  const mgmtMenu: NavItem[] = [
+    { labelEN: "ISO 9001 Doc Control", labelID: "Kontrol Dokumen", soon: true },
+    { labelEN: "ISO 14001 Waste Log", labelID: "Limbah B3 & Lingkungan", soon: true },
+    { labelEN: "K3 Licenses & Riksa Uji", labelID: "Lisensi K3 & Riksa Uji", href: "/sio-silo" },
+  ]
+
+  const labels = {
     EN: {
-      hub: "Main Hub", kpi: "HSE Performance Dashboard", ai: "AI Copilot",
-      cat_ops: "HSE & Operations", ops_1: "Syspex Safety Rules", ops_4: "Toolbox Talk (TBM)", ops_5: "Hazard & Near-Miss", ops_6: "Safety Induction",
-      cat_tech: "Work Control & Lifting", tech_3: "Lifting & Rigging",
-      cat_mgmt: "Management & ISO", mgmt_1: "ISO 9001 Doc Control", mgmt_2: "ISO 14001 Waste Log", mgmt_3: "K3 Licenses & Riksa Uji"
+      hub: "Main Hub",
+      kpi: "HSE Performance Dashboard",
+      ai: "AI Copilot",
+      cat_ops: "HSE & Operations",
+      cat_tech: "Work Control & Lifting",
+      cat_mgmt: "Management & ISO",
     },
     ID: {
-      hub: "Beranda Utama", kpi: "Dasbor KPI", ai: "AI Copilot",
-      cat_ops: "K3L & Operasional", ops_1: "Aturan Keselamatan", ops_4: "Safety Talk (TBM)", ops_5: "Pelaporan Bahaya", ops_6: "Induksi K3",
-      cat_tech: "Kontrol Pekerjaan", tech_3: "Rencana Lifting",
-      cat_mgmt: "Manajemen & ISO", mgmt_1: "Kontrol Dokumen", mgmt_2: "Limbah B3 & Lingkungan", mgmt_3: "Lisensi K3 & Riksa Uji"
+      hub: "Beranda Utama",
+      kpi: "Dasbor KPI",
+      ai: "AI Copilot",
+      cat_ops: "K3L & Operasional",
+      cat_tech: "Kontrol Pekerjaan",
+      cat_mgmt: "Manajemen & ISO",
     }
   }
 
-  const t = dict[lang as keyof typeof dict] || dict.EN
+  const t = labels[lang as keyof typeof labels] || labels.EN
+  const getLabel = (item: NavItem) => (lang === 'ID' ? item.labelID : item.labelEN)
+
+  const renderDesktopItems = (items: NavItem[]) =>
+    items.map((item, idx) =>
+      item.href ? (
+        <Link
+          key={idx}
+          href={item.href}
+          className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors"
+        >
+          {getLabel(item)}
+        </Link>
+      ) : (
+        <div
+          key={idx}
+          className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between"
+        >
+          {getLabel(item)} <span className="text-[8px]">(Soon)</span>
+        </div>
+      )
+    )
+
+  const allMobileActiveLinks = [...opsMenu, ...techMenu, ...mgmtMenu].filter((item) => Boolean(item.href))
 
   return (
     <>
@@ -66,6 +120,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
         </button>
       )}
 
+      {/* DESKTOP SIDEBAR */}
       <aside className={`hidden lg:flex flex-col bg-slate-50 dark:bg-[#0b0f19] border-r border-slate-200 dark:border-slate-800/60 p-5 shrink-0 h-screen sticky top-0 justify-between transition-all duration-300 ease-in-out z-40 print:hidden ${sidebarOpen ? 'w-64 xl:w-72 translate-x-0' : '-ml-64 xl:-ml-72 w-64 xl:w-72 -translate-x-full pointer-events-none'}`}>
         <div className="flex flex-col overflow-y-auto pr-2 space-y-6 custom-scrollbar">
           
@@ -96,10 +151,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             </button>
             {opsOpen && (
               <div className="space-y-0.5 pl-3 border-l border-slate-300 dark:border-slate-800 ml-2">
-                <Link href="/syspex-safety-rules" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_1}</Link>
-                <Link href="/safety-talk" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_4}</Link>
-                <Link href="/hazard-report" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_5}</Link>
-                <Link href="/induction" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.ops_6}</Link>
+                {renderDesktopItems(opsMenu)}
               </div>
             )}
           </div>
@@ -111,7 +163,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             </button>
             {techOpen && (
               <div className="space-y-0.5 pl-3 border-l border-slate-300 dark:border-slate-800 ml-2">
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.tech_3} <span className="text-[8px]">(Soon)</span></div>
+                {renderDesktopItems(techMenu)}
               </div>
             )}
           </div>
@@ -123,9 +175,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             </button>
             {mgmtOpen && (
               <div className="space-y-0.5 pl-3 border-l border-slate-300 dark:border-slate-800 ml-2">
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.mgmt_1} <span className="text-[8px]">(Soon)</span></div>
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-600 rounded-[2px] uppercase tracking-wider flex justify-between">{t.mgmt_2} <span className="text-[8px]">(Soon)</span></div>
-                <Link href="/sio-silo" className="block px-3 py-1.5 text-[10px] font-bold text-teal-600 dark:text-teal-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-[2px] uppercase tracking-wider transition-colors">{t.mgmt_3}</Link>
+                {renderDesktopItems(mgmtMenu)}
               </div>
             )}
           </div>
@@ -151,6 +201,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
         </div>
       </aside>
 
+      {/* MOBILE TOPBAR & DRAWER */}
       <div className="lg:hidden fixed top-0 inset-x-0 h-14 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between z-40 print:hidden">
         <Link href="/" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -170,11 +221,17 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
           <div className="lg:hidden fixed inset-x-0 top-14 bottom-0 z-50 bg-white dark:bg-slate-950 px-6 overflow-y-auto space-y-1 pb-20 shadow-2xl">
             <Link href="/" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">{t.hub}</Link>
             <Link href="/executive-report" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.kpi}</Link>
-            <Link href="/syspex-safety-rules" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">{t.ops_1}</Link>
-            <Link href="/safety-talk" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_4}</Link>
-            <Link href="/hazard-report" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_5}</Link>
-            <Link href="/induction" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_6}</Link>
-            <Link href="/sio-silo" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.mgmt_3}</Link>
+            
+            {allMobileActiveLinks.map((item, idx) => (
+              <Link
+                key={idx}
+                href={item.href!}
+                onClick={closeMobile}
+                className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800"
+              >
+                {getLabel(item)}
+              </Link>
+            ))}
             
             <div className="pt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setLang('EN')} className={`w-full py-3.5 text-[10px] font-black uppercase tracking-widest rounded-[4px] border ${lang === 'EN' ? 'bg-teal-600 text-white border-teal-600' : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-700'}`}>ENG</button>
