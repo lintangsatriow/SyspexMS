@@ -3,7 +3,7 @@
 import { useState, useEffect, useId, useRef } from 'react'
 import Link from 'next/link'
 import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, query, orderBy } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { db } from '@/app/lib/firebase'
 import { useLanguage } from '../LanguageContext'
 
 type JsaStatus = 'DRAFT' | 'APPROVED' | 'REJECTED'
