@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: "AIzaSyDHZ5G1Xm12QFcwNYhnwuI6tSolnvx7YFI",
@@ -11,8 +12,7 @@ const firebaseConfig = {
   measurementId: "G-29W5S1KC2Y"
 }
 
-// Inisialisasi Firebase (mencegah error inisialisasi ganda di Next.js)
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
 
-// Ekspor instance Firestore untuk digunakan di halaman lain
 export const db = getFirestore(app)
+export const auth = getAuth(app)
