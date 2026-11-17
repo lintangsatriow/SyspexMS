@@ -1,7 +1,7 @@
 "use client"
 
 import { signOut } from 'firebase/auth'
-import { auth } from '../lib/firebase' // Sesuaikan path jika posisinya berbeda
+import { auth } from './lib/firebase' // Sesuaikan path jika posisinya berbeda
 
 export default function LogoutButton() {
   const handleLogout = async () => {
