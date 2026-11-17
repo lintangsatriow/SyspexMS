@@ -167,7 +167,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
         </button>
       </div>
 
-      {mobileOpen && (<Link href="/safety-talk" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_4}</Link>
+      {mobileOpen && (
         <>
           <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={closeMobile} aria-hidden="true"></div>
           
@@ -175,6 +175,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
             <Link href="/" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">{t.hub}</Link>
             <Link href="/executive-report" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.kpi}</Link>
             <Link href="/syspex-safety-rules" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">{t.ops_1}</Link>
+            <Link href="/safety-talk" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_4}</Link>
             <Link href="/hazard-report" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_5}</Link>
             <Link href="/sio-silo" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.mgmt_3}</Link>
             
