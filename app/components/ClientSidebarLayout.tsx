@@ -167,7 +167,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
         </button>
       </div>
 
-      {mobileOpen && (
+      {mobileOpen && (<Link href="/safety-talk" onClick={closeMobile} className="block py-3.5 text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 border-b border-slate-200 dark:border-slate-800">{t.ops_4}</Link>
         <>
           <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={closeMobile} aria-hidden="true"></div>
           
