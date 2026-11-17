@@ -2,6 +2,8 @@
 
 import { useState, useId, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { db } from '../lib/firebase'
 import { useLanguage } from '../LanguageContext'
 
 type ReportCategory = 'UNSAFE_CONDITION' | 'UNSAFE_ACT' | 'NEAR_MISS'
@@ -21,36 +23,8 @@ interface HazardItem {
   reporter: string
   photoDataUrl?: string
   status: Status
+  createdAt?: number
 }
-
-const INITIAL_HAZARDS: HazardItem[] = [
-  {
-    id: 'HZD-8831A',
-    date: new Date().toISOString().split('T')[0],
-    time: '09:15',
-    category: 'UNSAFE_CONDITION',
-    location: 'Loading Dock Area B',
-    description: 'Tumpahan oli hidrolik dari forklift tidak dibersihkan, lantai sangat licin.',
-    riskLevel: 'HIGH',
-    suggestedAction: 'Tutup area dengan barikade, gunakan spill kit, panggil tim maintenance.',
-    hseNotes: 'Area sudah dipasang safety cone, menunggu tim maintenance cek seal hidrolik.',
-    reporter: 'Budi Prakoso',
-    status: 'ON_PROGRESS'
-  },
-  {
-    id: 'HZD-9912C',
-    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-    time: '14:30',
-    category: 'NEAR_MISS',
-    location: 'Rak Penyimpanan Lorong C',
-    description: 'Palet nyaris jatuh saat manuver reach truck karena baut pengunci kaki rak lepas.',
-    riskLevel: 'MEDIUM',
-    suggestedAction: 'Ganti baut dynabolt dan pasang kembali karet pelindung.',
-    hseNotes: 'Dynabolt baru sudah terpasang dan dikencangkan oleh tim GA.',
-    reporter: 'Siti Aminah',
-    status: 'CLOSED'
-  }
-]
 
 export default function HazardReportPage() {
   const { lang } = useLanguage()
@@ -58,6 +32,8 @@ export default function HazardReportPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [mounted, setMounted] = useState(false)
   const [isQrPublicMode, setIsQrPublicMode] = useState(false)
+  const [loadingDb, setLoadingDb] = useState(true)
+  const [dbError, setDbError] = useState<string>('')
   const [todayDate, setTodayDate] = useState<string>('')
   const [publicReportUrl, setPublicReportUrl] = useState<string>('https://syspexms.vercel.app/hazard-report?mode=qr')
   const [hazards, setHazards] = useState<HazardItem[]>([])
@@ -72,6 +48,7 @@ export default function HazardReportPage() {
   const [newReporter, setNewReporter] = useState('')
   const [newPhoto, setNewPhoto] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState<string>('')
+  const [submitting, setSubmitting] = useState(false)
   const [submittedTicket, setSubmittedTicket] = useState<string>('')
   const [previewPhotoModal, setPreviewPhotoModal] = useState<string | null>(null)
   const [showQrModal, setShowQrModal] = useState(false)
@@ -88,14 +65,33 @@ export default function HazardReportPage() {
       setIsQrPublicMode(params.get('mode') === 'qr')
       setPublicReportUrl(`${window.location.origin}/hazard-report?mode=qr`)
     }
-    const saved = localStorage.getItem('syspex_hazard_db')
-    if (saved) {
-      setHazards(JSON.parse(saved))
-    } else {
-      setHazards(INITIAL_HAZARDS)
-      localStorage.setItem('syspex_hazard_db', JSON.stringify(INITIAL_HAZARDS))
-    }
-  }, [])
+
+    // REAL-TIME LISTENER KE FIREBASE FIRESTORE
+    const q = query(collection(db, 'hazard_reports'), orderBy('createdAt', 'desc'))
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: HazardItem[] = snapshot.docs.map(d => d.data() as HazardItem)
+        setHazards(items)
+        // Sinkronkan juga ke cache lokal untuk indikator KPI & Notifikasi Beranda
+        localStorage.setItem('syspex_hazard_db', JSON.stringify(items))
+        window.dispatchEvent(new Event('syspex_hse_sync'))
+        setLoadingDb(false)
+        setDbError('')
+      },
+      (err) => {
+        console.error('Firestore error:', err)
+        setLoadingDb(false)
+        setDbError(
+          lang === 'ID'
+            ? 'Gagal terhubung ke Firebase Firestore. Pastikan Firestore Database sudah dibuat dalam Test Mode.'
+            : 'Failed to connect to Firebase Firestore. Ensure Firestore Database is created in Test Mode.'
+        )
+      }
+    )
+
+    return () => unsubscribe()
+  }, [lang])
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -109,12 +105,6 @@ export default function HazardReportPage() {
     return () => window.removeEventListener('keydown', handleEsc)
   }, [])
 
-  const saveHazards = (updated: HazardItem[]) => {
-    setHazards(updated)
-    localStorage.setItem('syspex_hazard_db', JSON.stringify(updated))
-    window.dispatchEvent(new Event('syspex_hse_sync'))
-  }
-
   const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhotoError('')
     const file = e.target.files?.[0]
@@ -125,14 +115,14 @@ export default function HazardReportPage() {
       const img = new Image()
       img.onload = () => {
         const canvas = document.createElement('canvas')
-        const MAX_WIDTH = 800
+        const MAX_WIDTH = 720
         const scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1
         canvas.width = img.width * scale
         canvas.height = img.height * scale
         const ctx = canvas.getContext('2d')
         if (ctx) {
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-          setNewPhoto(canvas.toDataURL('image/jpeg', 0.72))
+          setNewPhoto(canvas.toDataURL('image/jpeg', 0.65))
         }
       }
       img.onerror = () => setPhotoError(lang === 'ID' ? 'Gagal memproses gambar.' : 'Failed to process image.')
@@ -142,36 +132,52 @@ export default function HazardReportPage() {
     e.target.value = ''
   }
 
-  const handleAddHazard = (e: React.FormEvent) => {
+  const handleAddHazard = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newLoc.trim() || !newDesc.trim()) return
+    if (!newLoc.trim() || !newDesc.trim() || submitting) return
 
-    const nowTime = new Date().toTimeString().slice(0, 5)
-    const generatedId = `HZD-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
-    const newItem: HazardItem = {
-      id: generatedId,
-      date: todayDate || new Date().toISOString().split('T')[0],
-      time: nowTime,
-      category: newCategory,
-      location: newLoc.trim(),
-      description: newDesc.trim(),
-      riskLevel: newRisk,
-      suggestedAction: newAction.trim() || (lang === 'ID' ? 'Menunggu peninjauan tim HSE' : 'Pending HSE review'),
-      hseNotes: '',
-      reporter: newReporter.trim() || 'Anonim',
-      photoDataUrl: newPhoto || undefined,
-      status: 'OPEN'
+    setSubmitting(true)
+    setDbError('')
+
+    try {
+      const nowTime = new Date().toTimeString().slice(0, 5)
+      const generatedId = `HZD-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
+      const newItem: HazardItem = {
+        id: generatedId,
+        date: todayDate || new Date().toISOString().split('T')[0],
+        time: nowTime,
+        category: newCategory,
+        location: newLoc.trim(),
+        description: newDesc.trim(),
+        riskLevel: newRisk,
+        suggestedAction: newAction.trim() || (lang === 'ID' ? 'Menunggu peninjauan tim HSE' : 'Pending HSE review'),
+        hseNotes: '',
+        reporter: newReporter.trim() || 'Anonim',
+        ...(newPhoto ? { photoDataUrl: newPhoto } : {}),
+        status: 'OPEN',
+        createdAt: Date.now()
+      }
+
+      await setDoc(doc(db, 'hazard_reports', generatedId), newItem)
+
+      setNewLoc('')
+      setNewDesc('')
+      setNewAction('')
+      setNewReporter('')
+      setNewRisk('MEDIUM')
+      setNewCategory('UNSAFE_CONDITION')
+      setNewPhoto(null)
+      setSubmittedTicket(generatedId)
+    } catch (err) {
+      console.error('Submit error:', err)
+      setDbError(
+        lang === 'ID'
+          ? 'Gagal mengirim laporan ke server Firebase. Periksa koneksi internet Anda.'
+          : 'Failed to send report to Firebase. Please check your internet connection.'
+      )
+    } finally {
+      setSubmitting(false)
     }
-
-    saveHazards([newItem, ...hazards])
-    setNewLoc('')
-    setNewDesc('')
-    setNewAction('')
-    setNewReporter('')
-    setNewRisk('MEDIUM')
-    setNewCategory('UNSAFE_CONDITION')
-    setNewPhoto(null)
-    setSubmittedTicket(generatedId)
   }
 
   const handleCopyQrUrl = async () => {
@@ -184,12 +190,20 @@ export default function HazardReportPage() {
     }
   }
 
-  const handleDelete = (id: string) => {
-    saveHazards(hazards.filter(h => h.id !== id))
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'hazard_reports', id))
+    } catch (err) {
+      console.error('Delete error:', err)
+    }
   }
 
-  const handleChangeStatus = (id: string, newStatus: Status) => {
-    saveHazards(hazards.map(h => (h.id === id ? { ...h, status: newStatus } : h)))
+  const handleChangeStatus = async (id: string, newStatus: Status) => {
+    try {
+      await updateDoc(doc(db, 'hazard_reports', id), { status: newStatus })
+    } catch (err) {
+      console.error('Status update error:', err)
+    }
   }
 
   const startEditNote = (item: HazardItem) => {
@@ -197,16 +211,20 @@ export default function HazardReportPage() {
     setNoteDraft(item.hseNotes || '')
   }
 
-  const saveHseNote = (id: string) => {
-    saveHazards(hazards.map(h => (h.id === id ? { ...h, hseNotes: noteDraft.trim() } : h)))
-    setEditingNoteId(null)
+  const saveHseNote = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'hazard_reports', id), { hseNotes: noteDraft.trim() })
+      setEditingNoteId(null)
+    } catch (err) {
+      console.error('Note update error:', err)
+    }
   }
 
   const dict = {
     ID: {
       breadcrumb: "Keselamatan Lapangan",
       title: "Hazard & Near-Miss Report",
-      subtitle: "Portal pelaporan lapangan terintegrasi dengan Dasbor KPI dan pelacakan CAPA HSE.",
+      subtitle: "Portal pelaporan lapangan tersinkronisasi real-time dengan Firebase Cloud & Dasbor KPI.",
       btn_qr: "Poster QR Code",
       btn_print: "Cetak Log Pelaporan",
       
@@ -228,7 +246,7 @@ export default function HazardReportPage() {
       p1_desc_ph: "Jelaskan kondisi tidak aman atau kejadian hampir celaka...",
       p1_action: "Saran Perbaikan Awal (Opsional)",
       p1_action_ph: "Contoh: Sudah dipasang pembatas sementara...",
-      btn_add: "Kirim Laporan",
+      btn_add: submitting ? "Mengirim..." : "Kirim Laporan",
       
       p2_title: "2. Register & Kontrol Tindak Lanjut HSE",
       th_id: "ID / Waktu",
@@ -255,7 +273,7 @@ export default function HazardReportPage() {
     EN: {
       breadcrumb: "Field Safety",
       title: "Hazard & Near-Miss Report",
-      subtitle: "Field reporting portal live-synced with Executive KPI Dashboard and HSE CAPA tracking.",
+      subtitle: "Field reporting portal live-synced with Firebase Cloud & Executive KPI Dashboard.",
       btn_qr: "QR Code Poster",
       btn_print: "Print Hazard Log",
       
@@ -277,7 +295,7 @@ export default function HazardReportPage() {
       p1_desc_ph: "Briefly describe the unsafe condition or close call...",
       p1_action: "Immediate Containment (Optional)",
       p1_action_ph: "e.g. Placed temporary safety cone...",
-      btn_add: "Submit Report",
+      btn_add: submitting ? "Submitting..." : "Submit Report",
       
       p2_title: "2. Hazard Register & HSE Follow-Up Control",
       th_id: "ID / Time",
@@ -308,7 +326,6 @@ export default function HazardReportPage() {
 
   // =========================================================================
   // TAMPILAN KHUSUS USER UMUM SAAT SCAN QR CODE (/hazard-report?mode=qr)
-  // Hanya formulir bersih, ramah layar HP, tanpa tabel database perusahaan
   // =========================================================================
   if (isQrPublicMode) {
     return (
@@ -327,6 +344,12 @@ export default function HazardReportPage() {
           </p>
         </div>
 
+        {dbError && (
+          <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-400 text-rose-800 dark:text-rose-200 text-xs font-bold rounded-[4px]">
+            {dbError}
+          </div>
+        )}
+
         {submittedTicket ? (
           <div className="bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 rounded-[4px] p-6 text-center space-y-4">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-600 text-white font-black text-lg">
@@ -334,15 +357,15 @@ export default function HazardReportPage() {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
-                {lang === 'ID' ? 'LAPORAN TERKIRIM' : 'REPORT SUBMITTED'}
+                {lang === 'ID' ? 'LAPORAN TERKIRIM KE SERVER HSE' : 'REPORT SENT TO HSE SERVER'}
               </p>
               <h2 className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1">
                 {submittedTicket}
               </h2>
               <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mt-2 leading-relaxed">
                 {lang === 'ID'
-                  ? 'Terima kasih telah menjaga keselamatan kerja. Tim HSE akan segera menindaklanjuti laporan Anda.'
-                  : 'Thank you for keeping our workplace safe. The HSE team will review your report promptly.'}
+                  ? 'Terima kasih telah menjaga keselamatan kerja. Laporan Anda sudah langsung diterima oleh tim HSE.'
+                  : 'Thank you for keeping our workplace safe. Your report has been received by the HSE team.'}
               </p>
             </div>
             <button
@@ -355,7 +378,6 @@ export default function HazardReportPage() {
           </div>
         ) : (
           <form onSubmit={handleAddHazard} className="bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-[4px] p-5 space-y-4 shadow-sm">
-            {/* Tombol Pilihan Kategori Besar (Ramah Jempol HP) */}
             <div>
               <span className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2">
                 {t.p1_cat} *
@@ -412,7 +434,6 @@ export default function HazardReportPage() {
               />
             </div>
 
-            {/* Tombol Kamera HP */}
             <div>
               <span className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 {t.p1_photo}
@@ -503,7 +524,7 @@ export default function HazardReportPage() {
 
             <button
               type="submit"
-              disabled={!newLoc.trim() || !newDesc.trim()}
+              disabled={!newLoc.trim() || !newDesc.trim() || submitting}
               className="w-full py-4 min-h-[50px] bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-xs font-black uppercase tracking-widest disabled:opacity-40 transition-colors shadow-sm"
             >
               {t.btn_add}
@@ -515,7 +536,7 @@ export default function HazardReportPage() {
   }
 
   // =========================================================================
-  // TAMPILAN ADMIN HSE LENGKAP (REGISTER, CAPA, POSTER QR, CETAK)
+  // TAMPILAN ADMIN HSE LENGKAP (REAL-TIME FIRESTORE SYNC)
   // =========================================================================
   const openCount = hazards.filter(h => h.status === 'OPEN').length
   const progressCount = hazards.filter(h => h.status === 'ON_PROGRESS').length
@@ -581,6 +602,12 @@ export default function HazardReportPage() {
           </div>
         </div>
       </div>
+
+      {dbError && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border-2 border-rose-400 text-rose-800 dark:text-rose-200 text-xs font-bold rounded-[4px] print:hidden">
+          {dbError}
+        </div>
+      )}
 
       {/* HEADER CETAK DOKUMEN REGISTER */}
       {!showQrModal && (
@@ -649,7 +676,7 @@ export default function HazardReportPage() {
         {submittedTicket && (
           <div role="status" className="p-4 bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-500 rounded-[4px] flex items-center justify-between gap-4 print:hidden">
             <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
-              {lang === 'ID' ? `Laporan berhasil disimpan dengan Nomor Tiket ${submittedTicket}.` : `Report saved under Ticket ${submittedTicket}.`}
+              {lang === 'ID' ? `Laporan berhasil disimpan ke Cloud dengan Nomor Tiket ${submittedTicket}.` : `Report saved to Cloud under Ticket ${submittedTicket}.`}
             </span>
             <button type="button" onClick={() => setSubmittedTicket('')} aria-label="Tutup pesan sukses" className="text-xs font-black text-emerald-700 dark:text-emerald-300 px-2 py-1">[X]</button>
           </div>
@@ -745,7 +772,7 @@ export default function HazardReportPage() {
             </div>
             
             <div className="md:col-span-4 flex justify-end">
-              <button type="submit" disabled={!newLoc.trim() || !newDesc.trim()} className="w-full sm:w-auto px-8 py-3 min-h-[44px] bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors">
+              <button type="submit" disabled={!newLoc.trim() || !newDesc.trim() || submitting} className="w-full sm:w-auto px-8 py-3 min-h-[44px] bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors">
                 {t.btn_add}
               </button>
             </div>
@@ -793,10 +820,16 @@ export default function HazardReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800/50 text-slate-900 dark:text-slate-100 print:divide-black transition-colors">
-                {displayedHazards.length === 0 ? (
+                {loadingDb ? (
+                  <tr>
+                    <td colSpan={9} className="py-8 text-center text-[10px] font-black uppercase tracking-wider text-teal-600">
+                      {lang === 'ID' ? 'MENGHUBUNGKAN KE FIREBASE CLOUD...' : 'SYNCING WITH FIREBASE CLOUD...'}
+                    </td>
+                  </tr>
+                ) : displayedHazards.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-8 text-center text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      {lang === 'ID' ? 'TIDAK ADA DATA TEMUAN PADA FILTER STATUS INI' : 'NO HAZARD RECORDS MATCHING THIS STATUS'}
+                      {lang === 'ID' ? 'BELUM ADA DATA TEMUAN DI FIREBASE' : 'NO HAZARD RECORDS IN FIREBASE YET'}
                     </td>
                   </tr>
                 ) : (
