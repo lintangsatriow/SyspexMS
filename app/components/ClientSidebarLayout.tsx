@@ -38,7 +38,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
 
   const dict = {
     EN: {
-      hub: "Main Hub", kpi: "KPI Dashboard", ai: "AI Copilot",
+      hub: "Main Hub", kpi: "HSE Performance Dashboard", ai: "AI Copilot",
       cat_ops: "HSE & Operations", ops_1: "Syspex Safety Rules", ops_4: "Toolbox Talk (TBM)", ops_5: "Hazard & Near-Miss", ops_6: "Safety Induction",
       cat_tech: "Work Control & Lifting", tech_3: "Lifting & Rigging",
       cat_mgmt: "Management & ISO", mgmt_1: "ISO 9001 Doc Control", mgmt_2: "ISO 14001 Waste Log", mgmt_3: "K3 Licenses & Riksa Uji"
