@@ -58,7 +58,7 @@ export default function ClientSidebarLayout({ children }: { children: React.Reac
 
   const mgmtMenu: NavItem[] = [
     { labelEN: "Document Management System", labelID: "Manajemen Dokumen", href: "/document-control" },
-    { labelEN: "ISO 14001 Waste Log", labelID: "Limbah B3 & Lingkungan", soon: true },
+    { labelEN: "TPS B3 & ISO 14001 Waste Log", labelID: "Pengelolaan TPS B3", href: "/waste-log" },
     { labelEN: "K3 Licenses & Riksa Uji", labelID: "Lisensi K3 & Riksa Uji", href: "/sio-silo" },
   ]
 
