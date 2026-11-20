@@ -277,7 +277,7 @@ export default function SyspexSafetyRulesPage() {
     setDbError('')
 
     try {
-      // Jika database belum di-seed, simpan dulu 6 aturan bawaan agar tidak hilang
+      // Seed default rules first if not synced
       if (!isSyncedWithDb) {
         for (const base of DEFAULT_RULES) {
           await setDoc(doc(db, 'safety_rules', base.id), base)
