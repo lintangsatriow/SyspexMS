@@ -1,3 +1,4 @@
+```tsx
 "use client"
 
 import { useState, useEffect, useId, useMemo, useRef } from 'react'
@@ -99,7 +100,7 @@ const TrendLineChart = ({
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">{title}</h2>
         </div>
         <div className="h-44 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-2 border-dashed border-slate-200 dark:border-slate-800">
-          {lang === 'ID' ? 'BELUM ADA DATA PADA PERIODE INI' : 'NO DATA FOR SELECTED PERIOD'}
+          NO DATA FOR SELECTED PERIOD
         </div>
       </div>
     )
@@ -259,7 +260,6 @@ export default function KpiDashboardPage() {
   const formId = useId()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [mounted, setMounted] = useState(false)
-  const [isImporting, setIsImporting] = useState(false)
 
   const currentYear = new Date().getFullYear()
   const [selectedYear, setSelectedYear] = useState<YearFilter>('ALL')
@@ -306,6 +306,7 @@ export default function KpiDashboardPage() {
     const savedTargets = localStorage.getItem('syspex_hse_targets')
     if (savedTargets) setTargets({ ...DEFAULT_TARGETS, ...JSON.parse(savedTargets) })
 
+    // Live Sync dengan Modul Hazard Report & SIO/SILO Tracker
     const syncOperationalModules = () => {
       const savedHazards = localStorage.getItem('syspex_hazard_db')
       if (savedHazards) {
@@ -350,9 +351,6 @@ export default function KpiDashboardPage() {
   const handleExcelFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    setIsImporting(true)
-    setImportStatus(null)
 
     try {
       const buffer = await file.arrayBuffer()
@@ -431,10 +429,7 @@ export default function KpiDashboardPage() {
       setImportStatus({ type: 'SUCCESS', text: `BERHASIL IMPORT ${monthlyDeptAgg.size} BLOK DATA DEPARTEMEN DARI "${file.name}".` })
     } catch {
       setImportStatus({ type: 'ERROR', text: 'Gagal import file. Pastikan format tabel memiliki kolom Nama, Tanggal, Durasi, dan Departemen.' })
-    } finally {
-      setIsImporting(false)
-      e.target.value = ''
-    }
+    } finally { e.target.value = '' }
   }
 
   const handleAddNewRecord = (e: React.FormEvent) => {
@@ -543,12 +538,12 @@ export default function KpiDashboardPage() {
     }
   }, [processedRecords, selectedYear, selectedPeriod, targets, lang])
 
+  // Kalkulasi Live Leading Indicators (Hazard Report & SIO/SILO)
   const activeOpenHazards = liveHazards.filter(h => h.status === 'OPEN' || h.status === 'ON_PROGRESS').length
   const closedHazardsCount = liveHazards.filter(h => h.status === 'CLOSED').length
   const liveCapaRate = liveHazards.length > 0 ? Math.round((closedHazardsCount / liveHazards.length) * 100) : 100
 
   const validSioCount = liveSioRecords.filter(s => {
-    if (!s.expiryDate || s.expiryDate === 'LIFETIME') return true
     const exp = new Date(s.expiryDate)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -560,15 +555,13 @@ export default function KpiDashboardPage() {
   const periodLabel = selectedYear === 'ALL' ? `2024 – ${Math.max(...availableYears)}` : `${selectedPeriod} ${selectedYear}`
   
   const t = lang === 'ID' 
-    ? { title: "HSE Performance Dashboard", btn_import: isImporting ? "Memproses Excel..." : "Import Excel HR (.xlsx)", btn_target: "Parameter Rumus", btn_print: "Cetak Laporan" } 
-    : { title: "HSE Performance Dashboard", btn_import: isImporting ? "Processing Excel..." : "Import HR Excel (.xlsx)", btn_target: "Formula Params", btn_print: "Print Report" }
+    ? { title: "HSE Performance Dashboard", btn_import: "Import Excel HR (.xlsx)", btn_target: "Parameter Rumus", btn_print: "Cetak Laporan" } 
+    : { title: "HSE Performance Dashboard", btn_import: "Import HR Excel (.xlsx)", btn_target: "Formula Params", btn_print: "Print Report" }
   
   if (!mounted) return null 
 
-  const rawInputClass = "w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-[2px] focus:outline-none focus:border-teal-500"
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-16 w-full">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-16 max-w-7xl mx-auto">
       <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelFileUpload} className="hidden" aria-label="Upload HR Excel file" />
 
       <div className="border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden transition-colors">
@@ -578,7 +571,7 @@ export default function KpiDashboardPage() {
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" disabled={isImporting} onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5 disabled:opacity-60">
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 bg-teal-700 hover:bg-teal-600 text-white rounded-[4px] text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5">
               <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" /></svg>
               {t.btn_import}
             </button>
@@ -594,8 +587,8 @@ export default function KpiDashboardPage() {
             <div className="flex items-center bg-slate-100 dark:bg-slate-900 px-2 py-1.5 border border-slate-300 dark:border-slate-700 rounded-[4px]">
               <label htmlFor={`${formId}-fdept`} className="text-[9px] font-black uppercase text-slate-500 mr-2">Dept:</label>
               <select id={`${formId}-fdept`} value={selectedDeptFilter} onChange={e => setSelectedDeptFilter(e.target.value)} className="bg-transparent text-[10px] font-black text-teal-700 dark:text-teal-400 focus:outline-none">
-                <option value="ALL" className="dark:bg-slate-950">SEMUA DEPARTEMEN</option>
-                {DEPARTMENTS.map(d => <option key={d} value={d} className="dark:bg-slate-950">{d}</option>)}
+                <option value="ALL">SEMUA DEPARTEMEN</option>
+                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
 
@@ -603,19 +596,15 @@ export default function KpiDashboardPage() {
               <div className={`flex items-center gap-2 px-2 ${selectedYear !== 'ALL' ? 'border-r border-slate-300 dark:border-slate-700' : ''}`}>
                 <label htmlFor={`${formId}-fyear`} className="text-[9px] font-black uppercase text-slate-500">Year:</label>
                 <select id={`${formId}-fyear`} value={selectedYear} onChange={(e) => setSelectedYear(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none">
-                  <option value="ALL" className="dark:bg-slate-950">ALL YEARS</option>
-                  {availableYears.map(y => <option key={y} value={y} className="dark:bg-slate-950">{y}</option>)}
+                  <option value="ALL">ALL YEARS</option>
+                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
               {selectedYear !== 'ALL' && (
                 <div className="flex items-center gap-2 px-2">
                   <label htmlFor={`${formId}-fperiod`} className="text-[9px] font-black uppercase text-slate-500">Period:</label>
                   <select id={`${formId}-fperiod`} value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value as PeriodFilter)} className="bg-transparent text-[10px] font-black text-slate-900 dark:text-white focus:outline-none">
-                    <option value="YTD" className="dark:bg-slate-950">YTD</option>
-                    <option value="Q1" className="dark:bg-slate-950">Q1</option>
-                    <option value="Q2" className="dark:bg-slate-950">Q2</option>
-                    <option value="Q3" className="dark:bg-slate-950">Q3</option>
-                    <option value="Q4" className="dark:bg-slate-950">Q4</option>
+                    <option value="YTD">YTD</option><option value="Q1">Q1</option><option value="Q2">Q2</option><option value="Q3">Q3</option><option value="Q4">Q4</option>
                   </select>
                 </div>
               )}
@@ -630,39 +619,39 @@ export default function KpiDashboardPage() {
               <span className="text-[9px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400">
                 PARAMETER KALKULASI EARLY WARNING (100%) & FATIGUE LIMIT (+10%)
               </span>
-              <button type="button" onClick={() => setShowTargetConfig(false)} aria-label="Tutup Panel Parameter" className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-900 dark:hover:text-white">
+              <button type="button" onClick={() => setShowTargetConfig(false)} className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-900 dark:hover:text-white">
                 [X]
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div>
                 <label htmlFor={`${formId}-t-trir`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">MAX TRIR</label>
-                <input id={`${formId}-t-trir`} type="number" step="0.1" value={targets.trirMax} onChange={e => updateTargetField('trirMax', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+                <input id={`${formId}-t-trir`} type="number" step="0.1" value={targets.trirMax} onChange={e => updateTargetField('trirMax', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
               </div>
               <div>
                 <label htmlFor={`${formId}-t-lti`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">MAX LTI</label>
-                <input id={`${formId}-t-lti`} type="number" min="0" value={targets.ltiMax} onChange={e => updateTargetField('ltiMax', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+                <input id={`${formId}-t-lti`} type="number" min="0" value={targets.ltiMax} onChange={e => updateTargetField('ltiMax', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
               </div>
               <div>
                 <label htmlFor={`${formId}-t-wdays`} className="block text-[8px] font-black text-teal-600 uppercase tracking-widest mb-1">HARI KERJA / BULAN</label>
-                <input id={`${formId}-t-wdays`} type="number" min="1" max="31" value={targets.workingDaysPerMonth} onChange={e => updateTargetField('workingDaysPerMonth', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+                <input id={`${formId}-t-wdays`} type="number" min="1" max="31" value={targets.workingDaysPerMonth} onChange={e => updateTargetField('workingDaysPerMonth', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
               </div>
               <div>
                 <label htmlFor={`${formId}-t-whrs`} className="block text-[8px] font-black text-teal-600 uppercase tracking-widest mb-1">JAM KERJA / HARI</label>
-                <input id={`${formId}-t-whrs`} type="number" min="1" max="24" value={targets.hoursPerDay} onChange={e => updateTargetField('hoursPerDay', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+                <input id={`${formId}-t-whrs`} type="number" min="1" max="24" value={targets.hoursPerDay} onChange={e => updateTargetField('hoursPerDay', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
               </div>
               <div>
                 <label htmlFor={`${formId}-t-defhc`} className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">DEFAULT HC (JIKA 0)</label>
-                <input id={`${formId}-t-defhc`} type="number" min="1" value={targets.defaultHeadcount} onChange={e => updateTargetField('defaultHeadcount', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-[2px]" />
+                <input id={`${formId}-t-defhc`} type="number" min="1" value={targets.defaultHeadcount} onChange={e => updateTargetField('defaultHeadcount', Number(e.target.value))} className="w-full px-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px]" />
               </div>
             </div>
           </div>
         )}
 
         {importStatus && (
-          <div className={`mb-4 p-3 border-2 rounded-[4px] flex items-center justify-between gap-4 text-[10px] font-black uppercase tracking-widest ${importStatus.type === 'SUCCESS' ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300'}`}>
+          <div className={`mb-4 p-3 border-2 rounded-[4px] flex items-center justify-between gap-4 text-[10px] font-black uppercase tracking-widest ${importStatus.type === 'SUCCESS' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'}`}>
             <span>{importStatus.text}</span>
-            <button type="button" aria-label="Tutup pesan status" onClick={() => setImportStatus(null)}>[X]</button>
+            <button type="button" onClick={() => setImportStatus(null)}>[X]</button>
           </div>
         )}
         
@@ -679,7 +668,7 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* HEADER CETAK DOKUMEN */}
+      {/* HEADER CETAK DOKUMEN (PRINT) */}
       <div className="hidden print:block border-b-4 border-black pb-4 mb-6">
         <div className="flex justify-between items-end">
           <div>
@@ -706,7 +695,7 @@ export default function KpiDashboardPage() {
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">TRIR (Total Recordable Incident Rate)</p>
             <div className="flex items-end gap-2"><span className={`text-3xl xl:text-4xl font-black font-mono ${filteredData.trirNum > targets.trirMax ? 'text-rose-600 dark:text-rose-500' : 'text-slate-900 dark:text-white'}`}>{filteredData.trir}</span><span className="text-[9px] font-bold text-slate-400 mb-1">/ 200K HRS</span></div>
           </div>
-          <div className={`p-5 rounded-[4px] border-2 print:border-black transition-colors ${filteredData.totalLti > targets.ltiMax ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'}`}>
+          <div className={`p-5 rounded-[4px] border-2 print:border-black transition-colors ${filteredData.totalLti > targets.ltiMax ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900'}`}>
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Lost Time Injury (LTI)</p>
             <div className="flex items-end gap-2"><span className={`text-3xl xl:text-4xl font-black font-mono ${filteredData.totalLti > targets.ltiMax ? 'text-rose-600 dark:text-rose-500' : 'text-emerald-600 dark:text-emerald-500'}`}>{filteredData.totalLti}</span><span className="text-[9px] font-bold text-slate-400 mb-1">CASES</span></div>
           </div>
@@ -721,7 +710,7 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* LEADING INDICATORS */}
+      {/* LEADING INDICATORS (LIVE SYNC DARI MODUL HAZARD REPORT & SIO/SILO) */}
       <div className="mt-6">
         <div className="flex justify-between items-center border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-4 print:border-black">
           <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white print:text-black">
@@ -750,7 +739,7 @@ export default function KpiDashboardPage() {
           </Link>
 
           <Link href="/sio-silo" className="bg-white dark:bg-[#0b0f19] border-2 border-slate-200 dark:border-slate-800 hover:border-teal-600 p-5 rounded-[4px] print:border-black transition-colors block">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">K3 Licenses & Riksa Uji</p>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">SIO / SILO Validity</p>
             <div className="flex items-end gap-2">
               <span className={`text-3xl xl:text-4xl font-black font-mono ${liveSioValidity < 100 ? 'text-amber-600 dark:text-amber-400' : 'text-teal-600 dark:text-teal-400'}`}>{liveSioValidity}%</span>
               <span className="text-[9px] font-bold text-slate-400 mb-1">({validSioCount}/{liveSioRecords.length} VALID)</span>
@@ -786,73 +775,31 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* INPUT DATABASE & TABEL (ACCESSIBLE LABELS + FULL DARK MODE) */}
+      {/* INPUT DATABASE & TABEL (RAW DATA) */}
       <div className="mt-12 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-[4px] p-5 print:hidden">
         <p className="text-[9px] font-black mb-4 text-slate-700 dark:text-slate-300 uppercase">Input & Log Histori Mentah</p>
         <form onSubmit={handleAddNewRecord} className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-11 gap-3 items-end">
-          <div>
-            <label htmlFor={`${formId}-in-year`} className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">Tahun</label>
-            <input id={`${formId}-in-year`} type="number" value={inputYear} onChange={e=>setInputYear(Number(e.target.value))} className={rawInputClass} />
-          </div>
-          <div>
-            <label htmlFor={`${formId}-in-month`} className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">Bulan</label>
-            <input id={`${formId}-in-month`} type="number" value={inputMonth} min={1} max={12} onChange={e=>setInputMonth(Number(e.target.value))} className={rawInputClass} />
-          </div>
-          <div className="col-span-2">
-            <label htmlFor={`${formId}-in-dept`} className="block text-[8px] font-black text-teal-600 dark:text-teal-400 uppercase mb-1">Departemen</label>
-            <select id={`${formId}-in-dept`} value={inputDept} onChange={e=>setInputDept(e.target.value)} className={rawInputClass}>
-              {DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <div>
-            <label htmlFor={`${formId}-in-hc`} className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">H-Count</label>
-            <input id={`${formId}-in-hc`} type="number" value={inputHeadcount} onChange={e=>setInputHeadcount(Number(e.target.value) || '')} className={rawInputClass} />
-          </div>
-          <div>
-            <label htmlFor={`${formId}-in-md`} className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">M-Days</label>
-            <input id={`${formId}-in-md`} type="number" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className={rawInputClass} />
-          </div>
-          <div>
-            <label htmlFor={`${formId}-in-mh`} className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">M-Hours</label>
-            <input id={`${formId}-in-mh`} type="number" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className={rawInputClass} />
-          </div>
-          <div>
-            <label htmlFor={`${formId}-in-lti`} className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">LTI</label>
-            <input id={`${formId}-in-lti`} type="number" value={inputLti} onChange={e=>setInputLti(Number(e.target.value))} className={rawInputClass} />
-          </div>
-          <div>
-            <label htmlFor={`${formId}-in-inc`} className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">Incidents</label>
-            <input id={`${formId}-in-inc`} type="number" value={inputIncidents} onChange={e=>setInputIncidents(Number(e.target.value))} className={rawInputClass} />
-          </div>
-          <div>
-            <label htmlFor={`${formId}-in-haz`} className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">Hazards</label>
-            <input id={`${formId}-in-haz`} type="number" value={inputHazards} onChange={e=>setInputHazards(Number(e.target.value))} className={rawInputClass} />
-          </div>
-          <div>
-            <button type="submit" disabled={inputManHours==='' || inputManDays==='' || inputHeadcount===''} className="w-full py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-[9px] font-black uppercase rounded-[2px] h-[30px] disabled:opacity-50">Save</button>
-          </div>
+          <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">Tahun</label><input type="number" value={inputYear} onChange={e=>setInputYear(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
+          <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">Bulan</label><input type="number" value={inputMonth} min={1} max={12} onChange={e=>setInputMonth(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
+          <div className="col-span-2"><label className="block text-[8px] font-black text-teal-600 uppercase mb-1">Departemen</label><select value={inputDept} onChange={e=>setInputDept(e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]">{DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}</select></div>
+          <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">H-Count</label><input type="number" value={inputHeadcount} onChange={e=>setInputHeadcount(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
+          <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">M-Days</label><input type="number" value={inputManDays} onChange={e=>setInputManDays(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
+          <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">M-Hours</label><input type="number" value={inputManHours} onChange={e=>setInputManHours(Number(e.target.value) || '')} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
+          <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">LTI</label><input type="number" value={inputLti} onChange={e=>setInputLti(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
+          <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">Incidents</label><input type="number" value={inputIncidents} onChange={e=>setInputIncidents(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
+          <div><label className="block text-[8px] font-black text-slate-500 uppercase mb-1">Hazards</label><input type="number" value={inputHazards} onChange={e=>setInputHazards(Number(e.target.value))} className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border rounded-[2px]" /></div>
+          <div><button type="submit" disabled={inputManHours==='' || inputManDays==='' || inputHeadcount===''} className="w-full py-1.5 bg-teal-700 hover:bg-teal-600 text-white text-[9px] font-black uppercase rounded-[2px] h-[30px] disabled:opacity-50">Save</button></div>
         </form>
 
         <div className="mt-6 flex gap-1.5 border-b border-slate-300 dark:border-slate-700 pb-2">
           {availableYears.map(yr => (
-            <button
-              type="button"
-              key={yr}
-              onClick={() => { setTableYearTab(yr); setEditingCell(null) }}
-              className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-[2px] border transition-colors ${
-                tableYearTab === yr
-                  ? 'bg-slate-900 dark:bg-teal-700 text-white border-slate-900 dark:border-teal-600'
-                  : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-teal-500'
-              }`}
-            >
-              {yr}
-            </button>
+            <button type="button" key={yr} onClick={() => { setTableYearTab(yr); setEditingCell(null) }} className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-[2px] border ${tableYearTab === yr ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border-slate-300'}`}>{yr}</button>
           ))}
         </div>
 
         <div className="mt-3 border border-slate-300 dark:border-slate-700 rounded-[2px] overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-200 dark:bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">
+            <thead className="bg-slate-200 dark:bg-slate-800 text-[8px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
               <tr>
                 <th className="py-2 px-3 w-16">BLN</th>
                 <th className="py-2 px-3">DEPT</th>
@@ -867,35 +814,27 @@ export default function KpiDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300">
-              {tableYearRecords.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    BELUM ADA DATA HISTORIS PADA TAHUN {tableYearTab}
-                  </td>
-                </tr>
-              ) : (
-                tableYearRecords.map(r => {
-                  const renderCell = (field: EditableField, val: number) => {
-                    const isEditing = editingCell?.id === r.id && editingCell?.field === field
-                    if (isEditing) return <input type="number" aria-label={`Edit ${field}`} autoFocus value={cellDraftValue} onChange={e => setCellDraftValue(e.target.value)} onBlur={commitCellEdit} onKeyDown={e => e.key === 'Enter' && commitCellEdit()} className="w-16 px-1 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-2 border-teal-500 rounded-[2px]" />
-                    return <button type="button" onClick={() => startCellEdit(r, field)} className="text-left font-mono px-1 py-0.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-[2px]">{val.toLocaleString('en-US')}</button>
-                  }
-                  return (
-                    <tr key={r.id} className="hover:bg-white/60 dark:hover:bg-slate-950/60">
-                      <td className="py-2 px-3 font-black">{r.month}</td>
-                      <td className="py-1.5 px-3 font-black text-teal-700 dark:text-teal-400">{r.department}</td>
-                      <td className="py-1.5 px-3">{renderCell('headcount', r.headcount)}</td>
-                      <td className="py-1.5 px-3">{renderCell('manDays', r.manDays)}</td>
-                      <td className="py-1.5 px-3">{renderCell('manHours', r.manHours)}</td>
-                      <td className="py-1.5 px-3">{renderCell('lti', r.lti)}</td>
-                      <td className="py-1.5 px-3">{renderCell('spills', r.spills)}</td>
-                      <td className="py-1.5 px-3 text-rose-600 dark:text-rose-400">{renderCell('recordableIncidents', r.recordableIncidents)}</td>
-                      <td className="py-1.5 px-3">{renderCell('hazardReports', r.hazardReports)}</td>
-                      <td className="py-1.5 px-3 text-center"><button type="button" aria-label={`Hapus baris bulan ${r.month} ${r.department}`} onClick={() => handleDeleteRecord(r.id)} className="text-slate-400 hover:text-rose-600">[X]</button></td>
-                    </tr>
-                  )
-                })
-              )}
+              {tableYearRecords.map(r => {
+                const renderCell = (field: EditableField, val: number) => {
+                  const isEditing = editingCell?.id === r.id && editingCell?.field === field
+                  if (isEditing) return <input type="number" autoFocus value={cellDraftValue} onChange={e => setCellDraftValue(e.target.value)} onBlur={commitCellEdit} onKeyDown={e => e.key === 'Enter' && commitCellEdit()} className="w-16 px-1 py-0.5 text-[10px] font-mono border-2 border-teal-500 rounded-[2px]" />
+                  return <button type="button" onClick={() => startCellEdit(r, field)} className="text-left font-mono px-1 py-0.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-[2px]">{val.toLocaleString('en-US')}</button>
+                }
+                return (
+                  <tr key={r.id} className="hover:bg-white/60 dark:hover:bg-slate-950/60">
+                    <td className="py-2 px-3 font-black">{r.month}</td>
+                    <td className="py-1.5 px-3 font-black text-teal-700 dark:text-teal-400">{r.department}</td>
+                    <td className="py-1.5 px-3">{renderCell('headcount', r.headcount)}</td>
+                    <td className="py-1.5 px-3">{renderCell('manDays', r.manDays)}</td>
+                    <td className="py-1.5 px-3">{renderCell('manHours', r.manHours)}</td>
+                    <td className="py-1.5 px-3">{renderCell('lti', r.lti)}</td>
+                    <td className="py-1.5 px-3">{renderCell('spills', r.spills)}</td>
+                    <td className="py-1.5 px-3 text-rose-600">{renderCell('recordableIncidents', r.recordableIncidents)}</td>
+                    <td className="py-1.5 px-3">{renderCell('hazardReports', r.hazardReports)}</td>
+                    <td className="py-1.5 px-3 text-center"><button type="button" aria-label="Hapus Baris" onClick={() => handleDeleteRecord(r.id)} className="text-slate-400 hover:text-rose-600">[X]</button></td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -911,7 +850,7 @@ export default function KpiDashboardPage() {
             </div>
             <div className="space-y-4 text-xs font-bold text-slate-700 dark:text-slate-300">
               <p>Grafik menampilkan data spesifik berdasarkan Departemen yang dipilih. Garis peringatan otomatis dihitung menggunakan jumlah orang nyata di departemen tersebut.</p>
-              <div className="bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 rounded-[2px] font-mono"><p className="text-[11px] text-slate-900 dark:text-white">Early Warning = Headcount x Jam/Hari x Hari Kerja</p></div>
+              <div className="bg-slate-50 dark:bg-slate-950 p-4 border rounded-[2px] font-mono"><p className="text-[11px] text-slate-900 dark:text-white">Early Warning = Headcount x Jam/Hari x Hari Kerja</p></div>
             </div>
           </div>
         </div>
@@ -919,3 +858,4 @@ export default function KpiDashboardPage() {
     </div>
   )
 }
+```
